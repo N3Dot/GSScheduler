@@ -21,7 +21,7 @@ jobs:
       # Step 2: This is the magic. It runs the Buildozer Action you wanted.
       # It will automatically find your buildozer.spec file and build the APK.
       - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1.2.1 # Use the action from the repository you linked
+        uses: ArtemSBulgakov/buildozer-action@v1.2.0 # Use the action from the repository you linked
         with:
           # You can specify the command here. 'debug' is great for testing.
           # Change to 'release' when you are ready to publish.
