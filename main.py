@@ -39,25 +39,31 @@ MDScreen:
 
                     MDScreen:
                         name: "Phiên Học"
-                        MDLabel:
-                            text: "Sub Screen 1 - Schedules"
                         MDBoxLayout:
-                            md_bg_color: self.theme_cls.onSurfaceVariantColor
+                            md_bg_color: self.theme_cls.backgroundColor
                             pos_hint: {"center_y": 0.5}
                             FitImage:
                                 source: f"https://picsum.photos/600/400"
+
                                 size_hint_y: .35
                                 pos_hint: {"top": 1}
+
+                        MDBoxLayout:
+                            MDLabel:
+                                text: "Subscreen 1 - Schedules"
+                                halign: "center"
 
                     MDScreen:
                         name: "Anh Hùng"
                         MDLabel:
-                            text: "Sub Screen 2 - Character"
+                            text: "Subscreen 2 - Character"
+                            halign: "center"
                     
                     MDScreen:
                         name: "Cửa Hàng"
                         MDLabel:
-                            text: "Sub Screen 3 - Shop"
+                            text: "Subscreen 3 - Shop"
+                            halign: "center"
                 
                 MDNavigationBar:
                     on_switch_tabs: app.on_home_switch_tab(*args)
