@@ -1,0 +1,60 @@
+<ItemShopCard>:
+    orientation: "vertical"
+    size_hint: None, None
+    size: dp(107), dp(170)
+    padding: dp(10)
+    radius: [16]
+    elevation: 4
+    MDBoxLayout:
+        size_hint: None, None
+        # Size = Image (32×32) + Padding (4 each side) = 36 + 4*2 = 44
+        size: dp(44), dp(44)
+        padding: dp(4)
+        pos_hint: {"center_x": 0.5}
+        canvas.before:
+            # 1) Fill outer line
+            Color:
+                rgba: root.borderColor
+            Line:
+                width: dp(1)
+                rounded_rectangle: (self.x, self.y, self.width, self.height, 10)
+            # 2) Fill inner area
+            Color:
+                rgba: root.backgroundColor
+            RoundedRectangle:
+                size: (self.width, self.height)
+                pos: (self.x, self.y)
+                radius: [10]
+        FitImage:
+            source: root.icon
+            size_hint: None, None
+            size: dp(36), dp(36)
+            allow_stretch: True
+            keep_ratio: True
+    
+    Widget: # Padding
+        size_hint_y: None
+        height: dp(8)
+    MDLabel:
+        text: root.name
+        halign: "center"
+        theme_text_color: "Custom"
+        text_color: root.textColor
+        font_style: "Title"
+        role: "small"
+    MDLabel:
+        text: f"{root.price}G"
+        halign: "center"
+        theme_text_color: "Custom"
+        text_color: app.theme_cls.secondaryColor
+        font_style: "Body"
+        role: "medium"
+    MDButton:
+        style: "elevated"
+        size_hint: None, None
+        pos_hint: {"center_x": .5, "center_y": .5}
+        MDButtonIcon:
+            icon: "package-variant"
+        MDButtonText:
+            text: "Mua"
+            role: "medium"
