@@ -1,0 +1,35 @@
+# A name for your workflow, which will show up in the "Actions" tab of your GitHub repo
+name: Build Android APK
+
+# This section defines WHEN the action should run
+on:
+  push:
+    branches: [ "main", "master" ] # Runs whenever you push to the 'main' or 'master' branch
+  pull_request:
+    branches: [ "main", "master" ] # Also runs on pull requests to those branches
+
+# This section defines the actual STEPS the robot will take
+jobs:
+  build:
+    # The type of virtual machine to run the job on. 'ubuntu-latest' is perfect.
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checks out your repository's code so the job can access it
+      - uses: actions/checkout@v4
+
+      # Step 2: This is the magic. It runs the Buildozer Action you wanted.
+      # It will automatically find your buildozer.spec file and build the APK.
+      - name: Build with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1.2.1 # Use the action from the repository you linked
+        with:
+          # You can specify the command here. 'debug' is great for testing.
+          # Change to 'release' when you are ready to publish.
+          command: buildozer android debug
+
+      # Step 3: This takes the APK file from the virtual machine and saves it as a "workflow artifact", which you can download.
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: package # The name of the downloadable file collection
+          path: bin/*.apk # The path to the file(s) to upload. Buildozer puts the APK in the 'bin' folder.
