@@ -1,0 +1,62 @@
+<ScheduleCharacterCard>:
+    md_bg_color: self.theme_cls.primaryColor
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: "125dp"
+    padding: "16dp"
+    spacing: "20dp"
+    # --- Character Portrait ---
+    MDCard:
+        style: "filled"
+        radius: [10, ]
+        padding: "8dp"
+        size_hint_x: 0.3
+        FitImage:
+            source: root.imagePath
+            radius: [10, ]
+    # --- Character Stats ---
+    MDScrollView:
+        do_scroll_x: False
+        size_hint_x: 0.7
+        MDBoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            adaptive_height: True
+            spacing: "8dp"
+            MDLabel:
+                text: root.name
+                font_style: "Title"
+                role: "small"
+                bold: True
+                theme_text_color: "Custom"
+                text_color: self.theme_cls.surfaceBrightColor
+                adaptive_height: True
+            
+            BarWide:
+                statName: " HP"
+                current: root.hpCurrent
+                max: root.hpMax
+                isLight: True
+            BarWide:
+                statName: " XP"
+                current: root.xpCurrent
+                max: root.xpMax
+                isLight: True
+            
+            MDBoxLayout:
+                orientation: "horizontal"
+                adaptive_height: True
+                spacing: "4dp"
+                MDIcon:
+                    icon: "database"
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryContainerColor
+                    theme_font_size: "Custom"
+                    font_size: "16dp"
+                MDLabel:
+                    text: f"[b]Vàng:[/b] {int(root.goldAmount):,}G"
+                    markup: True
+                    font_style: "Body"
+                    role: "small"
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryContainerColor

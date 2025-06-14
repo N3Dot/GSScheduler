@@ -1,0 +1,27 @@
+<GoldCounterCard>:
+    radius: [25, ]  # This makes the corners fully rounded.
+    theme_line_color: "Custom"
+    line_color: (0.8, 0.6, 0, 1)
+    style: "outlined" # This style uses the line_color.
+    padding: "8dp" # Space inside the border.
+    size_hint: None, None
+    size: dp(100), dp(20)
+
+    MDBoxLayout:
+        orientation: "horizontal"
+        MDIcon:
+            icon: "database"
+            pos_hint: {'center_y': 0.6}
+            theme_font_size: "Custom"
+            font_size: "16dp"
+            theme_text_color: "Custom"
+            text_color: (1, 0.8, 0, 1)
+
+        MDLabel:
+            text: f"{int(root.goldAmount):,}G"
+            halign: "center"
+            pos_hint: {'center_y': 0.4}
+            font_style: "Body"
+            role: "small"
+            theme_text_color: "Custom"
+            text_color: (0.6, 0.4, 0, 1)

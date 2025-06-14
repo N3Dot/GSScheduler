@@ -1,27 +1,27 @@
+from kivy.config import Config
 from kivy.lang import Builder
 from kivy.utils import platform
-from kivy.clock import Clock
+from kivy.clock import Clock # Clock.schedule_once()
 from kivy.metrics import dp
-from kivy.properties import StringProperty
-
-from kivymd.app import MDApp
-from kivymd.uix.navigationbar import MDNavigationBar, MDNavigationItem
-from kivymd.uix.snackbar import MDSnackbar, MDSnackbarButtonContainer, MDSnackbarCloseButton, MDSnackbarSupportingText
-
 if platform not in ('android', 'ios'):
+    Config.set('graphics', 'resizable', False)
     from kivy.core.window import Window
     Window.size = (370, 740) # Note 8 Vertical View
+    # Window.always_on_top = True
 
-class HomeMenuItem(MDNavigationItem):
-    icon = StringProperty()
-    text = StringProperty()
+from kivymd.app import MDApp
+from kivymd.uix.menu import MDDropdownMenu
+from kivymd.uix.card import MDCard
+from kivymd.uix.chip import MDChip, MDChipText, MDChipLeadingIcon
+from kivymd.uix.navigationbar import MDNavigationBar, MDNavigationItem
+from kivymd.uix.snackbar import MDSnackbar, MDSnackbarButtonContainer, MDSnackbarCloseButton, MDSnackbarSupportingText
+from Backend import Code, UI
 
 KV = '''
-<HomeMenuItem>
-    MDNavigationItemIcon:
-        icon: root.icon
-    MDNavigationItemLabel:
-        text: root.text
+<MenuButton@MDFabButton>:
+    pos_hint: {"x": 0.02, "top": 0.99}
+    icon: "menu"
+    style: "small"
 
 MDScreen:
     md_bg_color: self.theme_cls.backgroundColor
@@ -37,59 +37,178 @@ MDScreen:
                 MDScreenManager:
                     id: screen_manager_home
 
+                    # --- Schedules Start Section ---
                     MDScreen:
                         name: "Phiên Học"
                         MDBoxLayout:
-                            md_bg_color: self.theme_cls.backgroundColor
-                            pos_hint: {"center_y": 0.5}
-                            FitImage:
-                                source: f"https://picsum.photos/600/400"
+                            orientation: "vertical"
+                            MDBoxLayout:
+                                size_hint_y: None  # CRUCIAL: Disables vertical size scaling.
+                                height: "175dp"    # CRUCIAL: Sets a fixed height.
+                                md_bg_color: app.theme_cls.primaryColor
+                                spacing: "10dp"
+                                orientation: 'vertical'
+                                MDBoxLayout:
+                                    MDLabel:
+                                        text: "2 Phiên Học"
+                                        halign: "center"
+                                        pos_hint: {"center_y": 0.15}
+                                        font_style: "Title"
+                                        theme_text_color: "Custom"
+                                        text_color: 1, 1, 1, 1
+                                ScheduleCharacterCard:
+                                    name: "Nguyễn Văn A"
+                                    level: 15
+                                    hpCurrent: 50
+                                    hpMax: 100
+                                    xpCurrent: 145
+                                    xpMax: 145
+                                    goldAmount: 500
+                            
+                            MDBoxLayout:
+                                size_hint_y: None
+                                height: "25dp"
+                                md_bg_color: app.theme_cls.primaryColor
 
-                                size_hint_y: .35
-                                pos_hint: {"top": 1}
+                            MDBoxLayout:
+                                orientation: "vertical"
+                                size_hint_y: None
+                                height: "50dp"
 
-                        MDBoxLayout:
-                            MDLabel:
-                                text: "Subscreen 1 - Schedules"
-                                halign: "center"
+                            MDScrollView:
+                                do_scroll_x: False
+                                MDBoxLayout:
+                                    id: schedule_grid
+                                    orientation: "vertical"
+                                    adaptive_height: True
+                                    padding: dp(15), dp(0), dp(15), dp(90)
+                                    spacing: dp(10)
+                        
+                        MDFabButton:
+                            icon: "plus"
+                            pos_hint: {'x': 0.41, 'y': 0.69}
+                    # --- Schedules End Section ---
 
+                    # --- Character Start Section ---
                     MDScreen:
                         name: "Anh Hùng"
-                        MDLabel:
-                            text: "Subscreen 2 - Character"
-                            halign: "center"
+                        MDBoxLayout:
+                            orientation: "vertical"
+                            CharacterCard:
+                                name: "Nguyễn Văn A"
+                                title: "Hạng Tân Binh"
+                                level: 15
+                                hpCurrent: 50
+                                hpMax: 100
+                                xpCurrent: 145
+                                xpMax: 145
+                                dex: 10
+                                int: 15
+                                luk: 25
+                            MDBoxLayout:
+                                orientation: "vertical"
+                                Widget:
+                                MDButton:
+                                    style: "elevated"
+                                    pos_hint: {"center_x": 0.5}
+                                    MDButtonText:
+                                        text: "Đang Thi Công..."
+                                    MDButtonIcon:
+                                        icon: "progress-wrench"
+                                Widget:
+                    # --- Character End Section ---
                     
+                    # --- Shop Start Section ---
                     MDScreen:
                         name: "Cửa Hàng"
-                        MDLabel:
-                            text: "Subscreen 3 - Shop"
-                            halign: "center"
+                        MDBoxLayout:
+                            orientation: "vertical"
+                            MDBoxLayout:
+                                size_hint_y: None  # CRUCIAL: Disables vertical size scaling.
+                                height: "120dp"    # CRUCIAL: Sets a fixed height.
+                                md_bg_color: app.theme_cls.primaryColor
+                                padding: "10dp"
+                                orientation: 'vertical'
+                                MDLabel:
+                                    text: "Gian Hàng"
+                                    halign: "center"
+                                    font_style: "Title"
+                                    role: "large"
+                                    theme_text_color: "Custom"
+                                    text_color: 1, 1, 1, 1
+                                MDLabel:
+                                    text: f"[i]Gian hàng tiếp theo sẽ đến trong: 12:39:42[/i]"
+                                    halign: "center"
+                                    markup: "True"
+                                    font_style: "Label"
+                                    theme_text_color: "Custom"
+                                    text_color: 1, 1, 1, 1
+                            
+                            MDBoxLayout:
+                                size_hint_y: None
+                                height: "30dp"
+                                padding: "12dp", "0dp", "12dp", "0dp"
+                                orientation: "horizontal"
+                                MDBoxLayout:
+                                    size_hint_x: 2
+                                    BarWide:
+                                        current: 100
+                                        max: 125
+                                MDBoxLayout:
+                                    size_hint_x: 1
+                                    orientation: "vertical"
+                                    GoldCounterCard:
+                                        goldAmount: 500
+                                        pos_hint: {'center_x': 0.55}
+                            
+                            Widget:
+                                size_hint_y: None
+                                height: "24dp"
+                                
+                            MDScrollView:
+                                do_scroll_x: False
+                                MDGridLayout:
+                                    id: shop_grid
+                                    cols: 3
+                                    padding: dp(12), dp(0), dp(0), dp(90)
+                                    spacing: dp(12)
+                                    adaptive_height: True
+                                    size_hint: None, None
+                    # --- Shop End Section ---
                 
                 MDNavigationBar:
                     on_switch_tabs: app.on_home_switch_tab(*args)
-                    HomeMenuItem
-                        icon: "av-timer"
-                        text: "Phiên Học"
+                    MDNavigationItem:
                         active: True
-                    HomeMenuItem
-                        icon: "account-tie-hat"
-                        text: "Anh Hùng"
-                    HomeMenuItem
-                        icon: "shopping-outline"
-                        text: "Cửa Hàng"
-                
-                MDFabButton:
-                    pos_hint: {"x": 0.02, "top": 0.99}
+                        MDNavigationItemIcon:
+                            icon: "av-timer"
+                        MDNavigationItemLabel:
+                            text: "Phiên Học"
+                    MDNavigationItem:
+                        MDNavigationItemIcon:
+                            icon: "account-tie-hat"
+                        MDNavigationItemLabel:
+                            text: "Anh Hùng"
+                    MDNavigationItem:
+                        MDNavigationItemIcon:
+                            icon: "shopping-outline"
+                        MDNavigationItemLabel:
+                            text: "Cửa Hàng"
+                MenuButton:
                     on_release: navigation_drawer.set_state("toggle")
-                    icon: "menu"
-                    style: "small"
             
+            # --- Đấu Trường Start Section ---
+            MDScreen:
+                name: "Arena"
+                
+                MenuButton:
+                    on_release: navigation_drawer.set_state("toggle")
+            # --- Đấu Trường End Section ---
+
             MDScreen:
                 name: "Settings"
-
                 MDScrollView:
                     do_scroll_x: False
-
                     MDList:
                         MDLabel:
                             text: "Cài Đặt"
@@ -97,13 +216,6 @@ MDScreen:
                             theme_text_color: "Secondary"
                             halign: "center"
                             size_hint_y: None
-
-                        MDListItem:
-                            on_release: app.on_toggle_theme()
-                            MDListItemLeadingIcon:
-                                icon: "weather-sunny" if app.theme_cls.theme_style == "Light" else "weather-night"
-                            MDListItemSupportingText:
-                                text: "Current Theme:  Light Mode" if app.theme_cls.theme_style == "Light" else "Current Theme:  Dark Mode"
                         
                         MDListItem:
                             MDListItemLeadingIcon:
@@ -119,17 +231,12 @@ MDScreen:
                                 text_color: 1, 0, 0, 1
                             MDListItemSupportingText:
                                 text: "[color=ff4444]Reset All[/color]"
-                
-                MDFabButton:
-                    pos_hint: {"x": 0.02, "top": 0.99}
+                MenuButton:
                     on_release: navigation_drawer.set_state("toggle")
-                    icon: "menu"
-                    style: "small"
 
         MDNavigationDrawer:
             id: navigation_drawer
             radius: 0, dp(16), dp(16), 0
-
             MDNavigationDrawerMenu:
 
                 MDNavigationDrawerHeader:
@@ -169,6 +276,14 @@ MDScreen:
                 MDNavigationDrawerItem:
                     on_release:
                         app.root.ids.navigation_drawer.set_state("toggle")
+                        app.root.ids.screen_manager_menu.current = "Arena"
+                    MDNavigationDrawerItemLeadingIcon:
+                        icon: "sword-cross"
+                    MDNavigationDrawerItemText:
+                        text: "Đấu Trường"
+                MDNavigationDrawerItem:
+                    on_release:
+                        app.root.ids.navigation_drawer.set_state("toggle")
                         app.root.ids.screen_manager_menu.current = "Settings"
                     MDNavigationDrawerItemLeadingIcon:
                         icon: "cog"
@@ -189,12 +304,78 @@ class GSS(MDApp):
         self.theme_cls.primary_palette = "Snow"
         return Builder.load_string(KV)
     
+    def on_start(self):
+        AppDict = self.root.ids
+        AppDict.schedule_grid.add_widget(UI.ScheduleCard(startTime="08:00", endTime="11:00", description="Ôn tập buổi cuối đề XSTK.", questTotal=3, expectedLoot="Cao"))
+        AppDict.schedule_grid.add_widget(UI.ScheduleCard(startTime="15:00", endTime="17:00", description="Ôn tập buổi cuối đề CTTR.", questTotal=2, expectedLoot="Vừa"))
+        AppDict.schedule_grid.add_widget(UI.ScheduleCard(startTime="15:00", endTime="17:00", description="Ôn tập buổi cuối đề CTTR.", questTotal=2, expectedLoot="Vừa"))
+        AppDict.schedule_grid.add_widget(UI.ScheduleCard(startTime="15:00", endTime="17:00", description="Ôn tập buổi cuối đề CTTR.", questTotal=2, expectedLoot="Vừa"))
+        AppDict.schedule_grid.add_widget(UI.ScheduleCard(startTime="15:00", endTime="17:00", description="Ôn tập buổi cuối đề CTTR.", questTotal=2, expectedLoot="Vừa"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Vàng", icon="Art/Items/TEST.png", price="1000", rarity="Legendary"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Xịn", icon="Art/Items/TEST.png", price="250", rarity="Epic"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Xịn", icon="Art/Items/TEST.png", price="250", rarity="Epic"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Bạc", icon="Art/Items/TEST.png", price="75", rarity="Rare"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Bạc", icon="Art/Items/TEST.png", price="75", rarity="Rare"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Bạc", icon="Art/Items/TEST.png", price="75", rarity="Rare"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Thường", icon="Art/Items/TEST.png", price="25", rarity="Uncommon"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Thường", icon="Art/Items/TEST.png", price="25", rarity="Uncommon"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Thường", icon="Art/Items/TEST.png", price="25", rarity="Uncommon"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Thường", icon="Art/Items/TEST.png", price="25", rarity="Uncommon"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
+        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
+
+    def spawn_schedule_options(self, instanceButton):
+        menuItems = [
+            {
+                "text": f"Điều Chỉnh",
+                "leading_icon": "wrench",
+                "on_release": lambda id=f"Yo...": self.menu_callback(id),
+            },
+            {
+                "text": f"Xóa",
+                "leading_icon": "trash-can",
+                "on_release": lambda id=f"Ayo!": self.menu_callback(id),
+            },
+        ]
+        MDDropdownMenu(caller=instanceButton, items=menuItems).open()
+
+    def on_enable_schedule(self, instanceChip):
+        chip_text_widget = None
+        chip_icon_widget = None
+
+        for child in instanceChip.walk(restrict=True):
+            if isinstance(child, MDChipText):
+                chip_text_widget = child
+            elif isinstance(child, MDChipLeadingIcon):
+                chip_icon_widget = child
+        
+        if not chip_text_widget or not chip_icon_widget:
+            print("Widget Error: Could not find text or icon inside the chip.")
+            return
+        
+        if chip_text_widget.text == "Tắt":
+            instanceChip.md_bg_color = (0.82, 0.86, 0.82, 1)  # Set Enabled Color
+            chip_text_widget.text = "Bật"
+            chip_icon_widget.icon = "check"
+        else:
+            instanceChip.md_bg_color = (0.95, 0.95, 0.95, 1)  # Set Disabled Color
+            chip_text_widget.text = "Tắt"
+            chip_icon_widget.icon = "sleep"
+
+    def menu_callback(self, textItem):
+        print(textItem, self.root.ids.shop_gold_counter.goldAmount)
+
     def on_home_switch_tab(self, bar: MDNavigationBar, item: MDNavigationItem, item_icon: str, item_text: str):
         self.root.ids.screen_manager_home.current = item_text
 
-    def on_toggle_theme(self):
+    def on_toggle_theme(self): # Switch to theme_cls.primary_palette
         self.theme_cls.theme_style = "Dark" if self.theme_cls.theme_style == "Light" else "Light"
-        self.root.ids.trash_can_icon.theme_text_color = "Custom"
-        self.root.ids.trash_can_icon.text_color = (1, 0, 0, 1)
+    
+    def on_stop(self):
+        pass # Save .json settings
 
 GSS().run()

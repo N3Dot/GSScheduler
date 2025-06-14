@@ -1,0 +1,112 @@
+<CharacterCard>:
+    md_bg_color: self.theme_cls.primaryColor
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: "250dp"
+    padding: "16dp"
+    spacing: "20dp"
+    # --- Character Portrait ---
+    MDCard:
+        style: "filled"
+        radius: [10, ]
+        padding: "8dp"
+        size_hint_x: 0.45
+        FitImage:
+            source: root.imagePath
+            radius: [10, ]
+    # --- Character Stats ---
+    MDScrollView:
+        do_scroll_x: False
+        size_hint_x: 0.55
+        MDBoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            adaptive_height: True
+            spacing: "9dp"
+            MDLabel:
+                text: root.name
+                font_style: "Title"
+                theme_text_color: "Custom"
+                text_color: self.theme_cls.primaryContainerColor
+                adaptive_height: True
+            MDLabel:
+                text: root.title
+                font_style: "Label"
+                theme_text_color: "Custom"
+                text_color: self.theme_cls.primaryContainerColor
+                adaptive_height: True
+            
+            MDDivider:
+            
+            MDBoxLayout:
+                orientation: "horizontal"
+                adaptive_height: True
+                padding: 0, "6dp"
+                MDLabel:
+                    text: "Cấp:"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryContainerColor
+                MDLabel:
+                    text: str(root.level)
+                    halign: "right"
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryContainerColor
+            
+            BarWide:
+                statName: "HP"
+                current: root.hpCurrent
+                max: root.hpMax
+                isLight: True
+            BarWide:
+                statName: "XP"
+                current: root.xpCurrent
+                max: root.xpMax
+                isLight: True
+            
+            MDDivider:
+
+            MDBoxLayout:
+                orientation: "horizontal"
+                adaptive_height: True
+                padding: 0, "6dp"
+                MDLabel:
+                    text: "Khéo Tay:"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryContainerColor
+                MDLabel:
+                    text: str(root.dex)
+                    halign: "right"
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryContainerColor
+            
+            MDBoxLayout:
+                orientation: "horizontal"
+                adaptive_height: True
+                padding: 0, "6dp"
+                MDLabel:
+                    text: "Trí Tuệ:"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryContainerColor
+                MDLabel:
+                    text: str(root.int)
+                    halign: "right"
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryContainerColor
+            
+            MDBoxLayout:
+                orientation: "horizontal"
+                adaptive_height: True
+                padding: 0, "6dp"
+                MDLabel:
+                    text: "May Mắn:"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryContainerColor
+                MDLabel:
+                    text: str(root.luk)
+                    halign: "right"
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryContainerColor

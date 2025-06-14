@@ -1,0 +1,25 @@
+<BarWide>:
+    orientation: 'horizontal'
+    adaptive_height: True # Make the layout wrap its contents' height
+    spacing: "10dp"
+
+    # --- HP Label (Left) ---
+    MDLabel:
+        text: f"[b]{root.statName}:[/b] {int(root.current)}/{int(root.max)}"
+        size_hint_x: None # Disable horizontal size hint to set custom width
+        adaptive_height: True
+        width: "70dp"
+        markup: True
+        font_style: "Body"
+        role: "small"
+        theme_text_color: "Custom"
+        text_color: self.theme_cls.primaryColor if not root.isLight else self.theme_cls.primaryContainerColor
+
+    # --- HP Bar (Right) ---
+    MDLinearProgressIndicator:
+        adaptive_height: True
+        value: (root.current / root.max) * 100 if root.max > 0 else 0
+        pos_hint: {'center_y': 0.5}
+        indicator_color: self.theme_cls.primaryColor if not root.isLight else self.theme_cls.primaryContainerColor
+        track_color: self.theme_cls.primaryContainerColor if not root.isLight else self.theme_cls.inverseSurfaceColor
+        # size_hint_x: 1 Default will fill the remaining space
