@@ -1,4 +1,5 @@
 from kivy.config import Config
+from kivy.core.audio import SoundLoader
 from kivy.lang import Builder
 from kivy.utils import platform
 from kivy.clock import Clock # Clock.schedule_once()
@@ -6,7 +7,8 @@ from kivy.metrics import dp
 if platform not in ('android', 'ios'):
     Config.set('graphics', 'resizable', False)
     from kivy.core.window import Window
-    Window.size = (370, 740) # Note 8 Vertical View
+    # Window.size = (720, 1480) # Note 8 View
+    Window.size = (520, 780) # Debug Note 8 View
     # Window.always_on_top = True
 
 from kivymd.app import MDApp
@@ -86,7 +88,7 @@ MDScreen:
                         
                         MDFabButton:
                             icon: "plus"
-                            pos_hint: {'x': 0.41, 'y': 0.69}
+                            pos_hint: {'x': 0.44, 'y': 0.72}
                     # --- Schedules End Section ---
 
                     # --- Character Start Section ---
@@ -169,8 +171,8 @@ MDScreen:
                                 do_scroll_x: False
                                 MDGridLayout:
                                     id: shop_grid
-                                    cols: 3
-                                    padding: dp(12), dp(0), dp(0), dp(90)
+                                    cols: 4
+                                    padding: dp(24), dp(0), dp(0), dp(90)
                                     spacing: dp(12)
                                     adaptive_height: True
                                     size_hint: None, None
