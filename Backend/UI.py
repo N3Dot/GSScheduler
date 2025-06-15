@@ -48,6 +48,21 @@ class ItemShopCard(MDCard):
         self.backgroundColor = colors["background"]
         self.textColor = colors["text"]
 
+Builder.load_file("Backend/KV/ItemCard.kv")
+class ItemCard(MDCard):
+    name = StringProperty()
+    icon = StringProperty()
+    rarity = StringProperty("Common")
+    borderColor = ListProperty([0.65, 0.65, 0.65, 1])
+    backgroundColor = ListProperty([0.65, 0.65, 0.65, 0.2])
+    textColor = ListProperty([0.3, 0.3, 0.3, 1])
+
+    def on_rarity(self, instance, value):
+        colors = RARITY_COLORS[self.rarity]
+        self.borderColor = colors["border"]
+        self.backgroundColor = colors["background"]
+        self.textColor = colors["text"]
+
 Builder.load_file("Backend/KV/ScheduleCard.kv")
 class ScheduleCard(MDCard):
     startTime = StringProperty()

@@ -5,7 +5,7 @@ from kivy.utils import platform
 from kivy.clock import Clock # Clock.schedule_once()
 from kivy.metrics import dp
 if platform not in ('android', 'ios'):
-    Config.set('graphics', 'resizable', False)
+    # Config.set('graphics', 'resizable', False)
     from kivy.core.window import Window
     # Window.size = (720, 1480) # Note 8 View
     Window.size = (520, 780) # Debug Note 8 View
@@ -61,22 +61,20 @@ MDScreen:
                                 ScheduleCharacterCard:
                                     name: "Nguyễn Văn A"
                                     level: 15
-                                    hpCurrent: 50
-                                    hpMax: 100
+                                    hpCurrent: 100
+                                    hpMax: 125
                                     xpCurrent: 145
                                     xpMax: 145
                                     goldAmount: 500
                             
-                            MDBoxLayout:
+                            MDBoxLayout:  # Fixed height padding.
                                 size_hint_y: None
                                 height: "25dp"
                                 md_bg_color: app.theme_cls.primaryColor
-
-                            MDBoxLayout:
+                            MDBoxLayout:  # Fixed height padding.
                                 orientation: "vertical"
                                 size_hint_y: None
                                 height: "50dp"
-
                             MDScrollView:
                                 do_scroll_x: False
                                 MDBoxLayout:
@@ -86,9 +84,16 @@ MDScreen:
                                     padding: dp(15), dp(0), dp(15), dp(90)
                                     spacing: dp(10)
                         
-                        MDFabButton:
-                            icon: "plus"
-                            pos_hint: {'x': 0.44, 'y': 0.72}
+                        MDBoxLayout:
+                            orientation: "vertical"
+                            MDBoxLayout: # Fixed height padding.
+                                size_hint_y: None
+                                height: "175dp"
+                            MDAnchorLayout:
+                                anchor_x: "center"
+                                anchor_y: "top"
+                                MDFabButton:
+                                    icon: "plus"
                     # --- Schedules End Section ---
 
                     # --- Character Start Section ---
@@ -100,24 +105,63 @@ MDScreen:
                                 name: "Nguyễn Văn A"
                                 title: "Hạng Tân Binh"
                                 level: 15
-                                hpCurrent: 50
-                                hpMax: 100
+                                hpCurrent: 100
+                                hpMax: 125
                                 xpCurrent: 145
                                 xpMax: 145
                                 dex: 10
                                 int: 15
                                 luk: 25
+
                             MDBoxLayout:
                                 orientation: "vertical"
-                                Widget:
-                                MDButton:
-                                    style: "elevated"
-                                    pos_hint: {"center_x": 0.5}
-                                    MDButtonText:
-                                        text: "Đang Thi Công..."
-                                    MDButtonIcon:
-                                        icon: "progress-wrench"
-                                Widget:
+                                padding: "12dp"
+                                spacing: "4dp"
+                                MDLabel:
+                                    text: "Trang Bị:"
+                                    adaptive_height: True
+                                    font_style: "Body"
+                                    role: "large"
+                                MDDivider:
+                                MDScrollView:
+                                    do_scroll_y: False
+                                    MDGridLayout:
+                                        id: equipment_grid
+                                        cols: 100
+                                        spacing: dp(12)
+                                        adaptive_width: True
+
+                                MDLabel:
+                                    text: "Vật Phẩm:"
+                                    adaptive_height: True
+                                    font_style: "Body"
+                                    role: "large"
+                                MDDivider:
+                                MDScrollView:
+                                    do_scroll_y: False
+                                    MDGridLayout:
+                                        id: item_grid
+                                        cols: 100
+                                        spacing: dp(12)
+                                        adaptive_width: True
+
+                                MDLabel:
+                                    text: "Thành Tích:"
+                                    adaptive_height: True
+                                    font_style: "Body"
+                                    role: "large"
+                                MDDivider:
+                                MDScrollView:
+                                    do_scroll_y: False
+                                    MDGridLayout:
+                                        id: achievement_grid
+                                        cols: 100
+                                        spacing: dp(12)
+                                        adaptive_width: True
+                                
+                                MDBoxLayout:
+                                    size_hint_y: None
+                                    height: "75dp"
                     # --- Character End Section ---
                     
                     # --- Shop Start Section ---
@@ -172,10 +216,9 @@ MDScreen:
                                 MDGridLayout:
                                     id: shop_grid
                                     cols: 4
-                                    padding: dp(24), dp(0), dp(0), dp(90)
+                                    padding: dp(12), dp(0), dp(12), dp(90)
                                     spacing: dp(12)
                                     adaptive_height: True
-                                    size_hint: None, None
                     # --- Shop End Section ---
                 
                 MDNavigationBar:
@@ -223,7 +266,7 @@ MDScreen:
                             MDListItemLeadingIcon:
                                 icon: "help-circle-outline"
                             MDListItemSupportingText:
-                                text: "Instructions"
+                                text: "Hướng Dẫn"
 
                         MDListItem:
                             MDListItemLeadingIcon:
@@ -232,7 +275,7 @@ MDScreen:
                                 theme_text_color: "Custom"
                                 text_color: 1, 0, 0, 1
                             MDListItemSupportingText:
-                                text: "[color=ff4444]Reset All[/color]"
+                                text: "[color=ff4444]Xóa Dữ Liệu[/color]"
                 MenuButton:
                     on_release: navigation_drawer.set_state("toggle")
 
@@ -329,6 +372,11 @@ class GSS(MDApp):
         AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
         AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
         AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
+        AppDict.equipment_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
+        AppDict.item_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
+        AppDict.item_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
+        AppDict.achievement_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
+        AppDict.achievement_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
 
     def spawn_schedule_options(self, instanceButton):
         menuItems = [
@@ -369,7 +417,10 @@ class GSS(MDApp):
             chip_icon_widget.icon = "sleep"
 
     def menu_callback(self, textItem):
-        print(textItem, self.root.ids.shop_gold_counter.goldAmount)
+        print(textItem)
+
+    def open_character_options(self):
+        print("Hi!")
 
     def on_home_switch_tab(self, bar: MDNavigationBar, item: MDNavigationItem, item_icon: str, item_text: str):
         self.root.ids.screen_manager_home.current = item_text

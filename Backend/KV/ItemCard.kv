@@ -1,8 +1,8 @@
-<ItemShopCard>:
+<ItemCard>:
     orientation: "vertical"
-    size_hint_y: None
-    height: dp(170)
-    padding: dp(10)
+    size_hint: None, None
+    size: dp(80), dp(80)
+    padding: dp(6)
     radius: [16]
     elevation: 4
     MDBoxLayout:
@@ -34,27 +34,11 @@
     
     Widget: # Padding
         size_hint_y: None
-        height: dp(8)
+        height: dp(6)
     MDLabel:
         text: root.name
         halign: "center"
         theme_text_color: "Custom"
         text_color: root.textColor
-        font_style: "Title"
-        role: "small"
-    MDLabel:
-        text: f"{root.price}G"
-        halign: "center"
-        theme_text_color: "Custom"
-        text_color: app.theme_cls.secondaryColor
         font_style: "Body"
-        role: "medium"
-    MDButton:
-        style: "elevated"
-        size_hint: None, None
-        pos_hint: {"center_x": .5, "center_y": .5}
-        MDButtonIcon:
-            icon: "package-variant"
-        MDButtonText:
-            text: "Mua"
-            role: "medium"
+        role: "small"
