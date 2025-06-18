@@ -1,6 +1,8 @@
 import uuid
 from datetime import datetime, timedelta, date
 from typing import List, Dict, Any, Optional, Tuple, Callable
+from kivy.event import EventDispatcher
+from kivy.properties import StringProperty, NumericProperty
 from enum import Enum
 import random
 import time
@@ -89,12 +91,25 @@ class Item:
         """Biểu diễn đối tượng Item dưới dạng chuỗi để dễ gỡ lỗi."""
         return f"Item(name='{self.name}', rarity='{self.rarity.name}')"
 
-class Character:
+class Character(EventDispatcher):
     """
     Đại diện cho người dùng trong ứng dụng.
     Lớp này quản lý tất cả các chỉ số, tài sản, trang bị, và tiến trình của nhân vật.
     """
-    def __init__(self, name: str):
+    name = StringProperty("Nguyễn Văn A")
+    level = NumericProperty(1)
+    xp = NumericProperty(0)
+    xp_to_next_level = NumericProperty(100)
+    hp = NumericProperty(50)
+    max_hp = NumericProperty(50)
+    dex = NumericProperty(1)  # Khéo léo -> Tăng XP nhận được
+    int = NumericProperty(1)  # Trí tuệ -> Giảm hình phạt
+    luk = NumericProperty(1)  # May mắn -> Tăng vàng nhận được
+    available_points = NumericProperty(0)  # Điểm cộng có sẵn để tăng chỉ số
+    gold = NumericProperty(10)
+
+    def __init__(self, name: str, **kwargs):
+        super().__init__(**kwargs)
         self.name: str = name
         self.skin_visuals: str = "default_skin.png"  # Ngoại hình cơ bản
         self.equipment_visuals: List[Tuple[str, Tuple[int, int]]] = []  # Các lớp hình ảnh trang bị
@@ -110,10 +125,11 @@ class Character:
         
         # Chỉ số chiến đấu và thuộc tính
         self.hp: int = 50
+        self.max_hp: int = 50
         self.dex: int = 1  # Khéo léo -> Tăng XP nhận được
         self.int: int = 1  # Trí tuệ -> Giảm hình phạt
         self.luk: int = 1  # May mắn -> Tăng vàng nhận được
-        self.available_points: int = 0  # Điểm cộng có sẵn để tăng chỉ số
+        self.available_points: int = 0 # Điểm cộng có sẵn để tăng chỉ số
         
         # Tài sản
         self.gold: int = 10
