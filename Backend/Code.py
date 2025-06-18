@@ -4,7 +4,13 @@ from typing import List, Dict, Any, Optional, Tuple, Callable
 from enum import Enum
 import random
 import time
-
+import json
+import os
+import qrcode
+import base64
+from datetime import datetime
+from kivy.utils import platform
+from io import BytesIO
 class Rarity(Enum):
     """Định nghĩa các cấp độ hiếm của vật phẩm."""
     COMMON = 1
@@ -518,7 +524,364 @@ class SessionManager:
         self.character = character
         self.reward_system = reward_system
         self.analytics = analytics
+        self.save_file_path = self._get_save_path()
+        self.qr_image_path = self._get_qr_path()
+    def _get_save_path(self):
+        """Xác định đường dẫn lưu file tùy theo platform"""
+        if platform == 'android':
+            from android.storage import app_storage_path
+            save_dir = app_storage_path()
+            return os.path.join(save_dir, "save_data.json")
+        else:
+            save_dir = os.path.dirname(os.path.abspath(__file__))
+            return os.path.join(save_dir, "save_data.json")
 
+    def _get_qr_path(self):
+        """Xác định đường dẫn lưu QR code"""
+        if platform == 'android':
+            from android.storage import app_storage_path
+            save_dir = app_storage_path()
+            return os.path.join(save_dir, "save_qr.png")
+        else:
+            save_dir = os.path.dirname(os.path.abspath(__file__))
+            return os.path.join(save_dir, "save_qr.png")
+    def generate_qr_code(self):
+        """
+        Tạo QR code từ dữ liệu save game
+        Returns: đường dẫn file QR code hoặc None nếu lỗi
+        """
+        try:
+            # Lấy dữ liệu save game
+            save_data = self._get_save_data()
+            
+            # Chuyển đổi thành JSON string
+            json_string = json.dumps(save_data, ensure_ascii=False, separators=(',', ':'))
+            
+            # Nén dữ liệu bằng base64 để giảm kích thước QR
+            compressed_data = base64.b64encode(json_string.encode('utf-8')).decode('ascii')
+            
+            # Tạo QR code
+            qr = qrcode.QRCode(
+                version=1,  # Tự động điều chỉnh kích thước
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            
+            # Thêm prefix để nhận biết đây là save data của GSScheduler
+            qr_data = f"GSS_SAVE:{compressed_data}"
+            qr.add_data(qr_data)
+            qr.make(fit=True)
+            
+            # Tạo hình ảnh QR
+            qr_image = qr.make_image(fill_color="black", back_color="white")
+            
+            # Lưu file
+            qr_image.save(self.qr_image_path)
+            
+            print(f"QR code đã được tạo: {self.qr_image_path}")
+            return self.qr_image_path
+            
+        except Exception as e:
+            print(f"Lỗi khi tạo QR code: {str(e)}")
+            return None
+
+    def import_from_qr_data(self, qr_data):
+        """
+        Import dữ liệu từ QR code data
+        """
+        try:
+            # Kiểm tra prefix
+            if not qr_data.startswith("GSS_SAVE:"):
+                print("QR code không phải của GSScheduler")
+                return False
+            
+            # Lấy dữ liệu đã nén
+            compressed_data = qr_data[9:]  # Bỏ prefix "GSS_SAVE:"
+            
+            # Giải nén base64
+            json_string = base64.b64decode(compressed_data.encode('ascii')).decode('utf-8')
+            
+            # Parse JSON
+            save_data = json.loads(json_string)
+            
+            # Import dữ liệu (tái sử dụng logic từ ImportSave)
+            return self._load_save_data(save_data)
+            
+        except Exception as e:
+            print(f"Lỗi khi import từ QR: {str(e)}")
+            return False
+
+    def ExportSave(self):
+        """
+        Xuất dữ liệu game ra file JSON
+        Lưu chỉ số nhân vật, thành tích, sessions
+        """
+        try:
+            save_data = self._get_save_data()
+            
+            with open(self.save_file_path, 'w', encoding='utf-8') as f:
+                json.dump(save_data, f, indent=2, ensure_ascii=False)
+            
+            print(f"Dữ liệu đã được lưu thành công vào {self.save_file_path}")
+            return True
+            
+        except Exception as e:
+            print(f"Lỗi khi lưu dữ liệu: {str(e)}")
+            return False
+
+    def ImportSave(self):
+        """
+        Nhập dữ liệu game từ file JSON
+        Tải chỉ số nhân vật, thành tích, sessions
+        """
+        try:
+            if not os.path.exists(self.save_file_path):
+                print(f"File save không tồn tại: {self.save_file_path}")
+                return False
+            
+            with open(self.save_file_path, 'r', encoding='utf-8') as f:
+                save_data = json.load(f)
+            
+            return self._load_save_data(save_data)
+            
+        except Exception as e:
+            print(f"Lỗi khi tải dữ liệu: {str(e)}")
+            return False
+    def create_simple_demo_data(self):
+        """
+        Tạo data đơn giản chỉ để test QR code
+        """
+        # Set basic character info
+        self.character.name = "Test Hero"
+        self.character.level = 5
+        self.character.xp = 200
+        self.character.hp = 80
+        self.character.gold = 100
+        self.character.dex = 10
+        self.character.int = 12
+        self.character.luk = 8
+        
+        print("Simple demo data created for QR testing")
+
+    def _get_save_data(self):
+        """Simplified save data chỉ để test QR"""
+        save_data = {
+            "character": {
+                "name": self.character.name,
+                "level": self.character.level,
+                "xp": self.character.xp,
+                "hp": self.character.hp,
+                "gold": self.character.gold,
+                "dex": self.character.dex,
+                "int": self.character.int,
+                "luk": self.character.luk
+            },
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0"
+        }
+        return save_data
+    # def _get_save_data(self):
+    #     """Lấy dữ liệu save game - sửa lại cho phù hợp với structure thực tế"""
+    #     try:
+    #         save_data = {
+    #             "character": {
+    #                 "name": self.character.name,
+    #                 "level": self.character.level,
+    #                 "xp": self.character.xp,
+    #                 "xp_to_next_level": self.character.xp_to_next_level,
+    #                 "hp": self.character.hp,
+    #                 "gold": self.character.gold,
+    #                 "dex": self.character.dex,
+    #                 "int": self.character.int,
+    #                 "luk": self.character.luk,
+    #                 "available_points": self.character.available_points,
+    #                 "unlocked_achievements": list(self.character.unlocked_achievements),
+    #                 "inventory": [
+    #                     {
+    #                         "name": item.name,
+    #                         "description": item.description,
+    #                         "category": item.category,
+    #                         "rarity": item.rarity.name,
+    #                         "price": item.price,
+    #                         "icon": item.icon,
+    #                         "consumable": item.consumable,
+    #                         "passive": item.passive
+    #                     } for item in self.character.inventory
+    #                 ],
+    #                 "equipment": [
+    #                     {
+    #                         "name": item.name,
+    #                         "description": item.description,
+    #                         "category": item.category,
+    #                         "rarity": item.rarity.name,
+    #                         "price": item.price,
+    #                         "icon": item.icon,
+    #                         "consumable": item.consumable,
+    #                         "passive": item.passive
+    #                     } for item in self.character.equipment
+    #                 ]
+    #             },
+    #             "analytics": {
+    #                 "session_history": self.analytics.session_history,
+    #                 "aggregated_stats": self.analytics.aggregated_stats,
+    #                 "focus_streak": self.analytics.focus_streak
+    #             },
+    #             "sessions": [
+    #                 {
+    #                     "session_id": session.session_id,
+    #                     "goal_description": session.goal_description,
+    #                     "start_time": session.start_time.isoformat(),
+    #                     "end_time": session.end_time.isoformat(),
+    #                     "actual_end_time": session.actual_end_time.isoformat() if session.actual_end_time else None,
+    #                     "status": session.status,
+    #                     "rank": session.rank,
+    #                     "linked_quests": [
+    #                         {
+    #                             "quest_id": quest.quest_id,
+    #                             "description": quest.description,
+    #                             "difficulty": quest.difficulty,
+    #                             "is_completed": quest.is_completed
+    #                         } for quest in session.linked_quests
+    #                     ]
+    #                 } for session in self.sessions
+    #             ],
+    #             "quest_system": {
+    #                 "active_quests": [
+    #                     {
+    #                         "quest_id": quest.quest_id,
+    #                         "description": quest.description,
+    #                         "difficulty": quest.difficulty,
+    #                         "is_completed": quest.is_completed
+    #                     } for quest in self.analytics.quest_system.active_quests.values()
+    #                 ]
+    #             },
+    #             "save_timestamp": datetime.now().isoformat(),
+    #             "version": "1.0"
+    #         }
+    #         print(f"Generated save data for character: {self.character.name}")
+    #         return save_data
+    #     except Exception as e:
+    #         print(f"Error generating save data: {e}")
+    #         import traceback
+    #         traceback.print_exc()
+    #         return {"error": "failed_to_generate", "timestamp": datetime.now().isoformat()}
+
+    def _load_save_data(self, save_data):
+        """Load dữ liệu save game - sửa lại cho phù hợp với structure thực tế"""
+        try:
+            # Khôi phục character data
+            char_data = save_data.get("character", {})
+            self.character.name = char_data.get("name", "Hero")
+            self.character.level = char_data.get("level", 1)
+            self.character.xp = char_data.get("xp", 0)
+            self.character.xp_to_next_level = char_data.get("xp_to_next_level", 100)
+            self.character.hp = char_data.get("hp", 50)
+            self.character.gold = char_data.get("gold", 10)
+            self.character.dex = char_data.get("dex", 1)
+            self.character.int = char_data.get("int", 1)
+            self.character.luk = char_data.get("luk", 1)
+            self.character.available_points = char_data.get("available_points", 0)
+            self.character.unlocked_achievements = set(char_data.get("unlocked_achievements", []))
+            
+            # Khôi phục inventory
+            self.character.inventory = []
+            for item_data in char_data.get("inventory", []):
+                try:
+                    rarity_enum = Rarity[item_data.get("rarity", "COMMON")]
+                    item = Item(
+                        name=item_data.get("name", "Unknown Item"),
+                        description=item_data.get("description", ""),
+                        category=item_data.get("category", "misc"),
+                        rarity=rarity_enum,
+                        price=item_data.get("price", 0),
+                        icon_path=item_data.get("icon", ""),
+                        consumable=item_data.get("consumable", False),
+                        passive=item_data.get("passive", False)
+                    )
+                    self.character.inventory.append(item)
+                except (KeyError, ValueError) as e:
+                    print(f"Error loading inventory item: {e}")
+            
+            # Khôi phục equipment
+            self.character.equipment = []
+            for item_data in char_data.get("equipment", []):
+                try:
+                    rarity_enum = Rarity[item_data.get("rarity", "COMMON")]
+                    item = Item(
+                        name=item_data.get("name", "Unknown Equipment"),
+                        description=item_data.get("description", ""),
+                        category=item_data.get("category", "equipment"),
+                        rarity=rarity_enum,
+                        price=item_data.get("price", 0),
+                        icon_path=item_data.get("icon", ""),
+                        consumable=item_data.get("consumable", False),
+                        passive=item_data.get("passive", True)
+                    )
+                    self.character.equipment.append(item)
+                except (KeyError, ValueError) as e:
+                    print(f"Error loading equipment item: {e}")
+            
+            # Khôi phục analytics
+            analytics_data = save_data.get("analytics", {})
+            self.analytics.session_history = analytics_data.get("session_history", [])
+            self.analytics.aggregated_stats = analytics_data.get("aggregated_stats", self.analytics._get_initial_stats())
+            self.analytics.focus_streak = analytics_data.get("focus_streak", 0)
+            
+            # Khôi phục quest system
+            quest_data = save_data.get("quest_system", {})
+            self.analytics.quest_system.active_quests = {}
+            for quest_info in quest_data.get("active_quests", []):
+                quest = Quest(
+                    description=quest_info.get("description", "Unknown Quest"),
+                    difficulty=quest_info.get("difficulty", 1)
+                )
+                quest.quest_id = quest_info.get("quest_id", quest.quest_id)
+                quest.is_completed = quest_info.get("is_completed", False)
+                self.analytics.quest_system.active_quests[quest.quest_id] = quest
+            
+            # Khôi phục sessions
+            self.sessions = []
+            for session_data in save_data.get("sessions", []):
+                try:
+                    # Tái tạo quests cho session
+                    linked_quests = []
+                    for quest_info in session_data.get("linked_quests", []):
+                        quest = Quest(
+                            description=quest_info.get("description", "Unknown Quest"),
+                            difficulty=quest_info.get("difficulty", 1)
+                        )
+                        quest.quest_id = quest_info.get("quest_id", quest.quest_id)
+                        quest.is_completed = quest_info.get("is_completed", False)
+                        linked_quests.append(quest)
+                    
+                    # Tái tạo session
+                    session = StudySession(
+                        goal_description=session_data.get("goal_description", "Unknown Session"),
+                        start_time=datetime.fromisoformat(session_data["start_time"]),
+                        end_time=datetime.fromisoformat(session_data["end_time"]),
+                        linked_quests=linked_quests
+                    )
+                    session.session_id = session_data.get("session_id", session.session_id)
+                    session.status = session_data.get("status", "Scheduled")
+                    session.rank = session_data.get("rank", "N/A")
+                    if session_data.get("actual_end_time"):
+                        session.actual_end_time = datetime.fromisoformat(session_data["actual_end_time"])
+                    
+                    self.sessions.append(session)
+                except (KeyError, ValueError) as e:
+                    print(f"Error loading session: {e}")
+            
+            save_timestamp = save_data.get("save_timestamp", "Unknown")
+            print(f"Dữ liệu đã được load thành công - Time: {save_timestamp}")
+            print(f"Character: {self.character.name} (Level {self.character.level})")
+            return True
+            
+        except Exception as e:
+            print(f"Lỗi khi load dữ liệu: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
     def _find_session_by_id(self, session_id: str) -> Optional[StudySession]:
         """
         Hàm trợ giúp nội bộ để tìm một phiên học trong danh sách theo ID.

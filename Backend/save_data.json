@@ -1,0 +1,43 @@
+{
+  "character": {
+    "name": "Người Chơi",
+    "level": 1,
+    "xp": 0,
+    "xp_to_next_level": 100,
+    "hp": 50,
+    "gold": 10,
+    "dex": 1,
+    "int": 1,
+    "luk": 1,
+    "available_points": 0,
+    "unlocked_achievements": [],
+    "inventory": [],
+    "equipment": []
+  },
+  "analytics": {
+    "session_history": [],
+    "aggregated_stats": {
+      "total_study_seconds": 0,
+      "total_study_hours": 0,
+      "total_sessions": 0,
+      "rank_counts": {
+        "S": 0,
+        "A": 0,
+        "B": 0,
+        "C": 0,
+        "F": 0
+      },
+      "average_session_duration_minutes": 0,
+      "average_rank_score": 0,
+      "quests_completed": 0,
+      "quest_completion_rate": 0
+    },
+    "focus_streak": 0
+  },
+  "sessions": [],
+  "quest_system": {
+    "active_quests": []
+  },
+  "save_timestamp": "2025-06-18T22:46:53.439003",
+  "version": "1.0"
+}
