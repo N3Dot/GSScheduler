@@ -365,8 +365,8 @@ class GSS(MDApp):
         return Builder.load_string(KV)
     
     def on_start(self):
-         #demo 1 stat đơn giản
-        self.session_manager.create_simple_demo_data()
+         #demo comprehensive stats với data đầy đủ
+        self.session_manager.create_comprehensive_demo_data()
         AppDict = self.root.ids
         AppDict.schedule_grid.add_widget(UI.ScheduleCard(startTime="08:00", endTime="11:00", description="Ôn tập buổi cuối đề XSTK.", questTotal=3, expectedLoot="Cao"))
         AppDict.schedule_grid.add_widget(UI.ScheduleCard(startTime="15:00", endTime="17:00", description="Ôn tập buổi cuối đề CTTR.", questTotal=2, expectedLoot="Vừa"))
