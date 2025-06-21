@@ -53,6 +53,7 @@
         style: "elevated"
         size_hint: None, None
         pos_hint: {"center_x": .5, "center_y": .5}
+        on_release: app.on_purchase_item(root)
         MDButtonIcon:
             icon: "package-variant"
         MDButtonText:

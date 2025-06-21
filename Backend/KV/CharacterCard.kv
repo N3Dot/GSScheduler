@@ -11,7 +11,7 @@
         radius: [10, ]
         padding: "8dp"
         size_hint_x: 0.45
-        on_release: app.open_character_options()
+        on_release: app.on_click_character()
         FitImage:
             source: root.imagePath
             radius: [10, ]
@@ -33,6 +33,7 @@
             MDLabel:
                 text: root.title
                 font_style: "Label"
+                role: "large"
                 theme_text_color: "Custom"
                 text_color: self.theme_cls.primaryContainerColor
                 adaptive_height: True
@@ -109,5 +110,16 @@
                 MDLabel:
                     text: str(root.luk)
                     halign: "right"
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryContainerColor
+            
+            MDBoxLayout:
+                orientation: "horizontal"
+                adaptive_height: True
+                padding: 0, "6dp"
+                MDLabel:
+                    text: f"Bạn có thể nâng cấp {root.available_points} thuộc tính!" if (root.available_points > 0) else ""
+                    font_style: "Label"
+                    italic: True
                     theme_text_color: "Custom"
                     text_color: self.theme_cls.primaryContainerColor

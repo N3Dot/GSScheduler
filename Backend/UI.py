@@ -1,6 +1,8 @@
+import os
+
 from kivy.lang import Builder
 from kivy.properties import StringProperty, ListProperty, NumericProperty, BooleanProperty
-import os
+from kivymd.app import MDApp
 from kivymd.uix.card import MDCard
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.floatlayout import MDFloatLayout
@@ -36,6 +38,29 @@ RARITY_COLORS = {
     },
 }
 
+Builder.load_file("Backend/KV/ItemCard.kv")
+class ItemCard(MDCard):
+    name = StringProperty()
+    icon = StringProperty()
+    rarity = StringProperty("Common")
+    borderColor = ListProperty([0.65, 0.65, 0.65, 1])
+    backgroundColor = ListProperty([0.65, 0.65, 0.65, 0.2])
+    textColor = ListProperty([0.3, 0.3, 0.3, 1])
+    ID = None
+
+    def on_touch_down(self, touch):
+        for child in self.children[::-1]:
+            if child.collide_point(*touch.pos) and child.__class__.__name__ == "MDBoxLayout":
+                MDApp.get_running_app().on_click_item()
+                return super().on_touch_down(touch)
+        return super().on_touch_down(touch)
+
+    def on_rarity(self, instance, value):
+        colors = RARITY_COLORS[self.rarity]
+        self.borderColor = colors["border"]
+        self.backgroundColor = colors["background"]
+        self.textColor = colors["text"]
+
 Builder.load_file("Backend/KV/ItemShopCard.kv")
 class ItemShopCard(MDCard):
     name = StringProperty()
@@ -45,21 +70,14 @@ class ItemShopCard(MDCard):
     borderColor = ListProperty([0.65, 0.65, 0.65, 1])
     backgroundColor = ListProperty([0.65, 0.65, 0.65, 0.2])
     textColor = ListProperty([0.3, 0.3, 0.3, 1])
+    ID = None
 
-    def on_rarity(self, instance, value):
-        colors = RARITY_COLORS[self.rarity]
-        self.borderColor = colors["border"]
-        self.backgroundColor = colors["background"]
-        self.textColor = colors["text"]
-
-Builder.load_file("Backend/KV/ItemCard.kv")
-class ItemCard(MDCard):
-    name = StringProperty()
-    icon = StringProperty()
-    rarity = StringProperty("Common")
-    borderColor = ListProperty([0.65, 0.65, 0.65, 1])
-    backgroundColor = ListProperty([0.65, 0.65, 0.65, 0.2])
-    textColor = ListProperty([0.3, 0.3, 0.3, 1])
+    def on_touch_down(self, touch):
+        for child in self.children[::-1]:
+            if child.collide_point(*touch.pos) and child.__class__.__name__ == "MDBoxLayout":
+                MDApp.get_running_app().on_click_item()
+                return super().on_touch_down(touch)
+        return super().on_touch_down(touch)
 
     def on_rarity(self, instance, value):
         colors = RARITY_COLORS[self.rarity]
@@ -74,31 +92,53 @@ class ScheduleCard(MDCard):
     description = StringProperty()
     expectedLoot = StringProperty()
     questTotal = NumericProperty()
+    ID = None
 
 Builder.load_file("Backend/KV/CharacterCard.kv")
 class CharacterCard(MDBoxLayout):
-    name = StringProperty()
-    title = StringProperty()
+    name = StringProperty("Nguyễn Văn A")
+    title = StringProperty("Hạng Tân Binh")
     imagePath = StringProperty(f"https://picsum.photos/600/600")
-    level = NumericProperty()
-    hpCurrent = NumericProperty()
-    hpMax = NumericProperty()
-    xpCurrent = NumericProperty()
-    xpMax = NumericProperty()
-    dex = NumericProperty()
-    int = NumericProperty()
-    luk = NumericProperty()
+    level = NumericProperty(1)
+    hpCurrent = NumericProperty(50)
+    hpMax = NumericProperty(50)
+    xpCurrent = NumericProperty(0)
+    xpMax = NumericProperty(10)
+    dex = NumericProperty(1)
+    int = NumericProperty(1)
+    luk = NumericProperty(1)
+    available_points = NumericProperty(0)
+
+    def on_level(self, instance, value):
+        if value < 5:
+            self.title = "Hạng Tân Binh"
+        elif value < 10:
+            self.title = "Hạng Chiến Binh"
+        elif value < 15:
+            self.title = "Hạng Cựu Binh"
+        elif value < 20:
+            self.title = "Hạng Ưu Tú"
+        elif value < 25:
+            self.title = "Hạng Tướng Quân"
+        elif value < 35:
+            self.title = "Hạng Anh Hùng"
+        elif value < 50:
+            self.title = "Hạng Huyền Thoại"
+        elif value < 75:
+            self.title = "Hạng Siêu Việt"
+        else:
+            self.title = "Hạng Thần Thoại"
 
 Builder.load_file("Backend/KV/ScheduleCharacterCard.kv")
 class ScheduleCharacterCard(MDBoxLayout):
-    name = StringProperty()
+    name = StringProperty("Nguyễn Văn A")
     imagePath = StringProperty(f"https://picsum.photos/600/600")
-    level = NumericProperty()
-    hpCurrent = NumericProperty()
-    hpMax = NumericProperty()
-    xpCurrent = NumericProperty()
-    xpMax = NumericProperty()
-    goldAmount = NumericProperty()
+    level = NumericProperty(1)
+    hpCurrent = NumericProperty(50)
+    hpMax = NumericProperty(50)
+    xpCurrent = NumericProperty(0)
+    xpMax = NumericProperty(10)
+    goldAmount = NumericProperty(10)
 
 Builder.load_file("Backend/KV/BarWide.kv")
 class BarWide(MDBoxLayout):
@@ -110,6 +150,12 @@ class BarWide(MDBoxLayout):
 Builder.load_file("Backend/KV/GoldCounterCard.kv")
 class GoldCounterCard(MDCard):
     goldAmount = NumericProperty(0)
+   
+Builder.load_file("Backend/KV/QuestCard.kv")
+class QuestCard(MDCard):
+    difficulty = StringProperty()
+    description = StringProperty()
+
 class QRCodeWidget(MDFloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
