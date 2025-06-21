@@ -39,7 +39,7 @@ class Item:
                  icon_path: str,
                  consumable: bool = False,
                  passive: bool = False,
-                 on_use_effect: Optional[Callable[['Character', 'RewardSystem'], None]] = None):
+                 on_use_effect: Optional[Dict[str, int]] = None):
         """
         Khởi tạo một đối tượng Item mới.
 
@@ -52,7 +52,7 @@ class Item:
             icon_path (str): Đường dẫn đến file icon của vật phẩm.
             consumable (bool): True nếu vật phẩm sẽ biến mất sau khi sử dụng.
             passive (bool): True nếu vật phẩm có hiệu ứng bị động khi trang bị.
-            on_use_effect (Callable): Một hàm sẽ được gọi khi vật phẩm được sử dụng.
+            on_use_effect (Dict[str, int]): Các chỉ số cộng thêm khi trang bị.           
         """
         self.name: str = name
         self.description: str = description
@@ -62,8 +62,9 @@ class Item:
         self.icon: str = icon_path
         self.consumable: bool = consumable
         self.passive: bool = passive
-        self.on_use_effect = on_use_effect
-
+        # THAY ĐỔI: Đổi tên từ stat_bonuses thành on_use_effect, xóa on_use_effect function cũ
+        self.on_use_effect: Dict[str, int] = on_use_effect or {}
+    
     def get_details(self) -> Dict[str, Any]:
         """Trả về một từ điển chứa thông tin chi tiết của vật phẩm."""
         return {
@@ -74,22 +75,29 @@ class Item:
             "price": self.price,
             "icon": self.icon,
             "consumable": self.consumable,
-            "passive": self.passive
+            "passive": self.passive,
+            "on_use_effect": self.on_use_effect  # THAY ĐỔI: đổi tên từ stat_bonuses
         }
 
     def use_item(self, character: 'Character', reward_system: 'RewardSystem'):
         """
         Xử lý logic khi nhân vật sử dụng vật phẩm này.
         Chỉ có tác dụng với các vật phẩm 'consumable'.
+        THAY ĐỔI: on_use_effect bây giờ chứa stat bonuses thay vì function
         """
         if not self.consumable:
             print(f"Vật phẩm '{self.name}' không thể sử dụng theo cách này.")
             return
 
         print(f"{character.name} đã sử dụng {self.name}.")
-        # Gọi hiệu ứng đặc biệt của vật phẩm nếu có
+        
+        # Áp dụng stat bonuses từ on_use_effect (tạm thời cho consumable items)
         if self.on_use_effect:
-            self.on_use_effect(character, reward_system)
+            for stat, bonus in self.on_use_effect.items():
+                if hasattr(character, stat):
+                    current_value = getattr(character, stat)
+                    setattr(character, stat, current_value + bonus)
+                    print(f"  +{bonus} {stat.upper()}")
 
         # Xóa vật phẩm khỏi kho đồ của nhân vật nếu nó là loại tiêu hao
         if self in character.inventory:
@@ -145,6 +153,65 @@ class Character(EventDispatcher):
         self.gold: int = 10
         print(f"Nhân vật '{self.name}' đã được tạo với {self.xp} XP và {self.gold} Vàng.")
 
+    def get_total_stat_bonuses(self):
+        """Tính tổng chỉ số cộng thêm từ tất cả trang bị. THAY ĐỔI: sử dụng on_use_effect thay vì stat_bonuses"""
+        total_bonuses = {
+            'hp': 0, 'max_hp': 0, 'dex': 0, 'int': 0, 'luk': 0, 'gold': 0, 'xp': 0
+        }
+        
+        for item in self.equipment:
+            for stat, bonus in item.on_use_effect.items():  # THAY ĐỔI: từ stat_bonuses thành on_use_effect
+                if stat in total_bonuses:
+                    total_bonuses[stat] += bonus        
+        return total_bonuses
+
+    def get_effective_stats(self):
+        """Trả về chỉ số thực tế (base + equipment bonuses)."""
+        bonuses = self.get_total_stat_bonuses()  # THAY ĐỔI: đổi tên method
+        return {
+            'hp': self.hp + bonuses['hp'],
+            'max_hp': self.max_hp + bonuses['max_hp'],
+            'dex': self.dex + bonuses['dex'],
+            'int': self.int + bonuses['int'],
+            'luk': self.luk + bonuses['luk'],
+            'gold': self.gold + bonuses['gold'],
+            'level': self.level,
+            'xp': self.xp + bonuses['xp'],
+            'available_points': self.available_points
+        }
+
+    def equip_item(self, item: Item):
+        """Trang bị một vật phẩm và áp dụng stat bonuses."""
+        if item not in self.inventory:
+            print(f"Vật phẩm '{item.name}' không có trong kho đồ.")
+            return False
+        
+        if not item.passive and item.category.lower() not in ['weapon', 'equipment', 'armor']:
+            print(f"Vật phẩm '{item.name}' không thể trang bị.")
+            return False
+        
+        # Chuyển từ inventory sang equipment
+        self.inventory.remove(item)
+        self.equipment.append(item)        
+        print(f"Đã trang bị '{item.name}'")
+        if item.on_use_effect:  # THAY ĐỔI: từ stat_bonuses thành on_use_effect
+            print(f"  Stat bonuses: {item.on_use_effect}")
+        
+        return True
+
+    def unequip_item(self, item: Item):
+        """Gỡ trang bị và chuyển về inventory."""
+        if item not in self.equipment:
+            print(f"Vật phẩm '{item.name}' không được trang bị.")
+            return False
+        
+        # Chuyển từ equipment về inventory
+        self.equipment.remove(item)
+        self.inventory.append(item)
+        
+        print(f"Đã gỡ trang bị '{item.name}'")
+        return True
+
     def check_level_up(self):
         """
         Kiểm tra nếu nhân vật đủ XP để lên cấp.
@@ -176,13 +243,18 @@ class Character(EventDispatcher):
 
     def show_stats(self):
         """Hiển thị các chỉ số hiện tại của nhân vật một cách trực quan."""
+        stats = self.get_effective_stats()
+        base_stats_str = f"Cơ bản: HP({self.hp}/{self.max_hp}), DEX({self.dex}), INT({self.int}), LUK({self.luk})"
+        
         print("\n--- TRẠNG THÁI NHÂN VẬT ---")
         print(f"Tên: {self.name}")
-        print(f"Cấp độ: {self.level}")
-        print(f"Kinh nghiệm: {self.xp}/{self.xp_to_next_level}")
-        print(f"Vàng: {self.gold}")
-        print(f"Điểm cộng có sẵn: {self.available_points}")
-        print(f"Chỉ số: HP({self.hp}), DEX({self.dex}), INT({self.int}), LUK({self.luk})")
+        print(f"Cấp độ: {stats['level']}")
+        print(f"Kinh nghiệm: {stats['xp']}/{self.xp_to_next_level}")
+        print(f"Vàng: {stats['gold']}")
+        print(f"Điểm cộng có sẵn: {stats['available_points']}")
+        print(f"Chỉ số hiệu dụng: HP({stats['hp']}/{stats['max_hp']}), DEX({stats['dex']}), INT({stats['int']}), LUK({stats['luk']})")
+        print(f"  ({base_stats_str})")
+        print(f"Trang bị: {[item.name for item in self.equipment] or ['Không có']}")
         print(f"Kho đồ: {[item.name for item in self.inventory] or ['Trống']}")
         print(f"Thành tích: {list(self.unlocked_achievements) or ['Chưa có']}")
         print("--------------------------\n")
@@ -306,7 +378,7 @@ class Quest:
 
 class StudySession:
     """
-    Quản lý một phiên học. Đã loại bỏ thuộc tính 'tags'.
+    Quản lý một phiên học. Đã thêm theo dõi thời gian bắt đầu thực tế.
     """
     def __init__(
         self,
@@ -322,10 +394,13 @@ class StudySession:
         self.session_id: str = str(uuid.uuid4())
         self.goal_description: str = goal_description
         self.linked_quests: List[Quest] = linked_quests
-        self.start_time: datetime = start_time
-        self.end_time: datetime = end_time
-        #Thời gian kết thúc thật
-        self.actual_end_time: Optional[datetime] = None
+        self.start_time: datetime = start_time  # Thời gian dự kiến bắt đầu
+        self.end_time: datetime = end_time      # Thời gian dự kiến kết thúc
+        
+        # Thời gian thực tế
+        self.actual_start_time: Optional[datetime] = None  # Thời gian bắt đầu thực tế
+        self.actual_end_time: Optional[datetime] = None    # Thời gian kết thúc thực tế
+        
         self.status: str = 'Scheduled' #scheduled - running - finished
         self.rank: str = "N/A" #rank gồm a,b,c,d,f
 
@@ -337,7 +412,7 @@ class StudySession:
             print(f"   -> Nhiệm vụ '{quest_found.description}' trong phiên học đã được đánh dấu hoàn thành!")
         elif not quest_found:
             print(f"Lỗi: Không tìm thấy nhiệm vụ với ID {quest_id} trong phiên học này.")
-
+    
     @property
     def quest_progress(self) -> float:
         """Trả về tỷ lệ hoàn thành quest (0.0 đến 1.0). Đây là tỉ lệ số quest đã làm so chia với tổng số quest dự tính phải làm"""
@@ -356,14 +431,16 @@ class StudySession:
         
         # Đánh dấu phiên học đã kết thúc
         self.status = 'Finished'
-        # Ghi lại thời gian kết thúc thực tế (dùng thời gian được truyền vào hoặc thời gian dự kiến)
-        self.actual_end_time = end_time_override if end_time_override else self.end_time
+        # Ghi lại thời gian kết thúc thực tế (dùng thời gian được truyền vào hoặc thời gian hiện tại)
+        self.actual_end_time = end_time_override if end_time_override else datetime.now()
         
         # Tính điểm hoàn thành nhiệm vụ (tỷ lệ từ 0.0 đến 1.0)
         quest_completion_score = self.quest_progress
         
-        # Tính thời gian thực tế đã học (đơn vị: giây)
-        time_spent_seconds = (self.actual_end_time - self.start_time).total_seconds()
+        # Tính thời gian thực tế đã học - sử dụng actual_start_time nếu có
+        start_time_for_calc = self.actual_start_time if self.actual_start_time else self.start_time
+        time_spent_seconds = (self.actual_end_time - start_time_for_calc).total_seconds()
+        
         # Tính thời gian dự kiến ban đầu (đơn vị: giây)
         time_planned_seconds = (self.end_time - self.start_time).total_seconds()
         # Tính tỷ lệ thời gian thực tế so với dự kiến
@@ -387,12 +464,32 @@ class StudySession:
         # Chuyển đổi tỷ lệ hoàn thành thành phần trăm để hiển thị
         progress_percent = f"{int(quest_completion_score * 100)}%"
         # In thông báo kết quả phiên học
-        print(f"Phiên học '{self.goal_description}' đã kết thúc với Hạng: {self.rank} (Hoàn thành {progress_percent} nhiệm vụ, điểm: {final_performance_score:.2f}).")
+        actual_duration = f"{time_spent_seconds/60:.1f} phút"
+        print(f"Phiên học '{self.goal_description}' đã kết thúc với Hạng: {self.rank} (Hoàn thành {progress_percent} nhiệm vụ, thời gian thực: {actual_duration}).")
+
+    def start_session(self, actual_start_time: Optional[datetime] = None):
+        """Bắt đầu phiên học và ghi lại thời gian bắt đầu thực tế."""
+        if self.status != 'Scheduled':
+            print(f"Không thể bắt đầu phiên học '{self.goal_description}' - trạng thái hiện tại: {self.status}")
+            return False        
+        self.status = 'Running'
+        self.actual_start_time = actual_start_time if actual_start_time else datetime.now()
+        print(f"▶️  BẮT ĐẦU THỰC TẾ: '{self.goal_description}' lúc {self.actual_start_time.strftime('%H:%M:%S')}")
+        return True
 
     def get_session_data(self) -> Dict[str, Any]:
         """Trả về dữ liệu tóm tắt của phiên học, không có 'tags'."""
-        # Tính thời lượng thực tế của phiên học (nếu đã kết thúc) hoặc 0 (nếu chưa kết thúc)
-        duration = self.actual_end_time - self.start_time if self.actual_end_time else timedelta(0)
+        # Tính thời lượng thực tế của phiên học
+        if self.actual_end_time and self.actual_start_time:
+            # Nếu có cả thời gian bắt đầu và kết thúc thực tế
+            duration = self.actual_end_time - self.actual_start_time
+        elif self.actual_end_time:
+            # Nếu chỉ có thời gian kết thúc thực tế, dùng thời gian bắt đầu dự kiến
+            duration = self.actual_end_time - self.start_time
+        else:
+            # Nếu chưa kết thúc hoặc chưa có thời gian thực tế
+            duration = timedelta(0)
+            
         # Trả về dictionary chứa tất cả thông tin quan trọng của phiên học
         return {
             "session_id": self.session_id,                           # ID duy nhất của phiên học
@@ -400,6 +497,8 @@ class StudySession:
             "status": self.status,                                   # Trạng thái hiện tại (Scheduled/Running/Finished)
             "start_time": self.start_time,                          # Thời gian bắt đầu dự kiến
             "end_time": self.end_time,                              # Thời gian kết thúc dự kiến
+            "actual_start_time": self.actual_start_time,            # Thời gian bắt đầu thực tế
+            "actual_end_time": self.actual_end_time,                # Thời gian kết thúc thực tế
             "rank": self.rank,                                      # Hạng đạt được (S/A/B/C/F)
             "duration_seconds": duration.total_seconds(),           # Thời lượng thực tế tính bằng giây
             "linked_quests_data": [q.to_dict() for q in self.linked_quests]  # Danh sách dữ liệu các nhiệm vụ liên kết
@@ -636,7 +735,6 @@ class SessionManager:
             compressed_data = qr_data[4:]  # Bỏ prefix "GSS:"
             
             # Giải nén base64 và gzip
-            import gzip
             compressed_bytes = base64.b64decode(compressed_data.encode('ascii'))
             json_string = gzip.decompress(compressed_bytes).decode('utf-8')
             
@@ -707,9 +805,7 @@ class SessionManager:
         # Add some achievements
         self.character.unlocked_achievements.add('BuocDiDauTien')
         self.character.unlocked_achievements.add('HocVienXuatSac')
-        self.character.unlocked_achievements.add('ChamChiCanCu')
-        
-        # Create demo items for inventory
+        self.character.unlocked_achievements.add('ChamChiCanCu')        # Create demo items for inventory
         demo_potion = Item(
             name="Potion of Focus",
             description="Increases concentration for studying",
@@ -717,7 +813,8 @@ class SessionManager:
             rarity=Rarity.RARE,
             price=50,
             icon_path="potion_focus.png",
-            consumable=True
+            consumable=True,
+            on_use_effect={"xp": 5, "int": 2}  # THAY ĐỔI: đổi tên từ stat_bonuses
         )
         
         demo_book = Item(
@@ -727,7 +824,30 @@ class SessionManager:
             rarity=Rarity.EPIC,
             price=200,
             icon_path="ancient_book.png",
-            passive=True
+            passive=True,
+            on_use_effect={"int": 8, "xp": 15, "hp": 10}  # THAY ĐỔI: đổi tên từ stat_bonuses
+        )
+        
+        demo_sword = Item(
+            name="Scholar's Blade",
+            description="A weapon that grows stronger with knowledge",
+            category="Weapon",
+            rarity=Rarity.LEGENDARY,
+            price=500,
+            icon_path="scholar_sword.png",
+            passive=True,
+            on_use_effect={"dex": 12, "int": 10, "hp": 20, "max_hp": 25, "luk": 8}  # THAY ĐỔI: đổi tên từ stat_bonuses
+        )
+        
+        demo_armor = Item(
+            name="Robes of Perseverance",
+            description="Protective gear for dedicated students",
+            category="Armor",
+            rarity=Rarity.EPIC,
+            price=300,
+            icon_path="student_robes.png",
+            passive=True,
+            on_use_effect={"hp": 30, "max_hp": 35, "int": 5, "dex": 3}  # THAY ĐỔI: đổi tên từ stat_bonuses
         )
         
         self.character.inventory.extend([demo_potion, demo_book])
@@ -832,11 +952,11 @@ class SessionManager:
                             "name": item.name,
                             "description": item.description,
                             "category": item.category,
-                            "rarity": item.rarity.name,
-                            "price": item.price,
+                            "rarity": item.rarity.name,                            "price": item.price,
                             "icon": item.icon,
                             "consumable": item.consumable,
-                            "passive": item.passive
+                            "passive": item.passive,
+                            "on_use_effect": item.on_use_effect  # THAY ĐỔI: đổi tên từ stat_bonuses
                         } for item in self.character.inventory
                     ],
                     "equipment": [
@@ -844,11 +964,11 @@ class SessionManager:
                             "name": item.name,
                             "description": item.description,
                             "category": item.category,
-                            "rarity": item.rarity.name,
-                            "price": item.price,
+                            "rarity": item.rarity.name,                            "price": item.price,
                             "icon": item.icon,
                             "consumable": item.consumable,
-                            "passive": item.passive
+                            "passive": item.passive,
+                            "on_use_effect": item.on_use_effect  # THAY ĐỔI: đổi tên từ stat_bonuses
                         } for item in self.character.equipment
                     ]
                 },
@@ -930,11 +1050,11 @@ class SessionManager:
                         name=item_data.get("name", "Unknown Item"),
                         description=item_data.get("description", ""),
                         category=item_data.get("category", "misc"),
-                        rarity=rarity_enum,
-                        price=item_data.get("price", 0),
+                        rarity=rarity_enum,                        price=item_data.get("price", 0),
                         icon_path=item_data.get("icon", ""),
                         consumable=item_data.get("consumable", False),
-                        passive=item_data.get("passive", False)
+                        passive=item_data.get("passive", False),
+                        on_use_effect=item_data.get("on_use_effect", {})  # THAY ĐỔI: đổi tên từ stat_bonuses
                     )
                     self.character.inventory.append(item)
                 except (KeyError, ValueError) as e:
@@ -949,11 +1069,11 @@ class SessionManager:
                         name=item_data.get("name", "Unknown Equipment"),
                         description=item_data.get("description", ""),
                         category=item_data.get("category", "equipment"),
-                        rarity=rarity_enum,
-                        price=item_data.get("price", 0),
+                        rarity=rarity_enum,                        price=item_data.get("price", 0),
                         icon_path=item_data.get("icon", ""),
                         consumable=item_data.get("consumable", False),
-                        passive=item_data.get("passive", True)
+                        passive=item_data.get("passive", True),
+                        on_use_effect=item_data.get("on_use_effect", {})  # THAY ĐỔI: đổi tên từ stat_bonuses
                     )
                     self.character.equipment.append(item)
                 except (KeyError, ValueError) as e:
@@ -1058,8 +1178,7 @@ class SessionManager:
 
     def mark_quest_as_complete(self, session_id: str, quest_id: str):
         """
-        Đánh dấu một nhiệm vụ là đã hoàn thành trong một phiên học đang chạy.
-        Đây là "cầu nối" giữa giao diện người dùng và logic của StudySession.
+        Đánh dấu một nhiệm vụ là đã hoàn thành trong một phiên học đang chạy.        Đây là "cầu nối" giữa giao diện người dùng và logic của StudySession.
         """
         session = self._find_session_by_id(session_id)
         if session and session.status == 'Running':
@@ -1074,8 +1193,7 @@ class SessionManager:
         """
         for session in self.sessions[:]: # Lặp trên bản sao để xóa an toàn
             if session.status == 'Scheduled' and current_time >= session.start_time:
-                session.status = 'Running'
-                print(f"▶️  BẮT ĐẦU: '{session.goal_description}'")
+                session.start_session(current_time)  # Sử dụng method mới với thời gian thực tế
             
             if session.status == 'Running' and current_time >= session.end_time:
                 # Gọi finish() không có tham số -> kết thúc tự động khi hết giờ
@@ -1162,6 +1280,54 @@ if __name__ == "__main__":
     # 3. SessionManager không cần quest_system nữa, vì nó không tạo quest.
     # Nó chỉ nhận quest từ bên ngoài khi lên lịch.
     manager = SessionManager(character=char, reward_system=rewards, analytics=analytics)
+    
+    # --- Demo Trang bị và Chỉ số ---
+    print("\n--- Demo Trang bị và Cập nhật Chỉ số ---")
+    
+    # 1. Tạo các vật phẩm
+    long_sword = Item(
+        name="Kiếm Dài Của Lính", 
+        description="Một thanh kiếm cơ bản, sắc bén.", 
+        category="Weapon", 
+        rarity=Rarity.COMMON, 
+        price=20, 
+        icon_path="sword.png", 
+        passive=True, 
+        on_use_effect={'dex': 2, 'hp': 5}
+    )
+    
+    magic_ring = Item(
+        name="Nhẫn Phép Thuật", 
+        description="Chiếc nhẫn chứa đựng năng lượng bí ẩn.", 
+        category="Equipment", 
+        rarity=Rarity.UNCOMMON, 
+        price=50, 
+        icon_path="ring.png", 
+        passive=True, 
+        on_use_effect={'int': 3, 'luk': 1}
+    )
+    
+    # 2. Thêm vật phẩm vào kho đồ
+    char.inventory.append(long_sword)
+    char.inventory.append(magic_ring)
+    
+    # 3. Hiển thị chỉ số ban đầu
+    print("\n>> Chỉ số TRƯỚC KHI trang bị:")
+    char.show_stats()
+    
+    # 4. Trang bị vật phẩm
+    print("\n>> Trang bị Kiếm Dài...")
+    char.equip_item(long_sword)
+    char.show_stats()
+    
+    print("\n>> Trang bị thêm Nhẫn Phép Thuật...")
+    char.equip_item(magic_ring)
+    char.show_stats()
+    
+    print("--- Kết thúc Demo Trang bị ---\n")
+    
+    # --- Bắt đầu Mô phỏng Phiên học ---
+    print("\n--- Bắt đầu Mô phỏng Phiên học ---")
     
     # 2. Tạo các đối tượng Quest riêng lẻ thông qua QuestSystem
     # Cách tạo quest không thay đổi, chỉ là giờ chúng được quản lý bởi `quests`.
