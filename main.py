@@ -18,6 +18,7 @@ from kivymd.app import MDApp
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.chip import MDChip, MDChipText, MDChipLeadingIcon
 from kivymd.uix.navigationbar import MDNavigationBar, MDNavigationItem
+from kivymd.uix .snackbar import MDSnackbar, MDSnackbarButtonContainer, MDSnackbarCloseButton, MDSnackbarSupportingText
 from Backend import Code, UI, Popups
 
 KV = '''
@@ -249,13 +250,11 @@ MDScreenManager:
                                 theme_text_color: "Secondary"
                                 halign: "center"
                                 size_hint_y: None
-                            
                             MDListItem:
                                 MDListItemLeadingIcon:
                                     icon: "help-circle-outline"
                                 MDListItemSupportingText:
                                     text: "Hướng Dẫn"
-
                             MDListItem:
                                 MDListItemLeadingIcon:
                                     id: trash_can_icon
@@ -266,6 +265,8 @@ MDScreenManager:
                                     text: "[color=ff4444]Xóa Dữ Liệu[/color]"
                     MenuButton:
                         on_release: navigation_drawer.set_state("toggle")
+                    QRCodeWidget:
+                        id: qr_widget
                 # --- Cài Đặt End Section ---
 
             MDNavigationDrawer:
@@ -333,6 +334,17 @@ MDScreenManager:
 class GSS(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # Khởi tạo các objects theo kiến trúc gốc của bạn
+        self.character = Code.Character("Người Chơi")
+        self.reward_system = Code.RewardSystem()
+        self.analytics = Code.StudyAnalytics(Code.QuestSystem())  # Giả sử constructor này
+        
+        # Truyền vào SessionManager như constructor gốc
+        self.session_manager = Code.SessionManager(
+            character=self.character,
+            reward_system=self.reward_system, 
+            analytics=self.analytics
+        )
 
     def build(self):
         self.theme_cls.theme_style = "Light"
@@ -340,6 +352,8 @@ class GSS(MDApp):
         return Builder.load_string(KV)
     
     def on_start(self):
+        #demo comprehensive stats với data đầy đủ
+        self.session_manager.create_comprehensive_demo_data()
         self.PopupManager = Popups.Popup(self)
         self.Player = Code.Character("Unnamed")
         self.Player.bind(name=lambda instance, value: self.update_player_labels(value, "name"))
@@ -382,7 +396,41 @@ class GSS(MDApp):
         AppDict.item_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
         AppDict.achievement_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
         AppDict.achievement_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
+        Clock.schedule_once(self.setup_qr_system, 0.5)
+    def setup_qr_system(self, dt):
+        """Setup QR system after UI is fully loaded"""
+        try:
+            AppDict = self.root.ids
+            
+            # Bind refresh button callback
+            if hasattr(AppDict, 'qr_widget') and AppDict.qr_widget:
+                AppDict.qr_widget.refresh_btn.bind(on_release=self.on_refresh_qr)
+                print("QR refresh button bound successfully")
+            
+            # Generate and update QR code
+            self.update_qr_code()
+            
+        except Exception as e:
+            print(f"Error setting up QR system: {e}")
 
+    def update_qr_code(self):
+        """Cập nhật QR code"""
+        try:
+            print("Generating QR code...")
+            qr_path = self.session_manager.generate_qr_code()
+            print(f"QR path returned: {qr_path}")
+            
+            if qr_path and hasattr(self.root.ids, 'qr_widget'):
+                self.root.ids.qr_widget.update_qr_image(qr_path)
+                print("QR code updated successfully")
+            else:
+                print("Failed to update QR code - no path or widget not found")
+        except Exception as e:
+            print(f"Error updating QR code: {e}")
+    def on_refresh_qr(self, instance):
+        """Callback khi nhấn nút refresh QR"""
+        self.update_qr_code()
+        print("QR code refreshed!")
     def spawn_schedule_options(self, instanceButton):
         menuItems = [
             {
@@ -482,7 +530,12 @@ class GSS(MDApp):
 
     def on_toggle_theme(self): # Switch to theme_cls.primary_palette
         self.theme_cls.theme_style = "Dark" if self.theme_cls.theme_style == "Light" else "Light"
-    
+   
+    def on_stop(self):
+        self.session_manager.ExportSave()
+        self.session_manager.generate_qr_code()
+        print("Game data saved and QR generated on app close")
+      
     def on_pause(self):
         pass # Save .json settings. on_stop() is not reliable.
 
