@@ -331,17 +331,11 @@ MDScreenManager:
 class GSS(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Khởi tạo các objects theo kiến trúc gốc của bạn
+        # Khởi tạo các objects theo kiến trúc gốc và truyền vào SessionManager
         self.character = Code.Character("Người Chơi")
         self.reward_system = Code.RewardSystem()
-        self.analytics = Code.StudyAnalytics(Code.QuestSystem())  # Giả sử constructor này
-        
-        # Truyền vào SessionManager như constructor gốc
-        self.session_manager = Code.SessionManager(
-            character=self.character,
-            reward_system=self.reward_system, 
-            analytics=self.analytics
-        )
+        self.analytics = Code.StudyAnalytics(Code.QuestSystem())
+        self.session_manager = Code.SessionManager(character=self.character, reward_system=self.reward_system, analytics=self.analytics)
 
     def build(self):
         self.theme_cls.theme_style = "Light"
@@ -394,6 +388,19 @@ class GSS(MDApp):
         AppDict.achievement_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
         AppDict.achievement_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
     
+    def on_pause(self): # on_stop() is not reliable on Android.
+        self.session_manager.ExportSave()
+        self.session_manager.generate_qr_code()
+        print("Game data saved and QR generated on app pause.")
+
+    def on_stop(self):
+        self.session_manager.ExportSave()
+        self.session_manager.generate_qr_code()
+        print("Game data saved and QR generated on app close.")
+
+    def on_resume(self):
+        pass
+
     def spawn_schedule_options(self, instanceButton):
         menuItems = [
             {
@@ -458,15 +465,26 @@ class GSS(MDApp):
 
     def on_purchase_item(self, ItemShopCardInstance):
         self.PopupManager.show_item_purchase(ItemShopCardInstance)
-        self.debug_function()
 
     def on_click_item(self):
         self.PopupManager.show_item_dialog()
+        self.debug_function()
     
     def on_reward(self, XP=0, Gold=0):
         self.PopupManager.show_reward_snackbar(XP, Gold)
+    
+    def handle_attribute_upgrade(self, type: str):
+        self.character.available_points -= 1
+        if type == "max_hp":
+            self.character.max_hp += 10
+        elif type == "dex":
+            self.character.dex += 1
+        elif type == "int":
+            self.character.int += 1
+        elif type == "luk":
+            self.character.luk += 1
 
-    def update_player_labels(self, value, type):
+    def update_player_labels(self, value, type: str):
         AppDict = self.root.ids
         if type == "name":
             AppDict.character_card.name = value
@@ -505,18 +523,6 @@ class GSS(MDApp):
 
     def on_toggle_theme(self): # Switch to theme_cls.primary_palette
         self.theme_cls.theme_style = "Dark" if self.theme_cls.theme_style == "Light" else "Light"
-   
-    def on_pause(self): # on_stop() is not reliable on Android.
-        self.session_manager.ExportSave()
-        self.session_manager.generate_qr_code()
-        print("Game data saved and QR generated on app pause.")
-
-    def on_stop(self):
-        self.session_manager.ExportSave()
-        self.session_manager.generate_qr_code()
-        print("Game data saved and QR generated on app close.")
-
-    def on_resume(self):
-        pass
+    
 
 GSS().run()

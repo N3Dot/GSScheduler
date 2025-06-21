@@ -1,3 +1,14 @@
+<UpgradeButton@MDIconButton>:
+    icon: "plus-circle-outline"
+    style: "standard"
+    theme_font_size: "Custom"
+    font_size: "18sp"
+    pos_hint: {"center_y": 0.58}
+    size_hint: None, None
+    size: "24dp", "16dp"
+    theme_icon_color: "Custom"
+    icon_color: "white"
+
 <CharacterCard>:
     md_bg_color: self.theme_cls.primaryColor
     orientation: 'horizontal'
@@ -26,6 +37,7 @@
             spacing: "9dp"
             MDLabel:
                 text: root.name
+                bold: True
                 font_style: "Title"
                 theme_text_color: "Custom"
                 text_color: self.theme_cls.primaryContainerColor
@@ -55,11 +67,19 @@
                     theme_text_color: "Custom"
                     text_color: self.theme_cls.primaryContainerColor
             
-            BarWide:
-                statName: "HP"
-                current: root.hpCurrent
-                max: root.hpMax
-                isLight: True
+            MDBoxLayout:
+                orientation: "horizontal"
+                adaptive_height: True
+                BarWide:
+                    statName: "HP"
+                    current: root.hpCurrent
+                    max: root.hpMax
+                    isLight: True
+                UpgradeButton:
+                    opacity: 1 if (root.available_points > 0) else 0
+                    disabled: 0 if (root.available_points > 0) else 1
+                    on_release: app.handle_attribute_upgrade("max_hp")
+            
             BarWide:
                 statName: "XP"
                 current: root.xpCurrent
@@ -71,7 +91,6 @@
             MDBoxLayout:
                 orientation: "horizontal"
                 adaptive_height: True
-                padding: 0, "6dp"
                 MDLabel:
                     text: "Khéo Tay:"
                     bold: True
@@ -82,11 +101,14 @@
                     halign: "right"
                     theme_text_color: "Custom"
                     text_color: self.theme_cls.primaryContainerColor
+                UpgradeButton:
+                    opacity: 1 if (root.available_points > 0) else 0
+                    disabled: 0 if (root.available_points > 0) else 1
+                    on_release: app.handle_attribute_upgrade("dex")
             
             MDBoxLayout:
                 orientation: "horizontal"
                 adaptive_height: True
-                padding: 0, "6dp"
                 MDLabel:
                     text: "Trí Tuệ:"
                     bold: True
@@ -97,11 +119,14 @@
                     halign: "right"
                     theme_text_color: "Custom"
                     text_color: self.theme_cls.primaryContainerColor
+                UpgradeButton:
+                    opacity: 1 if (root.available_points > 0) else 0
+                    disabled: 0 if (root.available_points > 0) else 1
+                    on_release: app.handle_attribute_upgrade("int")
             
             MDBoxLayout:
                 orientation: "horizontal"
                 adaptive_height: True
-                padding: 0, "6dp"
                 MDLabel:
                     text: "May Mắn:"
                     bold: True
@@ -112,12 +137,17 @@
                     halign: "right"
                     theme_text_color: "Custom"
                     text_color: self.theme_cls.primaryContainerColor
+                UpgradeButton:
+                    opacity: 1 if (root.available_points > 0) else 0
+                    disabled: 0 if (root.available_points > 0) else 1
+                    on_release: app.handle_attribute_upgrade("luk")
             
             MDBoxLayout:
                 orientation: "horizontal"
                 adaptive_height: True
                 padding: 0, "6dp"
                 MDLabel:
+                    id: points_hint
                     text: f"Bạn có thể nâng cấp {root.available_points} thuộc tính!" if (root.available_points > 0) else ""
                     font_style: "Label"
                     italic: True

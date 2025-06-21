@@ -174,7 +174,6 @@ class QRCodeWidget(MDFloatLayout):
             pos_hint={"center_x": 0.5, "center_y": 0.5},
         )
         self.add_widget(self.qr_image)
-        
         # Refresh button
         self.refresh_btn = MDIconButton(
             icon="refresh",
