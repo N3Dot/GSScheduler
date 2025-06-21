@@ -1,8 +1,13 @@
+import os
+
+from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.snackbar import MDSnackbar, MDSnackbarButtonContainer, MDSnackbarCloseButton, MDSnackbarText, MDSnackbarSupportingText
 from kivymd.uix.dialog import MDDialog, MDDialogIcon, MDDialogHeadlineText, MDDialogSupportingText, MDDialogContentContainer, MDDialogButtonContainer
 from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.divider import MDDivider
 from kivymd.uix.list import MDListItem, MDListItemLeadingIcon, MDListItemSupportingText
+from kivymd.uix.fitimage import FitImage
+from kivy.uix.widget import Widget
 from kivy.metrics import dp
 
 class Popup:
@@ -67,9 +72,54 @@ class Popup:
                 orientation="vertical",
             ),
             MDDialogButtonContainer(
-                MDButton(MDButtonText(text="Đóng"), style="text", pos_hint={'center_x': 0.5},
+                Widget(),
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
                     on_release=lambda x: ItemDialog.dismiss(),
                 ),
+                Widget(),
             ),
         )
         ItemDialog.open()
+
+    def show_character_dialog(self, qr_path: str):
+        if qr_path and os.path.exists(qr_path):
+            qr_source = qr_path
+        else:
+            qr_source = ""
+            print(f"QR image file not found: {qr_path}")
+
+        QRImageWidget = FitImage(
+            source="",
+            size_hint=(None, None),
+            size=("240dp", "240dp"),
+            pos_hint={"center_x": 0.5, "center_y": 0.5},
+            radius=[10, ],
+        )
+        QRImageWidget.source = qr_source
+        QRImageWidget.reload()
+
+        CharacterDialog = MDDialog(
+            MDDialogIcon(icon="account-tie-hat-outline"),
+            MDDialogHeadlineText(text=f"{self.app.character.name} (Cấp {self.app.character.level})", bold=True),
+            MDDialogSupportingText(
+                text="Quét mã QR để triệu hồi chiến binh huyền thoại này từ thế giới xa xăm...\nVinh quang chỉ dành cho người dám bước lên sàn đấu!",
+                italic=True,
+            ),
+            MDDialogContentContainer(
+                MDBoxLayout( # QR Code
+                QRImageWidget,
+                size_hint = (None, None),
+                size = ("240dp", "240dp"),
+                pos_hint = {"center_x": 0.5, "center_y": 0.5},
+                ),
+                orientation="vertical",
+            ),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: CharacterDialog.dismiss(),
+                ),
+                Widget(),
+            ),
+        )
+        CharacterDialog.open()

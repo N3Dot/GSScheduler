@@ -8,9 +8,8 @@ from kivy.uix.widget import Widget
 # Config.set('graphics', 'resizable', False)
 from kivy.core.window import Window
 if platform not in ('android', 'ios'):
-    # Window.size = (720, 1480) # Note 8 View
     # Window.always_on_top = True
-    Window.size = (520, 780) # Debug Note 8 View
+    Window.size = (520, 780) # Debug Note 8 View With Original (720, 1480)
 else:
     Window.keep_screen_on = True
 
@@ -18,7 +17,6 @@ from kivymd.app import MDApp
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.chip import MDChip, MDChipText, MDChipLeadingIcon
 from kivymd.uix.navigationbar import MDNavigationBar, MDNavigationItem
-from kivymd.uix .snackbar import MDSnackbar, MDSnackbarButtonContainer, MDSnackbarCloseButton, MDSnackbarSupportingText
 from Backend import Code, UI, Popups
 
 KV = '''
@@ -94,7 +92,7 @@ MDScreenManager:
 
                         # --- Character Start Section ---
                         MDScreen:
-                            name: "Anh Hùng"
+                            name: "Nhân Vật"
                             MDBoxLayout:
                                 orientation: "vertical"
                                 CharacterCard:
@@ -222,7 +220,7 @@ MDScreenManager:
                             MDNavigationItemIcon:
                                 icon: "account-tie-hat"
                             MDNavigationItemLabel:
-                                text: "Anh Hùng"
+                                text: "Nhân Vật"
                         MDNavigationItem:
                             MDNavigationItemIcon:
                                 icon: "shopping-outline"
@@ -265,8 +263,6 @@ MDScreenManager:
                                     text: "[color=ff4444]Xóa Dữ Liệu[/color]"
                     MenuButton:
                         on_release: navigation_drawer.set_state("toggle")
-                    QRCodeWidget:
-                        id: qr_widget
                 # --- Cài Đặt End Section ---
 
             MDNavigationDrawer:
@@ -331,6 +327,7 @@ MDScreenManager:
 
 '''
 
+
 class GSS(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -352,23 +349,23 @@ class GSS(MDApp):
         return Builder.load_string(KV)
     
     def on_start(self):
-        #demo comprehensive stats với data đầy đủ
-        self.session_manager.create_comprehensive_demo_data()
         self.PopupManager = Popups.Popup(self)
-        self.Player = Code.Character("Unnamed")
-        self.Player.bind(name=lambda instance, value: self.update_player_labels(value, "name"))
-        self.Player.bind(level=lambda instance, value: self.update_player_labels(value, "level"))
-        self.Player.bind(xp=lambda instance, value: self.update_player_labels(value, "xp"))
-        self.Player.bind(xp_to_next_level=lambda instance, value: self.update_player_labels(value, "xp_to_next_level"))
-        self.Player.bind(hp=lambda instance, value: self.update_player_labels(value, "hp"))
-        self.Player.bind(max_hp=lambda instance, value: self.update_player_labels(value, "max_hp"))
-        self.Player.bind(dex=lambda instance, value: self.update_player_labels(value, "dex"))
-        self.Player.bind(int=lambda instance, value: self.update_player_labels(value, "int"))
-        self.Player.bind(luk=lambda instance, value: self.update_player_labels(value, "luk"))
-        self.Player.bind(available_points=lambda instance, value: self.update_player_labels(value, "available_points"))
-        self.Player.bind(gold=lambda instance, value: self.update_player_labels(value, "gold"))
-        self.Player.name = "Anh Khôi"
-        self.Player.gold = 1337
+        self.character.bind(name=lambda instance, value: self.update_player_labels(value, "name"))
+        self.character.bind(level=lambda instance, value: self.update_player_labels(value, "level"))
+        self.character.bind(xp=lambda instance, value: self.update_player_labels(value, "xp"))
+        self.character.bind(xp_to_next_level=lambda instance, value: self.update_player_labels(value, "xp_to_next_level"))
+        self.character.bind(hp=lambda instance, value: self.update_player_labels(value, "hp"))
+        self.character.bind(max_hp=lambda instance, value: self.update_player_labels(value, "max_hp"))
+        self.character.bind(dex=lambda instance, value: self.update_player_labels(value, "dex"))
+        self.character.bind(int=lambda instance, value: self.update_player_labels(value, "int"))
+        self.character.bind(luk=lambda instance, value: self.update_player_labels(value, "luk"))
+        self.character.bind(available_points=lambda instance, value: self.update_player_labels(value, "available_points"))
+        self.character.bind(gold=lambda instance, value: self.update_player_labels(value, "gold"))
+
+        self.session_manager.create_comprehensive_demo_data()
+        self.character.name = "Anh Khôi"
+        self.character.show_stats()
+
         AppDict = self.root.ids
         AppDict.schedule_grid.add_widget(UI.ScheduleCard(startTime="08:00", endTime="11:00", description="Ôn tập buổi cuối đề XSTK.", questTotal=3, expectedLoot="Cao"))
         AppDict.schedule_grid.add_widget(UI.ScheduleCard(startTime="15:00", endTime="17:00", description="Ôn tập buổi cuối đề CTTR.", questTotal=2, expectedLoot="Vừa"))
@@ -396,41 +393,7 @@ class GSS(MDApp):
         AppDict.item_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
         AppDict.achievement_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
         AppDict.achievement_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
-        Clock.schedule_once(self.setup_qr_system, 0.5)
-    def setup_qr_system(self, dt):
-        """Setup QR system after UI is fully loaded"""
-        try:
-            AppDict = self.root.ids
-            
-            # Bind refresh button callback
-            if hasattr(AppDict, 'qr_widget') and AppDict.qr_widget:
-                AppDict.qr_widget.refresh_btn.bind(on_release=self.on_refresh_qr)
-                print("QR refresh button bound successfully")
-            
-            # Generate and update QR code
-            self.update_qr_code()
-            
-        except Exception as e:
-            print(f"Error setting up QR system: {e}")
-
-    def update_qr_code(self):
-        """Cập nhật QR code"""
-        try:
-            print("Generating QR code...")
-            qr_path = self.session_manager.generate_qr_code()
-            print(f"QR path returned: {qr_path}")
-            
-            if qr_path and hasattr(self.root.ids, 'qr_widget'):
-                self.root.ids.qr_widget.update_qr_image(qr_path)
-                print("QR code updated successfully")
-            else:
-                print("Failed to update QR code - no path or widget not found")
-        except Exception as e:
-            print(f"Error updating QR code: {e}")
-    def on_refresh_qr(self, instance):
-        """Callback khi nhấn nút refresh QR"""
-        self.update_qr_code()
-        print("QR code refreshed!")
+    
     def spawn_schedule_options(self, instanceButton):
         menuItems = [
             {
@@ -473,17 +436,29 @@ class GSS(MDApp):
             chip_icon_widget.icon = "sleep"
 
     def on_click_character(self):
-        self.Player.gold += 5
-        self.Player.hp -= 2
-        self.Player.dex += 1
-        self.Player.int += 2
-        self.Player.luk += 3
-        self.Player.available_points += 1
-        self.Player.level += 1
+        try:
+            qr_path = self.session_manager.generate_qr_code()
+            if qr_path:
+                self.PopupManager.show_character_dialog(qr_path)
+                print(f"QR code updated successfully at {qr_path}")
+            else:
+                print("Failed to update QR code - no path or widget not found!")
+        except Exception as e:
+            print(f"Error updating QR code: {e}")
+
+    def debug_function(self):
+        self.character.gold += 5
+        self.character.hp -= 2
+        self.character.dex += 1
+        self.character.int += 2
+        self.character.luk += 3
+        self.character.available_points += 1
+        self.character.level += 1
         self.on_reward()
 
     def on_purchase_item(self, ItemShopCardInstance):
         self.PopupManager.show_item_purchase(ItemShopCardInstance)
+        self.debug_function()
 
     def on_click_item(self):
         self.PopupManager.show_item_dialog()
@@ -531,13 +506,15 @@ class GSS(MDApp):
     def on_toggle_theme(self): # Switch to theme_cls.primary_palette
         self.theme_cls.theme_style = "Dark" if self.theme_cls.theme_style == "Light" else "Light"
    
+    def on_pause(self): # on_stop() is not reliable on Android.
+        self.session_manager.ExportSave()
+        self.session_manager.generate_qr_code()
+        print("Game data saved and QR generated on app pause.")
+
     def on_stop(self):
         self.session_manager.ExportSave()
         self.session_manager.generate_qr_code()
-        print("Game data saved and QR generated on app close")
-      
-    def on_pause(self):
-        pass # Save .json settings. on_stop() is not reliable.
+        print("Game data saved and QR generated on app close.")
 
     def on_resume(self):
         pass

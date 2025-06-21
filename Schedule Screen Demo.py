@@ -19,7 +19,7 @@ from kivymd.uix.snackbar import MDSnackbar, MDSnackbarSupportingText
 KV = """
 MDScreen:
     md_bg_color: self.theme_cls.backgroundColor
-    name = "Creation"
+    name: "Creation"
     MDBoxLayout:
         orientation: 'vertical'
         MDBoxLayout:

@@ -7,7 +7,7 @@ from kivymd.uix.card import MDCard
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.button import MDIconButton
-from kivy.uix.image import Image
+from kivymd.uix.fitimage import FitImage
 from kivy.graphics import Color, RoundedRectangle
 
 RARITY_COLORS = {
@@ -160,16 +160,18 @@ class QRCodeWidget(MDFloatLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.size_hint = (None, None)
-        self.size = ("80dp", "80dp")
+        self.size = ("160dp", "160dp")
         self.pos_hint = {"right": 0.98, "top": 0.98}
+        # White background with transparency
         with self.canvas.before:
-            Color(1, 1, 1, 0.9)  # White background with transparency
+            Color(1, 1, 1, 0.9)
             self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[5])
         # QR Image
-        self.qr_image = Image(
+        self.qr_image = FitImage(
+            source=f"https://picsum.photos/150/150",
             size_hint=(None, None),
-            size=("70dp", "70dp"),
-            pos_hint={"center_x": 0.5, "center_y": 0.5}
+            size=("150dp", "150dp"),
+            pos_hint={"center_x": 0.5, "center_y": 0.5},
         )
         self.add_widget(self.qr_image)
         
@@ -180,15 +182,11 @@ class QRCodeWidget(MDFloatLayout):
             size=("20dp", "20dp"),
             pos_hint={"right": 1, "top": 1},
             theme_icon_color="Custom",
-            icon_color=(0.5, 0.5, 0.5, 0.8)
+            icon_color=(0.5, 0.5, 0.5, 0.8),
+            on_release=lambda x: MDApp.get_running_app().update_qr_code(),
         )
         self.add_widget(self.refresh_btn)
-         # Bind position changes to update background
-        self.bind(pos=self._update_bg, size=self._update_bg)
-    def _update_bg(self, *args):
-        """Update background rectangle when position/size changes"""
-        self.bg_rect.pos = self.pos
-        self.bg_rect.size = self.size
+    
     def update_qr_image(self, image_path):
         """Cập nhật hình ảnh QR code"""
         if image_path and os.path.exists(image_path):

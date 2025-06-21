@@ -1,18 +1,20 @@
-import uuid
 from datetime import datetime, timedelta, date
 from typing import List, Dict, Any, Optional, Tuple, Callable
 from kivy.event import EventDispatcher
 from kivy.properties import StringProperty, NumericProperty
 from enum import Enum
+from datetime import datetime
+from kivy.utils import platform
+from io import BytesIO
+import uuid
 import random
 import time
 import json
 import os
 import qrcode
 import base64
-from datetime import datetime
-from kivy.utils import platform
-from io import BytesIO
+
+
 class Rarity(Enum):
     """Định nghĩa các cấp độ hiếm của vật phẩm."""
     COMMON = 1
@@ -20,6 +22,7 @@ class Rarity(Enum):
     RARE = 3
     EPIC = 4
     LEGENDARY = 5
+
 
 class Item:
     """
@@ -96,6 +99,7 @@ class Item:
     def __repr__(self) -> str:
         """Biểu diễn đối tượng Item dưới dạng chuỗi để dễ gỡ lỗi."""
         return f"Item(name='{self.name}', rarity='{self.rarity.name}')"
+
 
 class Character(EventDispatcher):
     """
@@ -182,6 +186,7 @@ class Character(EventDispatcher):
         print(f"Kho đồ: {[item.name for item in self.inventory] or ['Trống']}")
         print(f"Thành tích: {list(self.unlocked_achievements) or ['Chưa có']}")
         print("--------------------------\n")
+
 
 class RewardSystem:
     """
@@ -298,6 +303,7 @@ class Quest:
             "difficulty": self.difficulty, "is_completed": self.is_completed
         }
 
+
 class StudySession:
     """
     Quản lý một phiên học. Đã loại bỏ thuộc tính 'tags'.
@@ -399,6 +405,7 @@ class StudySession:
             "linked_quests_data": [q.to_dict() for q in self.linked_quests]  # Danh sách dữ liệu các nhiệm vụ liên kết
         }
 
+
 class QuestSystem:
     """Quản lý tất cả các đối tượng Quest."""
     def __init__(self):
@@ -413,6 +420,7 @@ class QuestSystem:
     def get_completed_quests_count(self) -> int:
         """Đếm số lượng quest đã được đánh dấu là hoàn thành."""
         return sum(1 for quest in self.active_quests.values() if quest.is_completed)
+
 
 class StudyAnalytics:
     """
@@ -527,7 +535,6 @@ class StudyAnalytics:
         return "\n".join(report_lines)
 
 
-
 class SessionManager:
     """
     Bộ điều khiển trung tâm cho tất cả các phiên học.
@@ -542,10 +549,11 @@ class SessionManager:
         self.analytics = analytics
         self.save_file_path = self._get_save_path()
         self.qr_image_path = self._get_qr_path()
+    
     def _get_save_path(self):
         """Xác định đường dẫn lưu file tùy theo platform"""
         if platform == 'android':
-            from android.storage import app_storage_path
+            from android.storage import app_storage_path # type: ignore
             save_dir = app_storage_path()
             return os.path.join(save_dir, "save_data.json")
         else:
@@ -555,12 +563,13 @@ class SessionManager:
     def _get_qr_path(self):
         """Xác định đường dẫn lưu QR code"""
         if platform == 'android':
-            from android.storage import app_storage_path
+            from android.storage import app_storage_path # type: ignore
             save_dir = app_storage_path()
             return os.path.join(save_dir, "save_qr.png")
         else:
             save_dir = os.path.dirname(os.path.abspath(__file__))
             return os.path.join(save_dir, "save_qr.png")
+    
     def generate_qr_code(self):
         """
         Tạo QR code từ dữ liệu save game với compression tối ưu
@@ -569,7 +578,6 @@ class SessionManager:
         try:
             # Lấy dữ liệu save game đã được tối ưu cho QR
             save_data = self._get_optimized_qr_data()
-            
             # Chuyển đổi thành JSON string compact
             json_string = json.dumps(save_data, ensure_ascii=False, separators=(',', ':'))
             
@@ -602,10 +610,8 @@ class SessionManager:
             qr_data = f"GSS:{compressed_data}"
             qr.add_data(qr_data)
             qr.make(fit=True)
-            
             # Tạo hình ảnh QR
             qr_image = qr.make_image(fill_color="black", back_color="white")
-            
             # Lưu file
             qr_image.save(self.qr_image_path)
             
@@ -680,6 +686,7 @@ class SessionManager:
         except Exception as e:
             print(f"Lỗi khi tải dữ liệu: {str(e)}")
             return False
+    
     def create_comprehensive_demo_data(self):
         """
         Tạo data đầy đủ với stats phong phú để demo
@@ -690,6 +697,7 @@ class SessionManager:
         self.character.xp = 450
         self.character.xp_to_next_level = 800
         self.character.hp = 120
+        self.character.max_hp = 150
         self.character.gold = 350
         self.character.dex = 25
         self.character.int = 18
@@ -778,6 +786,7 @@ class SessionManager:
                     "l": self.character.level,
                     "x": self.character.xp,
                     "h": self.character.hp,
+                    "m": self.character.max_hp,
                     "g": self.character.gold,
                     "d": self.character.dex,
                     "i": self.character.int,
@@ -800,6 +809,7 @@ class SessionManager:
             return save_data
         except Exception as e:
             print(f"Error generating optimized data: {e}")
+    
     def _get_save_data(self):
         """Lấy dữ liệu save game đầy đủ cho file JSON"""
         try:
@@ -810,6 +820,7 @@ class SessionManager:
                     "xp": self.character.xp,
                     "xp_to_next_level": self.character.xp_to_next_level,
                     "hp": self.character.hp,
+                    "max_hp": self.character.max_hp,
                     "gold": self.character.gold,
                     "dex": self.character.dex,
                     "int": self.character.int,
@@ -902,6 +913,7 @@ class SessionManager:
             self.character.xp = char_data.get("xp", 0)
             self.character.xp_to_next_level = char_data.get("xp_to_next_level", 100)
             self.character.hp = char_data.get("hp", 50)
+            self.character.max_hp = char_data.get("max_hp", 50)
             self.character.gold = char_data.get("gold", 10)
             self.character.dex = char_data.get("dex", 1)
             self.character.int = char_data.get("int", 1)
@@ -1007,6 +1019,7 @@ class SessionManager:
             import traceback
             traceback.print_exc()
             return False
+    
     def _find_session_by_id(self, session_id: str) -> Optional[StudySession]:
         """
         Hàm trợ giúp nội bộ để tìm một phiên học trong danh sách theo ID.
@@ -1091,13 +1104,10 @@ class SessionManager:
         
         # 1. Ghi lại dữ liệu phân tích
         self.analytics.log_session(session.get_session_data())
-        
         # 2. Áp dụng thưởng/phạt
         self._apply_session_consequences(session)
-        
         # 3. Kiểm tra thành tích mới (sau khi đã có thưởng/phạt và cập nhật stats)
         self.analytics.check_unlockable_achievements(self.character)
-        
         # 4. Xóa phiên học đã kết thúc khỏi danh sách đang hoạt động
         self.sessions.remove(session)
 
