@@ -1,0 +1,40 @@
+<QuestCard>:
+    size_hint_y: None
+    height: "115dp"
+    padding: "4dp"
+    MDRelativeLayout:
+        MDIconButton:
+            icon: "close-circle-outline"
+            pos_hint: {"top": 1, "right": 1}
+            theme_icon_color: "Secondary"
+            icon_size: "20sp"
+            on_release: app.remove_quest(root)
+        MDIconButton:
+            icon: "pencil-outline"
+            pos_hint: {"bottom": 1, "right": 1}
+            on_release: app.on_quest_edit(root)
+        MDBoxLayout:
+            orientation: "horizontal"
+            padding: "5dp"
+            MDBoxLayout:
+                pos_hint: {'top': 1}
+                orientation: "vertical"
+                adaptive_height: True
+                spacing: "5dp"
+                size_hint_x: 0.85
+                MDLabel:
+                    text: f"[b]Độ Khó:[/b] {root.difficulty}"
+                    font_style: "Label"
+                    role: "large"
+                    markup: True
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: app.theme_cls.primaryColor
+                MDLabel:
+                    text: f"[b]Mô Tả:[/b] {root.description}"
+                    font_style: "Body"
+                    role: "medium"
+                    markup: True
+                    adaptive_height: True
+            MDBoxLayout:
+                size_hint_x: 0.15
