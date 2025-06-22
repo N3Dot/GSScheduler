@@ -7,8 +7,8 @@
     elevation: 4
     MDBoxLayout:
         size_hint: None, None
-        # Size = Image (32×32) + Padding (4 each side) = 36 + 4*2 = 44
-        size: dp(44), dp(44)
+        # Size = Image (32×32) + Padding (4 each side) = 32 + 4*2 = 40
+        size: dp(40), dp(40)
         padding: dp(4)
         pos_hint: {"center_x": 0.5}
         canvas.before:
@@ -28,10 +28,10 @@
         FitImage:
             source: root.icon
             size_hint: None, None
-            size: dp(36), dp(36)
+            size: dp(32), dp(32)
             allow_stretch: True
             keep_ratio: True
-    
+
     Widget: # Padding
         size_hint_y: None
         height: dp(6)
