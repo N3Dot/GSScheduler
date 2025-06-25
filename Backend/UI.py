@@ -1,7 +1,7 @@
 import os
 
 from kivy.lang import Builder
-from kivy.properties import StringProperty, ListProperty, NumericProperty, BooleanProperty
+from kivy.properties import StringProperty, ListProperty, NumericProperty, BooleanProperty, ObjectProperty
 from kivymd.app import MDApp
 from kivymd.uix.card import MDCard
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -46,7 +46,6 @@ class ItemCard(MDCard):
     borderColor = ListProperty([0.65, 0.65, 0.65, 1])
     backgroundColor = ListProperty([0.65, 0.65, 0.65, 0.2])
     textColor = ListProperty([0.3, 0.3, 0.3, 1])
-    ID = None
 
     def on_touch_down(self, touch):
         for child in self.children[::-1]:
@@ -70,7 +69,6 @@ class ItemShopCard(MDCard):
     borderColor = ListProperty([0.65, 0.65, 0.65, 1])
     backgroundColor = ListProperty([0.65, 0.65, 0.65, 0.2])
     textColor = ListProperty([0.3, 0.3, 0.3, 1])
-    ID = None
 
     def on_touch_down(self, touch):
         for child in self.children[::-1]:
@@ -87,12 +85,40 @@ class ItemShopCard(MDCard):
 
 Builder.load_file("Backend/KV/ScheduleCard.kv")
 class ScheduleCard(MDCard):
+    session = ObjectProperty()
     startTime = StringProperty()
     endTime = StringProperty()
     description = StringProperty()
     expectedLoot = StringProperty()
     questTotal = NumericProperty()
-    ID = None
+
+    def on_session(self, instance, value):
+        if self.session:
+            self.startTime=self.session.start_time.strftime("%H:%M")
+            self.endTime=self.session.end_time.strftime("%H:%M")
+            self.description=self.session.goal_description
+            self.questTotal = 0
+            diffTotal = 0
+            for quest in self.session.linked_quests:
+                self.questTotal += 1
+                diffTotal += quest.difficulty
+            diffAvg = diffTotal/self.questTotal
+            if diffAvg > 3:
+                self.expectedLoot = "Cao"
+            elif diffAvg > 2:
+                self.expectedLoot = "Vừa"
+            else:
+                self.expectedLoot = "Thấp"
+
+Builder.load_file("Backend/KV/QuestCard.kv")
+class QuestCard(MDCard):
+    difficulty = StringProperty()
+    description = StringProperty()
+
+Builder.load_file("Backend/KV/QuestLockCard.kv")
+class QuestLockCard(MDCard):
+    difficulty = StringProperty()
+    description = StringProperty()
 
 Builder.load_file("Backend/KV/CharacterCard.kv")
 class CharacterCard(MDBoxLayout):
@@ -150,11 +176,8 @@ class BarWide(MDBoxLayout):
 Builder.load_file("Backend/KV/GoldCounterCard.kv")
 class GoldCounterCard(MDCard):
     goldAmount = NumericProperty(0)
-   
-Builder.load_file("Backend/KV/QuestCard.kv")
-class QuestCard(MDCard):
-    difficulty = StringProperty()
-    description = StringProperty()
+
+
 
 class QRCodeWidget(MDFloatLayout):
     def __init__(self, **kwargs):

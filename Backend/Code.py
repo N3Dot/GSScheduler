@@ -13,6 +13,7 @@ import json
 import os
 import qrcode
 import base64
+import gzip
 
 
 class Rarity(Enum):
@@ -622,13 +623,17 @@ class StudyAnalytics:
         """Tạo báo cáo chi tiết, không có phần 'Time Breakdown by Tag'."""
         stats = self.aggregated_stats
         report_lines = [
-            "📊======= BÁO CÁO HỌC TẬP CỦA BẠN =======📊",
+            "==========================================",
             # ... các dòng báo cáo khác giữ nguyên ...
-            f"   S: {stats['rank_counts']['S']} | A: {stats['rank_counts']['A']} | B: {stats['rank_counts']['B']} | C: {stats['rank_counts']['C']} | F: {stats['rank_counts']['F']}",
+            "--- Đánh Giá ---",
+            f"S: {stats['rank_counts']['S']} | A: {stats['rank_counts']['A']} | B: {stats['rank_counts']['B']} | C: {stats['rank_counts']['C']} | F: {stats['rank_counts']['F']}",
+            "",
+            "--- Ngày Học Liên Tiếp ---",
+            f"{self.focus_streak}",
             "",
             "--- Nhiệm Vụ ---",
-            f"🎯 Nhiệm Vụ Hoàn Thành: {stats['quests_completed']} / {len(self.quest_system.active_quests)}",
-            f"   Tỷ Lệ Hoàn Thành: {stats['quest_completion_rate']:.1f}%",
+            f"Nhiệm Vụ Hoàn Thành: {stats['quests_completed']} / {len(self.quest_system.active_quests)}",
+            f"Tỷ Lệ Hoàn Thành: {stats['quest_completion_rate']:.1f}%",
             "=========================================="
         ]
         return "\n".join(report_lines)
@@ -681,7 +686,6 @@ class SessionManager:
             json_string = json.dumps(save_data, ensure_ascii=False, separators=(',', ':'))
             
             # Nén dữ liệu bằng base64
-            import gzip
             compressed_bytes = gzip.compress(json_string.encode('utf-8'))
             compressed_data = base64.b64encode(compressed_bytes).decode('ascii')
             

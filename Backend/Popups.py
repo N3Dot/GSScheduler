@@ -18,6 +18,7 @@ class Popup:
     def __init__(self, app):
         # Store a reference to the main app so we can access its properties
         self.app = app
+        self.instance = None
 
     def show_item_purchase(self, ItemShopCardInstance):
         MDSnackbar(
@@ -123,3 +124,18 @@ class Popup:
             ),
         )
         CharacterDialog.open()
+
+    def show_analytics_dialog(self, ReportString: str):
+        AnalyticsDialog = MDDialog(
+            MDDialogIcon(icon="google-analytics"),
+            MDDialogHeadlineText(text=f"Kết Quả Học Tập"),
+            MDDialogSupportingText(text=ReportString),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: AnalyticsDialog.dismiss(),
+                ),
+                Widget(),
+            ),
+        )
+        AnalyticsDialog.open()
