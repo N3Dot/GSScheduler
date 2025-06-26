@@ -16,7 +16,7 @@
                 orientation: "horizontal"
                 MDBoxLayout:
                     MDLabel:
-                        text: f"[b]{root.startTime} - {root.endTime}[/b]"
+                        text: f"[b]Chặng {root.startTime} - {root.endTime}[/b]"
                         markup: True
                         size_hint_x: None
                         width: dp(265)
@@ -50,7 +50,7 @@
                     role: "medium"
                     pos_hint: {"center_y": 0.4}
                 MDIcon:
-                    icon: "gold"
+                    icon: "skull-outline"
                     pos_hint: {"center_y": 0.5}
                 MDLabel:
                     text: f"{root.expectedLoot}"
@@ -71,7 +71,7 @@
                     size: dp(24), dp(24)
                     style: "text"
                     radius: [15, 15, 15, 15]
-                    on_release: app.spawn_schedule_options(self, root)
+                    on_release: app.get_schedule_options(self, root)
                     MDButtonIcon:
                         icon: "dots-vertical"
                         size_hint: None, None

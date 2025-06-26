@@ -130,8 +130,7 @@ class Character(EventDispatcher):
     def __init__(self, name: str, **kwargs):
         super().__init__(**kwargs)
         self.name: str = name
-        self.skin_visuals: str = "default_skin.png"  # Ngoại hình cơ bản
-        self.equipment_visuals: List[Tuple[str, Tuple[int, int]]] = []  # Các lớp hình ảnh trang bị
+        self.avatar_path: str = "default_skin.png"  # Ngoại hình cơ bản
         self.equipment: List[Item] = []  # Danh sách các vật phẩm đã trang bị
         self.inventory: List[Item] = []  # Kho đồ chứa các vật phẩm
         self.achievements: List[Item] = []  # Các thành tích dưới dạng vật phẩm (nếu có)
@@ -345,18 +344,18 @@ class RewardSystem:
         Chỉ số INT giúp giảm thiểu hình phạt.
         """
         punishment_type = punishment.get("type")
-        if punishment_type == "gold":
+        if punishment_type == "hp":
             base_amount = punishment.get("amount", 0)
-            # Mỗi điểm INT giảm 2% lượng vàng bị phạt, tối đa giảm 80%
+            # Mỗi điểm INT giảm 2% lượng máu bị phạt, tối đa giảm 80%
             reduction_modifier = max(0.2, 1 - (character.int * 0.02))
             final_amount = int(base_amount * reduction_modifier)
             
-            character.gold -= final_amount
-            # Đảm bảo vàng không bị âm
-            if character.gold < 0:
-                character.gold = 0
+            character.hp -= final_amount
+            # Đảm bảo máu không bị âm
+            if character.hp < 0:
+                character.hp = 0
             
-            print(f"Nhân vật {character.name} bị phạt {final_amount} vàng vì không hoàn thành mục tiêu.")
+            print(f"Nhân vật {character.name} bị phạt {final_amount} máu vì không hoàn thành mục tiêu.")
         else:
             print(f"Loại hình phạt '{punishment_type}' không hợp lệ.")
 
@@ -659,9 +658,11 @@ class SessionManager:
         if platform == 'android':
             from android.storage import app_storage_path # type: ignore
             save_dir = app_storage_path()
+            print(os.path.join(save_dir, "save_data.json"))
             return os.path.join(save_dir, "save_data.json")
         else:
             save_dir = os.path.dirname(os.path.abspath(__file__))
+            print(os.path.join(save_dir, "save_data.json"))
             return os.path.join(save_dir, "save_data.json")
 
     def _get_qr_path(self):
@@ -1267,7 +1268,7 @@ class SessionManager:
             total_difficulty_failed = sum(q.difficulty for q in session.linked_quests if not q.is_completed)
             if total_difficulty_failed > 0:
                 print(f"Phiên học kết thúc với hạng F, áp dụng hình phạt.")
-                self.reward_system.punish(self.character, {'type': 'gold', 'amount': total_difficulty_failed * 5})
+                self.reward_system.punish(self.character, {'type': 'hp', 'amount': total_difficulty_failed * 4})
 
 # --- VÍ DỤ MÔ PHỎNG ---
 # =============================================================================

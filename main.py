@@ -1,4 +1,6 @@
+import os
 from datetime import datetime, timedelta, date
+
 from kivy.config import Config
 from kivy.core.audio import SoundLoader
 from kivy.lang import Builder
@@ -56,6 +58,15 @@ MDScreenManager:
                         MDScreen:
                             name: "Phiên Học"
                             MDBoxLayout:
+                                padding: "40dp"
+                                MDLabel:
+                                    id: empty_schedule_hint_label
+                                    text: "Hiện tại không có phiên học. Bắt đầu hành trình bằng cách nhấn nút phía trên để tạo phiên học mới nhé!"
+                                    disabled: 1
+                                    halign: 'center'
+                                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                            MDBoxLayout:
                                 orientation: "vertical"
                                 MDBoxLayout:
                                     size_hint_y: None  # CRUCIAL: Disables vertical size scaling.
@@ -91,7 +102,7 @@ MDScreenManager:
                                         adaptive_height: True
                                         padding: dp(15), dp(0), dp(15), dp(90)
                                         spacing: dp(10)
-                            
+
                             MDBoxLayout:
                                 orientation: "vertical"
                                 MDBoxLayout: # Fixed height padding.
@@ -102,7 +113,7 @@ MDScreenManager:
                                     anchor_y: "top"
                                     MDFabButton:
                                         icon: "plus"
-                                        on_release: app.switch_edit(None)
+                                        on_release: app.switch_edit()
                         # --- Schedules End Section ---
 
                         # --- Character Start Section ---
@@ -268,7 +279,13 @@ MDScreenManager:
                                 MDListItemLeadingIcon:
                                     icon: "google-analytics"
                                 MDListItemSupportingText:
-                                    text: "Kết Quả Học Tập"
+                                    text: "Xem Kết Quả"
+                            MDListItem:
+                                on_release: app.show_avatar_dialog()
+                                MDListItemLeadingIcon:
+                                    icon: "image-album"
+                                MDListItemSupportingText:
+                                    text: "Đổi Ảnh Nhân Vật"
                             MDListItem:
                                 MDListItemLeadingIcon:
                                     id: trash_can_icon
@@ -347,6 +364,7 @@ MDScreenManager:
             orientation: 'vertical'
             MDBoxLayout:
                 adaptive_height: True
+                padding: "0dp", "60dp"
                 md_bg_color: self.theme_cls.secondaryColor
                 MDLabel:
                     text: "Điều Chỉnh Lịch Học"
@@ -369,6 +387,7 @@ MDScreenManager:
                         bold: True
                         adaptive_height: True
                     MDTextField:
+                        id: description_field
                         hint_text: "Mô tả"
                         mode: "outlined"
                         max_height: "300dp"
@@ -458,13 +477,144 @@ MDScreenManager:
                     style: "outlined"
                     pos_hint: {"center_x": 0.5}
                     on_release: 
-                        app.add_session() if app.mode == "Create" else print("yooo")
-                        app.switch_main()
+                        app.add_session()
                     MDButtonText:
                         text: "Hoàn Thành"
     
     MDScreen:
         name: "Lock"
+        MDBoxLayout:
+            orientation: 'vertical'
+            MDBoxLayout:
+                orientation: 'vertical'
+                adaptive_height: True
+                padding: "0dp", "40dp"
+                md_bg_color: self.theme_cls.tertiaryColor
+                MDLabel:
+                    text: "Phiên Học Đang Diễn Ra"
+                    bold: True
+                    font_style: "Title"
+                    halign: 'center'
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+                MDLabel:
+                    text: "Hoàn thành nhiệm vụ để tiến bước!"
+                    italic: True
+                    font_style: "Label"
+                    halign: 'center'
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+            MDBoxLayout:
+                orientation: 'horizontal'
+                spacing: "20dp"
+                padding: "20dp"
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    spacing: "15dp"
+                    padding: "0dp", "10dp", "0dp", "0dp"
+                    size_hint_x: 0.5
+                    MDLabel:
+                        text: "Chi Tiết:"
+                        bold: True
+                        adaptive_height: True
+                    MDBoxLayout:
+                        orientation: 'horizontal'
+                        adaptive_height: True
+                        spacing: "10dp"
+                        MDIcon:
+                            icon: "clock"
+                            pos_hint: {"center_y": 0.5}
+                        MDLabel:
+                            id: lock_schedule_label
+                            text: "[b]Chặng: [/b] 08:00 - 10:00"
+                            markup: True
+                            font_style: "Label"
+                            pos_hint: {"center_y": 0.5}
+                            adaptive_height: True
+                    MDBoxLayout:
+                        orientation: 'horizontal'
+                        adaptive_height: True
+                        spacing: "10dp"
+                        MDIcon:
+                            icon: "notebook"
+                            pos_hint: {"center_y": 0.5}
+                        MDLabel:
+                            id: lock_description_label
+                            text: "[b]Mô tả: [/b] Phiên học mới!"
+                            markup: True
+                            font_style: "Label"
+                            pos_hint: {"center_y": 0.5}
+                            adaptive_height: True
+                    MDBoxLayout:
+                        orientation: 'vertical'
+                        adaptive_height: True
+                        spacing: "10dp"
+                        padding: "10dp", "30dp"
+                        MDIcon:
+                            icon: "timer-sand"
+                            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                            theme_icon_color: "Custom"
+                            icon_color: app.theme_cls.tertiaryColor
+                            theme_font_size: "Custom"
+                            font_size: "64dp"
+                        MDLabel:
+                            text: "Thời Gian Còn Lại"
+                            font_style: "Body"
+                            halign: 'center'
+                            pos_hint: {"center_y": 0.5}
+                            adaptive_height: True
+                            theme_text_color: "Custom"
+                            text_color: app.theme_cls.tertiaryColor
+                        MDLabel:
+                            id: lock_time_label
+                            text: "02:17:21"
+                            bold: True
+                            font_style: "Body"
+                            halign: 'center'
+                            pos_hint: {"center_y": 0.5}
+                            adaptive_height: True
+                            theme_text_color: "Custom"
+                            text_color: app.theme_cls.tertiaryColor
+                    Widget:
+
+                MDDivider:
+                    orientation: 'vertical'
+                        
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    spacing: "15dp"
+                    size_hint_x: 0.5
+                    MDBoxLayout:
+                        adaptive_height: True
+                        padding: "0dp", "8dp", "0dp", "0dp"
+                        MDLabel:
+                            text: "Nhiệm Vụ:"
+                            bold: True
+                            adaptive_height: True
+                            pos_hint: {'center_y': 0.5}
+                    MDScrollView:
+                        do_scroll_x: False
+                        MDBoxLayout:
+                            id: lock_quest_grid
+                            orientation: 'vertical'
+                            spacing: "10dp"
+                            adaptive_height: True
+            
+            MDBoxLayout:
+                orientation: "vertical"
+                padding: "20dp", "10dp", "20dp", "40dp"
+                adaptive_height: True
+                MDButton:
+                    style: "outlined"
+                    pos_hint: {"center_x": 0.5}
+                    on_release: 
+                        print("Ayo...")
+                    MDButtonText:
+                        text: "Kết Thúc Phiên Học"
+                        theme_text_color: "Custom"
+                        text_color: app.theme_cls.tertiaryColor
 
 '''
 
@@ -474,11 +624,12 @@ class GSS(MDApp):
         super().__init__(**kwargs)
         # Khởi tạo các objects theo kiến trúc gốc và truyền vào SessionManager
         self.character = Code.Character("Người Chơi")
-        self.quests = Code.QuestSystem()
+        self.quest_system = Code.QuestSystem()
         self.reward_system = Code.RewardSystem()
-        self.analytics = Code.StudyAnalytics(Code.QuestSystem())
+        self.analytics = Code.StudyAnalytics(self.quest_system)
         self.session_manager = Code.SessionManager(character=self.character, reward_system=self.reward_system, analytics=self.analytics)
-        self.mode = "Create"
+        self.active_card = None
+        self.queued_cards = []
 
     def build(self):
         self.theme_cls.theme_style = "Light"
@@ -503,6 +654,11 @@ class GSS(MDApp):
         self.character.name = "Anh Khôi"
         self.character.show_stats()
         self.load_tabs()
+        # self.root.current = "Lock"
+        quest1 = Code.Quest(description="Viết phần Mở đầu báo cáo.", difficulty=2)
+        self.root.ids.lock_quest_grid.add_widget(UI.QuestLockCard(quest=quest1))
+        self.root.ids.lock_quest_grid.add_widget(UI.QuestLockCard(quest=quest1))
+        # self.watcher = Clock.schedule_interval(self.schedule_watcher, 1)
 
         AppDict = self.root.ids
         AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Vàng", icon="Art/Items/TEST.png", price="1000", rarity="Legendary"))
@@ -543,64 +699,106 @@ class GSS(MDApp):
     def load_tabs(self):
         # --- Load Saved Sessions ---
         for session in self.session_manager.sessions:
-            QuestNum = 0
-            DifficultyNum = 0
-            for quest in session.linked_quests:
-                QuestNum += 1
-                DifficultyNum += quest.difficulty
-            DifficultyAvg = DifficultyNum/QuestNum
-            if DifficultyAvg > 3:
-                LootStr = "Cao"
-            elif DifficultyAvg > 2:
-                LootStr = "Vừa"
-            else:
-                LootStr = "Thấp"
             self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
         # --- Load Character Tab ---
+        self.reload_avatar()
         # --- Load Shop Tab ---
+        self.switch_main()
+    
+    def reload_avatar(self):
+        self.avatar_path = f"https://picsum.photos/600/600"
+        try:
+            for filename in os.listdir(self.user_data_dir):
+                file_path = os.path.join(self.user_data_dir, filename)
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    self.avatar_path = file_path
+            print("Loaded avatar from user_data_dir.")
+        except Exception as e:
+            print(f"Failed to load avatar from user_data_dir: {e}")
+        print(self.avatar_path)
+        self.root.ids.character_card.imagePath = self.avatar_path
+        self.root.ids.schedule_character_card.imagePath = self.avatar_path
 
     def switch_main(self):
+        if self.session_manager.sessions:
+            self.root.ids.empty_schedule_hint_label.opacity = 0
+        else:
+            self.root.ids.empty_schedule_hint_label.opacity = 1
         self.root.current = "Main"
     
-    def switch_edit(self, Data):
+    def switch_edit(self, ScheduleCard = None):
+        self.root.ids.schedule_quest_grid.clear_widgets() # Load Anew
         if self.PopupManager.instance:
             self.PopupManager.instance.dismiss()
-        if Data:
-            self.mode = "Edit"
-        else:
-            self.mode = "Create"
+
+        if ScheduleCard: # Edit Session
+            self.active_card = ScheduleCard
+            self.root.ids.description_field.text = self.active_card.session.goal_description
+            self.root.ids.start_time_label.text = f"[b]Bắt Đầu: [/b] {self.active_card.session.start_time.strftime('%H:%M')}"
+            self.root.ids.end_time_label.text = f"[b]Kết Thúc: [/b] {self.active_card.session.end_time.strftime('%H:%M')}"
+            for quest in self.active_card.session.linked_quests:
+                self.add_quest(quest)
+
+        else: # Create Session
+            self.active_card = None
+            self.root.ids.start_time_label.text = f"[b]Bắt Đầu: [/b] {(datetime.now()+timedelta(hours=1)).strftime('%H')}:00"
+            self.root.ids.end_time_label.text = f"[b]Kết Thúc: [/b] {(datetime.now()+timedelta(hours=2)).strftime('%H')}:00"
+            self.add_quest()
+
         self.root.current = "Edit"
 
+    def schedule_watcher(self, dt):
+        pass
+
     def add_session(self):
-        quests = Code.QuestSystem()
-        quest1 = quests.create_quest(description="Viết phần Mở đầu báo cáo", difficulty=2)
-        quest2 = quests.create_quest(description="Thiết kế Class Diagram", difficulty=4)
-        quest3 = quests.create_quest(description="Viết code cho 3 Class", difficulty=5)
-        session = self.session_manager.schedule_session(
-        goal_description="Làm báo cáo OOP - Giai đoạn 1",
-        start_time=datetime.now() + timedelta(seconds=100),
-        end_time=datetime.now() + timedelta(seconds=200), # Thời gian dự kiến là 23 giây
-        linked_quests=[quest1, quest2, quest3] # Truyền danh sách các đối tượng Quest
-        )
-        self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
+        description_text = self.root.ids.description_field.text
+
+        if not self.queued_cards:
+            self.PopupManager.show_warning_dialog("Đừng quên thêm ít nhất 1 nhiệm vụ để khởi động phiên học!")
+            return
+        quests = []
+        for quest_card in self.queued_cards:
+            quests.append(quest_card.quest)
         
-    def remove_session(self, CardInstance):
+        start_date = datetime.strptime(self.root.ids.start_time_label.text.split()[-1], "%H:%M") # Dạng: 1900-01-01 H:M (Không phân biệt ngày!)
+        end_date = datetime.strptime(self.root.ids.end_time_label.text.split()[-1], "%H:%M") # Dạng: 1900-01-01 H:M (Không phân biệt ngày!)
+        if abs(start_date - end_date) < timedelta(minutes=5):
+            self.PopupManager.show_warning_dialog("Nhanh quá! Hãy dành ít nhất 5 phút cho phiên học của mình nha!")
+            return
+        
+        session = self.session_manager.schedule_session(goal_description=description_text, start_time=start_date, end_time=end_date, linked_quests=quests)
+        if self.active_card: # Edit
+            self.session_manager.sessions.remove(self.active_card.session)
+            self.active_card.session = session
+        else: # Create
+            self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
+        print(self.session_manager.sessions)
+        self.queued_cards = []
+        self.active_card = None
+        self.switch_main()
+        
+    def remove_session(self, ScheduleCard):
         if self.PopupManager.instance:
             self.PopupManager.instance.dismiss()
-        if CardInstance.parent:
-            self.session_manager.sessions.remove(CardInstance.session)
-            CardInstance.parent.remove_widget(CardInstance)
+        if ScheduleCard.parent:
+            self.session_manager.sessions.remove(ScheduleCard.session)
+            ScheduleCard.parent.remove_widget(ScheduleCard)
         else:
-            print("Failed to remove session: Instance doesn't have parent.")
+            print("Failed to remove session: Card with no parent.")
 
-    def add_quest(self, SessionInstance = None): # ---> CurrentSession
-        QuestCardInstance = UI.QuestCard(difficulty="3", description="Hoàn thành bài tập.")
-        self.root.ids.schedule_quest_grid.add_widget(QuestCardInstance)
+    def add_quest(self, Quest = None):
+        if not Quest:
+            Quest = self.quest_system.create_quest(difficulty=3, description="Hoàn thành... ")
+        QuestCard = UI.QuestCard(quest=Quest)
+        self.queued_cards.append(QuestCard)
+        self.root.ids.schedule_quest_grid.add_widget(QuestCard)
 
-    def remove_quest(self, QuestCardInstance, QuestInstance = None, SessionInstance = None):
-        self.root.ids.schedule_quest_grid.remove_widget(QuestCardInstance)
+    def remove_quest(self, QuestCard):
+        self.quest_system.active_quests.pop(f"{QuestCard.quest.quest_id}", None)
+        self.queued_cards.remove(QuestCard)
+        self.root.ids.schedule_quest_grid.remove_widget(QuestCard)
 
-    def on_quest_edit(self, QuestCardInstance, QuestInstance = None, SessionInstance = None):
+    def edit_quest(self, QuestCard):
         segmented_button = MDSegmentedButton(
             MDSegmentedButtonItem(MDSegmentButtonLabel(text="1")),
             MDSegmentedButtonItem(MDSegmentButtonLabel(text="2")),
@@ -614,11 +812,11 @@ class GSS(MDApp):
         )
 
         # --- Pre-Filling ---
-        description_field.text = QuestCardInstance.description
+        description_field.text = QuestCard.description
         for item in segmented_button.get_items():
             for child in item.walk(restrict=True):
                 if isinstance(child, MDSegmentButtonLabel):
-                    if child.text == QuestCardInstance.difficulty:
+                    if child.text == QuestCard.difficulty:
                         segmented_button.mark_item(item)
                         break
             else:
@@ -645,36 +843,37 @@ class GSS(MDApp):
                     on_release=lambda x: self.QuestDialog.dismiss(),
                 ),
                 MDButton(MDButtonText(text="Lưu"), style="filled",
-                    on_release=lambda x: self.save_quest_changes(QuestCardInstance, segmented_button, description_field),
+                    on_release=lambda x: self.save_quest_changes(QuestCard, segmented_button, description_field),
                 ),
                 spacing="10dp",
             ),
         )
         self.QuestDialog.open()
 
-    def save_quest_changes(self, QuestCardInstance, segmented_button, description_field, QuestInstance = None, SessionInstance = None):
+    def save_quest_changes(self, QuestCard, segmented_button, description_field):
         selected_items = segmented_button.get_marked_items()
         if selected_items:
             for child in selected_items[0].walk(restrict=True):
                 if isinstance(child, MDSegmentButtonLabel):
-                    new_difficulty = child.text
-                    QuestCardInstance.difficulty = new_difficulty
+                    QuestCard.difficulty = child.text
+                    QuestCard.quest.difficulty = int(child.text)
                     break
 
-        QuestCardInstance.description = description_field.text
+        QuestCard.description = description_field.text
+        QuestCard.quest.description = description_field.text
         self.QuestDialog.dismiss()
     
-    def spawn_schedule_options(self, instanceButton, CardInstance):
+    def get_schedule_options(self, instanceButton, ScheduleCard):
         menuItems = [
             {
                 "text": f"Điều Chỉnh",
                 "leading_icon": "wrench",
-                "on_release": lambda Data=CardInstance: self.switch_edit(Data),
+                "on_release": lambda Data=ScheduleCard: self.switch_edit(Data),
             },
             {
                 "text": f"Xóa",
                 "leading_icon": "trash-can",
-                "on_release": lambda Data=CardInstance: self.remove_session(Data),
+                "on_release": lambda Data=ScheduleCard: self.remove_session(Data),
             },
         ]
         self.PopupManager.instance = MDDropdownMenu(caller=instanceButton, items=menuItems)
@@ -787,6 +986,9 @@ class GSS(MDApp):
     def show_analytics_dialog(self):
         ReportString = self.analytics.generate_report()
         self.PopupManager.show_analytics_dialog(ReportString)
+    
+    def show_avatar_dialog(self):
+        self.PopupManager.show_avatar_dialog()
 
     def on_home_switch_tab(self, bar: MDNavigationBar, item: MDNavigationItem, item_icon: str, item_text: str):
         self.root.ids.screen_manager_home.current = item_text
