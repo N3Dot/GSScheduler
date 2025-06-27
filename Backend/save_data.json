@@ -71,25 +71,25 @@
         "session_id": "demo_session_0",
         "goal": "Study Session Day 1",
         "status": "Finished",
-        "start_time": "2025-06-17T14:19:36.439319",
-        "end_time": "2025-06-17T17:15:36.439319",
-        "rank": "B",
-        "duration_seconds": 10560.0,
+        "start_time": "2025-06-17T22:50:04.041513",
+        "end_time": "2025-06-18T00:52:04.041513",
+        "rank": "C",
+        "duration_seconds": 7320.0,
         "linked_quests_data": [
           {
-            "quest_id": "quest_fa90896c-e96c-4c81-b6ff-15bb0af23341",
+            "quest_id": "quest_680d9d42-042a-47f9-bcbd-1c6847b965e3",
             "description": "Task 1 for Day 1",
-            "difficulty": 1,
-            "is_completed": false
-          },
-          {
-            "quest_id": "quest_aceadfaa-1431-4fc9-a91b-33c484a8bc1d",
-            "description": "Task 2 for Day 1",
-            "difficulty": 3,
+            "difficulty": 2,
             "is_completed": true
           },
           {
-            "quest_id": "quest_8a7e8d49-451a-4c77-95b2-2864cd3baa35",
+            "quest_id": "quest_5b7d1db5-12f9-455e-90b9-61e8c5a0a903",
+            "description": "Task 2 for Day 1",
+            "difficulty": 1,
+            "is_completed": true
+          },
+          {
+            "quest_id": "quest_c83022a4-d863-4d42-84c9-0b3dd2a506df",
             "description": "Task 3 for Day 1",
             "difficulty": 2,
             "is_completed": true
@@ -100,27 +100,33 @@
         "session_id": "demo_session_1",
         "goal": "Study Session Day 2",
         "status": "Finished",
-        "start_time": "2025-06-18T14:19:36.439319",
-        "end_time": "2025-06-18T17:11:36.439319",
-        "rank": "A",
-        "duration_seconds": 10320.0,
+        "start_time": "2025-06-18T22:50:04.041513",
+        "end_time": "2025-06-19T01:28:04.041513",
+        "rank": "B",
+        "duration_seconds": 9480.0,
         "linked_quests_data": [
           {
-            "quest_id": "quest_302224f6-2563-4ba8-afff-2237a2a1486a",
+            "quest_id": "quest_0deb0e44-cb16-4f81-9760-1dfa29e629f1",
             "description": "Task 1 for Day 2",
-            "difficulty": 1,
+            "difficulty": 3,
             "is_completed": true
           },
           {
-            "quest_id": "quest_109797af-4233-4f0f-bd5d-e4c904596f9f",
+            "quest_id": "quest_661b537e-5f83-4b95-bcf1-10e7fe108e8d",
             "description": "Task 2 for Day 2",
+            "difficulty": 3,
+            "is_completed": false
+          },
+          {
+            "quest_id": "quest_97e8a98f-2cff-440e-a776-b6ea0f8450d6",
+            "description": "Task 3 for Day 2",
             "difficulty": 2,
             "is_completed": false
           },
           {
-            "quest_id": "quest_a82eda4b-c3ca-41b0-84ec-7f75247a2580",
-            "description": "Task 3 for Day 2",
-            "difficulty": 3,
+            "quest_id": "quest_96d620b3-8ccf-4300-bed7-a1cd3b76807c",
+            "description": "Task 4 for Day 2",
+            "difficulty": 2,
             "is_completed": true
           }
         ]
@@ -129,19 +135,19 @@
         "session_id": "demo_session_2",
         "goal": "Study Session Day 3",
         "status": "Finished",
-        "start_time": "2025-06-19T14:19:36.439319",
-        "end_time": "2025-06-19T16:19:36.439319",
-        "rank": "B",
-        "duration_seconds": 7200.0,
+        "start_time": "2025-06-19T22:50:04.041513",
+        "end_time": "2025-06-20T01:19:04.041513",
+        "rank": "A",
+        "duration_seconds": 8940.0,
         "linked_quests_data": [
           {
-            "quest_id": "quest_20609eb7-39bb-4d95-90bd-b76b3c065d4f",
+            "quest_id": "quest_98ecf153-e81f-44e9-baab-2661138b1f84",
             "description": "Task 1 for Day 3",
-            "difficulty": 2,
-            "is_completed": true
+            "difficulty": 3,
+            "is_completed": false
           },
           {
-            "quest_id": "quest_b4d615d6-61d3-4392-9c36-2629e6a12a25",
+            "quest_id": "quest_2a186900-1a74-469a-ac00-9e2871ed49cb",
             "description": "Task 2 for Day 3",
             "difficulty": 3,
             "is_completed": true
@@ -152,26 +158,20 @@
         "session_id": "demo_session_3",
         "goal": "Study Session Day 4",
         "status": "Finished",
-        "start_time": "2025-06-20T14:19:36.439319",
-        "end_time": "2025-06-20T16:45:36.439319",
-        "rank": "C",
-        "duration_seconds": 8760.0,
+        "start_time": "2025-06-20T22:50:04.041513",
+        "end_time": "2025-06-21T01:28:04.041513",
+        "rank": "A",
+        "duration_seconds": 9480.0,
         "linked_quests_data": [
           {
-            "quest_id": "quest_459e327c-9f81-457e-a7a4-24cdd0e5a940",
+            "quest_id": "quest_6e688511-9ca1-4c56-b86c-9a72c202a32b",
             "description": "Task 1 for Day 4",
             "difficulty": 3,
             "is_completed": true
           },
           {
-            "quest_id": "quest_389094a2-618e-4706-a7a9-5a9eee57e3fd",
+            "quest_id": "quest_1a91be3f-3d79-4742-8de1-32f2ce300a65",
             "description": "Task 2 for Day 4",
-            "difficulty": 1,
-            "is_completed": true
-          },
-          {
-            "quest_id": "quest_23bf1357-479c-4e45-b4ad-a089935af5f4",
-            "description": "Task 3 for Day 4",
             "difficulty": 3,
             "is_completed": true
           }
@@ -181,33 +181,21 @@
         "session_id": "demo_session_4",
         "goal": "Study Session Day 5",
         "status": "Finished",
-        "start_time": "2025-06-21T14:19:36.439319",
-        "end_time": "2025-06-21T16:46:36.439319",
+        "start_time": "2025-06-21T22:50:04.041513",
+        "end_time": "2025-06-22T01:07:04.041513",
         "rank": "S",
-        "duration_seconds": 8820.0,
+        "duration_seconds": 8220.0,
         "linked_quests_data": [
           {
-            "quest_id": "quest_84a315b6-9e37-4d82-91a9-1e9ac2344bca",
+            "quest_id": "quest_f742d36a-415b-4768-8ed2-00893efae576",
             "description": "Task 1 for Day 5",
-            "difficulty": 1,
-            "is_completed": false
+            "difficulty": 2,
+            "is_completed": true
           },
           {
-            "quest_id": "quest_7b365b07-bb7e-4141-9b14-22926cd9ff56",
+            "quest_id": "quest_49c04700-560e-465b-8fff-643e72083fd3",
             "description": "Task 2 for Day 5",
-            "difficulty": 1,
-            "is_completed": true
-          },
-          {
-            "quest_id": "quest_cdf4c0d0-1b12-4a7c-a254-a1808096f7c7",
-            "description": "Task 3 for Day 5",
-            "difficulty": 3,
-            "is_completed": true
-          },
-          {
-            "quest_id": "quest_0f27b430-0097-4107-aa0b-566da132713c",
-            "description": "Task 4 for Day 5",
-            "difficulty": 1,
+            "difficulty": 2,
             "is_completed": true
           }
         ]
@@ -216,22 +204,22 @@
         "session_id": "demo_session_5",
         "goal": "Study Session Day 6",
         "status": "Finished",
-        "start_time": "2025-06-22T14:19:36.439319",
-        "end_time": "2025-06-22T17:06:36.439319",
-        "rank": "S",
-        "duration_seconds": 10020.0,
+        "start_time": "2025-06-22T22:50:04.041513",
+        "end_time": "2025-06-23T01:03:04.041513",
+        "rank": "A",
+        "duration_seconds": 7980.0,
         "linked_quests_data": [
           {
-            "quest_id": "quest_e029c139-8cfd-4603-b9eb-5bb13db9f6ab",
+            "quest_id": "quest_be006d9b-f3aa-4685-a336-5aada3252b9e",
             "description": "Task 1 for Day 6",
-            "difficulty": 1,
-            "is_completed": true
+            "difficulty": 3,
+            "is_completed": false
           },
           {
-            "quest_id": "quest_8602f8f2-4ad1-4772-a168-4d50df88c281",
+            "quest_id": "quest_d0497171-0c98-43e7-999c-203cce607576",
             "description": "Task 2 for Day 6",
             "difficulty": 3,
-            "is_completed": true
+            "is_completed": false
           }
         ]
       },
@@ -239,21 +227,21 @@
         "session_id": "demo_session_6",
         "goal": "Study Session Day 7",
         "status": "Finished",
-        "start_time": "2025-06-23T14:19:36.439319",
-        "end_time": "2025-06-23T16:42:36.439319",
-        "rank": "B",
-        "duration_seconds": 8580.0,
+        "start_time": "2025-06-23T22:50:04.041513",
+        "end_time": "2025-06-24T01:40:04.041513",
+        "rank": "A",
+        "duration_seconds": 10200.0,
         "linked_quests_data": [
           {
-            "quest_id": "quest_70fed491-45fc-405e-ae35-ff9c5d8b6e50",
+            "quest_id": "quest_28929b05-9bdb-4e23-a1fc-87585413e1ac",
             "description": "Task 1 for Day 7",
-            "difficulty": 1,
-            "is_completed": false
+            "difficulty": 2,
+            "is_completed": true
           },
           {
-            "quest_id": "quest_fa94b2a2-9a5a-413a-a4cd-02833c55e6fa",
+            "quest_id": "quest_858164aa-d0d7-471b-84b3-ff235059cc4c",
             "description": "Task 2 for Day 7",
-            "difficulty": 2,
+            "difficulty": 3,
             "is_completed": true
           }
         ]
@@ -262,22 +250,28 @@
         "session_id": "demo_session_7",
         "goal": "Study Session Day 8",
         "status": "Finished",
-        "start_time": "2025-06-24T14:19:36.439319",
-        "end_time": "2025-06-24T16:33:36.439319",
-        "rank": "B",
-        "duration_seconds": 8040.0,
+        "start_time": "2025-06-24T22:50:04.041513",
+        "end_time": "2025-06-25T01:21:04.041513",
+        "rank": "C",
+        "duration_seconds": 9060.0,
         "linked_quests_data": [
           {
-            "quest_id": "quest_7d02c360-e58d-4598-a9a4-b99c30ac2c7a",
+            "quest_id": "quest_548c4bba-347e-4107-9f02-41b18cbeb970",
             "description": "Task 1 for Day 8",
-            "difficulty": 2,
+            "difficulty": 1,
             "is_completed": true
           },
           {
-            "quest_id": "quest_c9fe6a44-0751-4af5-8735-c31abd4dbc47",
+            "quest_id": "quest_82456b23-0c19-439b-9e1c-bbd7502992c9",
             "description": "Task 2 for Day 8",
-            "difficulty": 1,
-            "is_completed": true
+            "difficulty": 2,
+            "is_completed": false
+          },
+          {
+            "quest_id": "quest_443604e5-8610-4855-af5c-a484e40e5a52",
+            "description": "Task 3 for Day 8",
+            "difficulty": 2,
+            "is_completed": false
           }
         ]
       },
@@ -285,21 +279,33 @@
         "session_id": "demo_session_8",
         "goal": "Study Session Day 9",
         "status": "Finished",
-        "start_time": "2025-06-25T14:19:36.439319",
-        "end_time": "2025-06-25T16:47:36.439319",
-        "rank": "A",
-        "duration_seconds": 8880.0,
+        "start_time": "2025-06-25T22:50:04.041513",
+        "end_time": "2025-06-26T00:51:04.041513",
+        "rank": "C",
+        "duration_seconds": 7260.0,
         "linked_quests_data": [
           {
-            "quest_id": "quest_faa89fae-7e2e-4f34-b568-d51b4b86d54f",
+            "quest_id": "quest_3a660207-75a3-4c44-8283-8dc905a77f1a",
             "description": "Task 1 for Day 9",
-            "difficulty": 1,
-            "is_completed": true
+            "difficulty": 3,
+            "is_completed": false
           },
           {
-            "quest_id": "quest_d1fcf45a-a288-4faf-8f3d-3e79a6859193",
+            "quest_id": "quest_bcce91fd-8396-435b-b916-cdc95956b66e",
             "description": "Task 2 for Day 9",
-            "difficulty": 2,
+            "difficulty": 1,
+            "is_completed": false
+          },
+          {
+            "quest_id": "quest_ba142534-12b1-474c-bd58-914d89e4fdd7",
+            "description": "Task 3 for Day 9",
+            "difficulty": 1,
+            "is_completed": false
+          },
+          {
+            "quest_id": "quest_c57af429-da6e-417b-9ebf-470f7108b097",
+            "description": "Task 4 for Day 9",
+            "difficulty": 1,
             "is_completed": true
           }
         ]
@@ -308,45 +314,51 @@
         "session_id": "demo_session_9",
         "goal": "Study Session Day 10",
         "status": "Finished",
-        "start_time": "2025-06-26T14:19:36.439319",
-        "end_time": "2025-06-26T17:00:36.439319",
-        "rank": "A",
-        "duration_seconds": 9660.0,
+        "start_time": "2025-06-26T22:50:04.041513",
+        "end_time": "2025-06-27T01:12:04.041513",
+        "rank": "B",
+        "duration_seconds": 8520.0,
         "linked_quests_data": [
           {
-            "quest_id": "quest_e9d27a6d-f80d-490a-b648-49d69c7a3508",
+            "quest_id": "quest_e8a25cb6-91e1-4033-8f13-21d4706ddfb0",
             "description": "Task 1 for Day 10",
-            "difficulty": 3,
+            "difficulty": 2,
             "is_completed": true
           },
           {
-            "quest_id": "quest_20bd87ea-ad11-4a9a-80a1-fcebf4dbdcd6",
+            "quest_id": "quest_fd28fe36-56f8-456f-8539-5a1363729f99",
             "description": "Task 2 for Day 10",
-            "difficulty": 2,
-            "is_completed": false
+            "difficulty": 1,
+            "is_completed": true
           },
           {
-            "quest_id": "quest_d9a22cba-a0f2-4e17-8ef0-411bb4370808",
+            "quest_id": "quest_0dec0734-dec0-4097-8295-02eb186ea4f0",
             "description": "Task 3 for Day 10",
-            "difficulty": 2,
+            "difficulty": 1,
+            "is_completed": true
+          },
+          {
+            "quest_id": "quest_be50bc3c-eeb1-4cf2-a256-a7e95cea62a8",
+            "description": "Task 4 for Day 10",
+            "difficulty": 3,
             "is_completed": true
           }
         ]
       }
     ],
     "aggregated_stats": {
-      "total_study_seconds": 90840.0,
-      "total_study_hours": 25.233333333333334,
+      "total_study_seconds": 86460.0,
+      "total_study_hours": 24.016666666666666,
       "total_sessions": 10,
       "rank_counts": {
-        "S": 2,
-        "A": 3,
-        "B": 4,
-        "C": 1,
+        "S": 1,
+        "A": 4,
+        "B": 2,
+        "C": 3,
         "F": 0
       },
-      "average_session_duration_minutes": 151.4,
-      "average_rank_score": 3.6,
+      "average_session_duration_minutes": 144.1,
+      "average_rank_score": 3.3,
       "quests_completed": 6,
       "quest_completion_rate": 75.0
     },
@@ -356,55 +368,55 @@
   "quest_system": {
     "active_quests": [
       {
-        "quest_id": "quest_673f2635-3178-4ee9-96d1-9506e33d9eb2",
+        "quest_id": "quest_08be3068-00cd-4ef1-a120-06805f8f4656",
         "description": "Demo Quest 1: Study Session Task",
-        "difficulty": 2,
+        "difficulty": 1,
         "is_completed": true
       },
       {
-        "quest_id": "quest_e8949c34-9cd7-48ef-b143-e2b49a067aca",
+        "quest_id": "quest_fa69485d-dee8-4621-a389-d7a2d6a58f71",
         "description": "Demo Quest 2: Study Session Task",
-        "difficulty": 3,
+        "difficulty": 4,
         "is_completed": true
       },
       {
-        "quest_id": "quest_ac399b1e-5d86-41a0-bab8-4098d823c8c1",
+        "quest_id": "quest_883f8167-0063-460f-9aed-3c9e0e35b468",
         "description": "Demo Quest 3: Study Session Task",
-        "difficulty": 2,
+        "difficulty": 1,
         "is_completed": true
       },
       {
-        "quest_id": "quest_bb389b81-85a3-4228-a22c-e0ce5548f3b5",
+        "quest_id": "quest_80ade7b3-b76f-404a-aec5-0e2761d2e679",
         "description": "Demo Quest 4: Study Session Task",
-        "difficulty": 5,
+        "difficulty": 4,
         "is_completed": true
       },
       {
-        "quest_id": "quest_ed09e9b0-f638-4f5d-b8dd-eeaee303ebaa",
+        "quest_id": "quest_b4a1bd76-a9b0-4406-8fd4-2563d62bf5da",
         "description": "Demo Quest 5: Study Session Task",
-        "difficulty": 3,
+        "difficulty": 1,
         "is_completed": true
       },
       {
-        "quest_id": "quest_01f17260-5303-4370-9be8-0cfe146a9133",
+        "quest_id": "quest_7a9e17eb-e7bc-4003-9317-4b093cc2b799",
         "description": "Demo Quest 6: Study Session Task",
         "difficulty": 2,
         "is_completed": true
       },
       {
-        "quest_id": "quest_cd5f9d96-b733-43d7-8a26-c128572d7755",
+        "quest_id": "quest_f3ed394f-20da-4e9a-95e2-27611b7fbf4c",
         "description": "Demo Quest 7: Study Session Task",
-        "difficulty": 1,
+        "difficulty": 4,
         "is_completed": false
       },
       {
-        "quest_id": "quest_3edd1da8-ec43-45d2-9841-c97195d30b27",
+        "quest_id": "quest_d64e1358-6975-476c-823a-0da7e4ba5b4a",
         "description": "Demo Quest 8: Study Session Task",
-        "difficulty": 1,
+        "difficulty": 3,
         "is_completed": false
       }
     ]
   },
-  "save_timestamp": "2025-06-27T00:19:43.719212",
+  "save_timestamp": "2025-06-27T08:51:09.599578",
   "version": "1.0"
 }
