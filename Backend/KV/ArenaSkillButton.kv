@@ -1,0 +1,29 @@
+<ArenaSkillButton@MDCard>:
+    size_hint: None, None
+    size: "80dp", "80dp"
+    elevation: 2
+    radius: [8]
+    theme_bg_color: "Custom"
+    md_bg_color: self.theme_cls.surfaceContainerColor
+    
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "8dp"
+        spacing: "4dp"
+        
+        MDIcon:
+            id: skill_icon
+            icon: root.icon
+            size_hint: None, None
+            size: "40dp", "40dp"
+            pos_hint: {"center_x": 0.5}
+            theme_icon_color: "Custom"
+            icon_color: root.icon_color
+        
+        MDLabel:
+            text: root.skill_name
+            font_style: "Body"
+            role: "small"
+            theme_text_color: "Secondary"
+            halign: "center"
+            adaptive_height: True

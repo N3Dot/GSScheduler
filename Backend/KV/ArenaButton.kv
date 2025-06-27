@@ -1,0 +1,77 @@
+<ArenaButton@MDCard>:
+    skill_type: ""
+    button_text: ""
+    button_color: [0.5, 0.5, 0.5, 1]
+    text_color: [1, 1, 1, 1]
+    
+    size_hint_y: None
+    height: "50dp"
+    radius: [8]
+    elevation: 8
+    md_bg_color: root.button_color
+    ripple_behavior: True
+    on_release: app.on_arena_skill_selected(root.skill_type)
+    
+    MDBoxLayout:
+        padding: "8dp"
+        MDLabel:
+            text: root.button_text
+            halign: "center"
+            valign: "center"
+            theme_text_color: "Custom"
+            text_color: root.text_color
+            font_style: "Title"
+            role: "medium"
+            bold: True
+
+<ArenaFightButton@ArenaButton>:
+    skill_type: "attack"
+    button_text: "FIGHT"
+    button_color: [0.9, 0.1, 0.1, 1]
+
+<ArenaDefendButton@ArenaButton>:
+    skill_type: "defend" 
+    button_text: "DEFEND"
+    button_color: [0.1, 0.5, 0.9, 1]
+
+<ArenaMagicButton@ArenaButton>:
+    skill_type: "magic"
+    button_text: "MAGIC"
+    button_color: [0.7, 0.1, 0.9, 1]
+
+<ArenaControlButton@MDCard>:
+    button_text: ""
+    button_color: [0.5, 0.5, 0.5, 1]
+    text_color: [1, 1, 1, 1]
+    is_outlined: False
+    
+    size_hint_y: None
+    height: "50dp"
+    radius: [8]
+    elevation: 6 if not root.is_outlined else 2
+    md_bg_color: root.button_color if not root.is_outlined else [0, 0, 0, 0]
+    ripple_behavior: True
+    line_color: root.button_color if root.is_outlined else [0, 0, 0, 0]
+    line_width: 2 if root.is_outlined else 0
+    
+    MDBoxLayout:
+        padding: "8dp"
+        MDLabel:
+            text: root.button_text
+            halign: "center"
+            valign: "center"
+            theme_text_color: "Custom"
+            text_color: root.text_color
+            font_style: "Title"
+            role: "medium"
+            bold: True
+
+<ArenaStartButton@ArenaControlButton>:
+    button_text: "START BATTLE"
+    button_color: [0.1, 0.8, 0.1, 1]
+
+<ArenaResetButton@ArenaControlButton>:
+    button_text: "RESET"
+    button_color: [0.9, 0.1, 0.1, 1]
+    text_color: [0.9, 0.1, 0.1, 1]
+    is_outlined: True

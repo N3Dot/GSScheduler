@@ -547,6 +547,7 @@ class SessionManager:
         self.character = character
         self.reward_system = reward_system
         self.analytics = analytics
+        self.arena = Arena(character)  # Thêm hệ thống đấu trường
         self.save_file_path = self._get_save_path()
         self.qr_image_path = self._get_qr_path()
     
@@ -1217,3 +1218,294 @@ if __name__ == "__main__":
     # In ra báo cáo cuối cùng nếu cần
     print(analytics.generate_report())
     char.show_stats()
+
+
+
+import base64
+import json
+import random
+from enum import Enum
+from typing import Dict, Any, List, Tuple, Optional
+
+
+class SkillType(Enum):
+    """Các loại skill trong đấu trường"""
+    ATTACK = "attack"  # Đánh thường
+    DEFEND = "defend"  # Thủ
+    MAGIC = "magic"    # Dùng phép
+
+
+class ArenaBot:
+    """Bot đấu trường được tạo từ dữ liệu base64 của người chơi khác"""
+    def __init__(self, name: str = "Bot", level: int = 1, hp: int = 50, 
+                 max_hp: int = 50, dex: int = 1, int_stat: int = 1, luk: int = 1):
+        self.name = name
+        self.level = level
+        self.hp = hp
+        self.max_hp = max_hp
+        self.dex = dex
+        self.int_stat = int_stat  # Tránh conflict với keyword 'int'
+        self.luk = luk
+        self.is_alive = True
+    
+    @classmethod
+    def from_base64(cls, base64_data: str):
+        """Tạo bot từ dữ liệu base64"""
+        try:
+            # Decode base64 và parse JSON
+            json_data = base64.b64decode(base64_data).decode('utf-8')
+            data = json.loads(json_data)
+            
+            # Lấy thông tin từ dữ liệu (có thể là format rút gọn hoặc đầy đủ)
+            if 'c' in data:  # Format rút gọn
+                char_data = data['c']
+                return cls(
+                    name=char_data.get('n', 'Unknown Player'),
+                    level=char_data.get('l', 1),
+                    hp=char_data.get('h', 50),
+                    max_hp=char_data.get('m', 50),
+                    dex=char_data.get('d', 1),
+                    int_stat=char_data.get('i', 1),
+                    luk=char_data.get('k', 1)
+                )
+            else:  # Format đầy đủ
+                char_data = data.get('character', {})
+                return cls(
+                    name=char_data.get('name', 'Unknown Player'),
+                    level=char_data.get('level', 1),
+                    hp=char_data.get('hp', 50),
+                    max_hp=char_data.get('max_hp', 50),
+                    dex=char_data.get('dex', 1),
+                    int_stat=char_data.get('int', 1),
+                    luk=char_data.get('luk', 1)
+                )
+        except Exception as e:
+            print(f"Error parsing base64 data: {e}")
+            # Trả về bot mặc định nếu lỗi
+            return cls(name="Error Bot")
+    
+    def choose_skill(self) -> SkillType:
+        """Bot chọn skill ngẫu nhiên với tỷ lệ"""
+        choices = [SkillType.ATTACK, SkillType.DEFEND, SkillType.MAGIC]
+        weights = [0.5, 0.3, 0.2]  # 50% attack, 30% defend, 20% magic
+        return random.choices(choices, weights=weights)[0]
+
+
+class Arena:
+    """Hệ thống đấu trường"""
+    def __init__(self, character: 'Character'):
+        self.player = character
+        self.bot: Optional[ArenaBot] = None
+        self.battle_log: List[str] = []
+        self.turn_count = 0
+        self.player_defended = False
+        self.bot_defended = False
+        self.battle_active = False
+    
+    def load_opponent(self, base64_data: str) -> bool:
+        """Load đối thủ từ dữ liệu base64"""
+        try:
+            self.bot = ArenaBot.from_base64(base64_data)
+            return True
+        except Exception as e:
+            print(f"Error loading opponent: {e}")
+            return False
+    
+    def generate_demo_opponent(self) -> str:
+        """Tạo đối thủ demo và trả về mã base64"""
+        demo_names = ["Mom", "Nhật Nam", "Natsu", "Luffy", "Goku", "Vegeta", "Saitama"]
+        demo_data = {
+            "c": {
+                "n": random.choice(demo_names),
+                "l": random.randint(1, 10),
+                "h": random.randint(40, 100),
+                "m": random.randint(50, 120),
+                "d": random.randint(1, 15),
+                "i": random.randint(1, 15),
+                "k": random.randint(1, 15)
+            }
+        }
+        
+        json_str = json.dumps(demo_data)
+        base64_data = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
+        return base64_data
+    
+    def start_battle(self) -> bool:
+        """Bắt đầu trận đấu"""
+        if not self.bot:
+            return False
+        
+        self.battle_active = True
+        self.turn_count = 0
+        self.battle_log = []
+        self.player_defended = False
+        self.bot_defended = False
+        
+        # Reset HP về max
+        self.player.hp = self.player.max_hp
+        self.bot.hp = self.bot.max_hp
+        self.bot.is_alive = True
+        
+        self.battle_log.append(f"Trận đấu bắt đầu! {self.player.name} vs {self.bot.name}")
+        return True
+    
+    def calculate_damage(self, attacker_stats: Dict[str, int], defender_stats: Dict[str, int], 
+                        skill_type: SkillType, defender_defended: bool = False) -> int:
+        """Tính toán sát thương dựa trên chỉ số và loại skill"""
+        base_damage = 0
+        
+        if skill_type == SkillType.ATTACK:
+            # Đánh thường: phụ thuộc vào DEX và LUK
+            base_damage = 10 + (attacker_stats['dex'] * 2) + (attacker_stats['luk'] * 1.5)
+        elif skill_type == SkillType.MAGIC:
+            # Phép thuật: phụ thuộc vào INT và LUK
+            base_damage = 15 + (attacker_stats['int'] * 3) + (attacker_stats['luk'] * 1)
+        elif skill_type == SkillType.DEFEND:
+            # Thủ không gây sát thương
+            return 0
+        
+        # Thêm yếu tố ngẫu nhiên
+        damage_variance = random.uniform(0.8, 1.2)
+        base_damage *= damage_variance
+        
+        # Giảm sát thương nếu đối thủ đang thủ
+        if defender_defended:
+            defense_reduction = 0.3 + (defender_stats['dex'] * 0.02)  # 30% + 2% per DEX
+            base_damage *= (1 - min(defense_reduction, 0.8))  # Tối đa giảm 80%
+        
+        return max(1, int(base_damage))  # Tối thiểu 1 damage
+    
+    def execute_turn(self, player_skill: SkillType) -> Dict[str, Any]:
+        """Thực hiện một lượt đấu"""
+        if not self.battle_active or not self.bot:
+            return {"error": "Battle not active"}
+        
+        self.turn_count += 1
+        bot_skill = self.bot.choose_skill()
+        
+        turn_result = {
+            "turn": self.turn_count,
+            "player_skill": player_skill.value,
+            "bot_skill": bot_skill.value,
+            "player_damage": 0,
+            "bot_damage": 0,
+            "messages": [],
+            "battle_ended": False,
+            "winner": None
+        }
+        
+        # Chuẩn bị stats
+        player_stats = {
+            'dex': self.player.dex,
+            'int': self.player.int,
+            'luk': self.player.luk
+        }
+        bot_stats = {
+            'dex': self.bot.dex,
+            'int': self.bot.int_stat,
+            'luk': self.bot.luk
+        }
+        
+        # Xử lý skill của người chơi
+        if player_skill == SkillType.DEFEND:
+            self.player_defended = True
+            turn_result["messages"].append(f"{self.player.name} đang thủ!")
+        else:
+            self.player_defended = False
+            damage = self.calculate_damage(player_stats, bot_stats, player_skill, self.bot_defended)
+            self.bot.hp -= damage
+            turn_result["player_damage"] = damage
+            
+            skill_name = "đánh thường" if player_skill == SkillType.ATTACK else "dùng phép"
+            turn_result["messages"].append(f"{self.player.name} {skill_name} gây {damage} sát thương!")
+        
+        # Xử lý skill của bot
+        if bot_skill == SkillType.DEFEND:
+            self.bot_defended = True
+            turn_result["messages"].append(f"{self.bot.name} đang thủ!")
+        else:
+            self.bot_defended = False
+            damage = self.calculate_damage(bot_stats, player_stats, bot_skill, self.player_defended)
+            self.player.hp -= damage
+            turn_result["bot_damage"] = damage
+            
+            skill_name = "đánh thường" if bot_skill == SkillType.ATTACK else "dùng phép"
+            turn_result["messages"].append(f"{self.bot.name} {skill_name} gây {damage} sát thương!")
+        
+        # Kiểm tra kết thúc trận đấu
+        if self.player.hp <= 0:
+            self.battle_active = False
+            turn_result["battle_ended"] = True
+            turn_result["winner"] = "bot"
+            turn_result["messages"].append(f"{self.bot.name} thắng!")
+        elif self.bot.hp <= 0:
+            self.battle_active = False
+            turn_result["battle_ended"] = True
+            turn_result["winner"] = "player"
+            turn_result["messages"].append(f"{self.player.name} thắng!")
+            
+            # Thưởng cho người chơi khi thắng
+            xp_reward = 50 + (self.bot.level * 10)
+            gold_reward = 25 + (self.bot.level * 5)
+            self.player.xp += xp_reward
+            self.player.gold += gold_reward
+            turn_result["messages"].append(f"Thưởng: +{xp_reward} XP, +{gold_reward} Vàng!")
+            self.player.check_level_up()
+        
+        # Lưu vào battle log
+        for message in turn_result["messages"]:
+            self.battle_log.append(message)
+        
+        return turn_result
+    
+    def get_battle_state(self) -> Dict[str, Any]:
+        """Lấy trạng thái hiện tại của trận đấu"""
+        return {
+            "battle_active": self.battle_active,
+            "turn_count": self.turn_count,
+            "player": {
+                "name": self.player.name,
+                "hp": self.player.hp,
+                "max_hp": self.player.max_hp,
+                "level": self.player.level,
+                "dex": self.player.dex,
+                "int": self.player.int,
+                "luk": self.player.luk
+            },
+            "bot": {
+                "name": self.bot.name if self.bot else "No Bot",
+                "hp": self.bot.hp if self.bot else 0,
+                "max_hp": self.bot.max_hp if self.bot else 0,
+                "level": self.bot.level if self.bot else 0,
+                "dex": self.bot.dex if self.bot else 0,
+                "int": self.bot.int_stat if self.bot else 0,
+                "luk": self.bot.luk if self.bot else 0
+            } if self.bot else None,
+            "battle_log": self.battle_log
+        }
+
+
+# Utility function để tạo demo data
+def generate_demo_base64_codes(count: int = 5) -> List[str]:
+    """Tạo nhiều mã base64 demo cho test"""
+    demo_names = ["Kirito", "Asuna", "Natsu", "Luffy", "Goku", "Vegeta", "Saitama", "Ichigo", "Naruto", "Sasuke"]
+    codes = []
+    
+    for i in range(count):
+        demo_data = {
+            "c": {
+                "n": demo_names[i % len(demo_names)],
+                "l": random.randint(1, 10),
+                "h": random.randint(40, 100),
+                "m": random.randint(50, 120),
+                "d": random.randint(1, 15),
+                "i": random.randint(1, 15),
+                "k": random.randint(1, 15)
+            }
+        }
+        
+        json_str = json.dumps(demo_data)
+        base64_data = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
+        codes.append(base64_data)
+    
+    return codes

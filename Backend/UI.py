@@ -194,3 +194,43 @@ class QRCodeWidget(MDFloatLayout):
         else:
             self.qr_image.source = ""
             print(f"QR image file not found: {image_path}")
+
+# Arena UI Components
+class ArenaSkillButton(MDCard):
+    skill_name = StringProperty()
+    icon = StringProperty()
+    icon_color = ListProperty([0.2, 0.6, 0.9, 1])
+    skill_type = StringProperty()
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.size_hint = (None, None)
+        self.size = ("80dp", "80dp")
+        self.elevation = 2
+        self.radius = [8]
+        
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            app = MDApp.get_running_app()
+            if hasattr(app, 'on_arena_skill_selected'):
+                app.on_arena_skill_selected(self.skill_type)
+            return True
+        return super().on_touch_down(touch)
+
+class ArenaCharacterDisplay(MDBoxLayout):
+    character_name = StringProperty("Player")
+    level = NumericProperty(1)
+    hp_current = NumericProperty(50)
+    hp_max = NumericProperty(50)
+    dex = NumericProperty(1)
+    int_stat = NumericProperty(1)  # Tránh conflict với keyword 'int'
+    luk_stat = NumericProperty(1)  # Đổi tên từ luk thành luk_stat
+    avatar_path = StringProperty("https://picsum.photos/100/100")
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = "horizontal"
+        self.size_hint_y = None
+        self.height = "120dp"
+        self.spacing = "8dp"
+        self.padding = "8dp"
