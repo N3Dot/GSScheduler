@@ -11,6 +11,7 @@ from kivymd.uix.fitimage import FitImage
 from kivymd.uix.filemanager import MDFileManager
 from kivy.uix.widget import Widget
 from kivy.metrics import dp
+from kivy.utils import platform
 
 class Popup:
     """
@@ -174,7 +175,7 @@ class Popup:
         AvatarDialog.open()
 
     def use_random_avatar(self, AvatarDialog):
-        self.clear_user_data_dir()
+        self.clear_avatar_save_path()
         self.app.reload_avatar()
         AvatarDialog.dismiss()
 
@@ -212,21 +213,42 @@ class Popup:
         )
         WarningDialog.open()
     
-    def clear_user_data_dir(self):
+    def get_avatar_save_path(self, filename: str = None):
+        '''
+        Get the platform-specific base directory from the app's properties.
+        Create the 'Avatar' directory if it doesn't already exist.
+        '''
+        if platform == 'android':
+            from android.storage import app_storage_path # type: ignore
+            user_data_dir = app_storage_path()
+            avatar_dir = os.path.join(user_data_dir, 'Avatar')
+        else:
+            user_data_dir = os.path.dirname(os.path.abspath(__file__))
+            avatar_dir = os.path.join(user_data_dir, 'Avatar')
+
+        os.makedirs(avatar_dir, exist_ok=True)
+        if filename:
+            return os.path.join(avatar_dir, filename)
+        else:
+            return avatar_dir
+    
+    def clear_avatar_save_path(self):
+        """
+        Clears all files from the 'Avatar' subdirectory.
+        """
         try:
-            for filename in os.listdir(self.app.user_data_dir):
-                file_path = os.path.join(self.app.user_data_dir, filename)
+            avatar_dir = self.get_avatar_save_path()
+            if not os.path.exists(avatar_dir):
+                print("Avatar directory does not exist, nothing to clear.")
+                return
+
+            for filename in os.listdir(avatar_dir):
+                file_path = os.path.join(avatar_dir, filename)
                 if os.path.isfile(file_path) or os.path.islink(file_path):
                     os.unlink(file_path)
-            print("user_data_dir cleared.")
+            print("Avatar directory cleared.")
         except Exception as e:
-            print(f"Failed to clear user data directory: {e}")
-    
-    def file_manager_open(self):
-        self.file_manager.show(os.path.expanduser("~"))
-    
-    def file_manager_exit(self, *args):
-        self.file_manager.close()
+            print(f"Failed to clear avatar directory: {e}")
     
     def select_path(self, path: str):
         self.file_manager_exit()
@@ -237,10 +259,11 @@ class Popup:
             if file_ext in self.valid_image_extensions:
                 try:
                     # 1. Clear the storage directory.
-                    self.clear_user_data_dir()
+                    self.clear_avatar_save_path()
 
                     # 2. Copy the new file to the app's safe directory.
-                    destination_path = os.path.join(self.app.user_data_dir, os.path.basename(path))
+                    filename = os.path.basename(path)
+                    destination_path = self.get_avatar_save_path(filename)
                     shutil.copy(path, destination_path)
                     message = "Thay đổi ảnh nhân vật thành công!"
                     print(f"Final image path: {destination_path}")
@@ -252,3 +275,9 @@ class Popup:
                 message = f"Tệp '{os.path.basename(path)}' không phải là hình ảnh hợp lệ."
 
         MDSnackbar(MDSnackbarText(text=message), y=dp(24), pos_hint={"center_x": 0.5}, size_hint_x=0.9).open()
+    
+    def file_manager_open(self):
+        self.file_manager.show(os.path.expanduser("~"))
+    
+    def file_manager_exit(self, *args):
+        self.file_manager.close()
