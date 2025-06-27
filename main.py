@@ -676,7 +676,15 @@ class GSS(MDApp):
         AppDict.item_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
         AppDict.achievement_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
         if platform == "android":
-            request_permissions([Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE], self.on_permissions_callback) # type: ignore
+            from android.permissions import request_permissions, check_permission, Permission # type: ignore
+            from jnius import autoclass # type: ignore
+            SDK_INT = autoclass('android.os.Build$VERSION').SDK_INT
+            permissions = [Permission.READ_EXTERNAL_STORAGE, Permission.WRITE_EXTERNAL_STORAGE]
+            if SDK_INT >= 30:
+                permissions.append('android.permission.MANAGE_EXTERNAL_STORAGE')
+            permissions_to_request = [p for p in permissions if not check_permission(p)]
+            if permissions_to_request:
+                request_permissions(permissions_to_request, self.on_permissions_callback)
 
     def on_permissions_callback(self, permissions, grants):
         if all(grants):
