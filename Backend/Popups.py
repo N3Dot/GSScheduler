@@ -277,7 +277,13 @@ class Popup:
         MDSnackbar(MDSnackbarText(text=message), y=dp(24), pos_hint={"center_x": 0.5}, size_hint_x=0.9).open()
     
     def file_manager_open(self):
-        self.file_manager.show(os.path.expanduser("~"))
+        if platform == 'android':
+            from android.storage import primary_external_storage_path # type: ignore
+            self.file_manager.show(primary_external_storage_path())
+            print("line triggered")
+        else:
+            self.file_manager.show(os.path.expanduser("~"))
+            print("line not triggered")
     
     def file_manager_exit(self, *args):
         self.file_manager.close()
