@@ -41,38 +41,38 @@ class Popup:
             background_color=self.app.theme_cls.onPrimaryContainerColor,
             ).open()
 
-    def show_item_dialog(self):
+    def show_item_dialog(self, item):
+        rarity_types = [None, "Thường", "Nâng Cao", "Hiếm", "Sử Thi", "Huyền Thoại"]
+        rarity_text = rarity_types[item.rarity.value]
         ItemDialog = MDDialog(
             MDDialogIcon(icon="list-box-outline"),
-            MDDialogHeadlineText(text="Kiếm Rỉ Sét"),
-            MDDialogSupportingText(
-                text="Một thanh kiếm cũ kỹ, lưỡi kiếm phủ đầy lớp rỉ sét do bị bỏ quên trong thời gian dài. Tay cầm lỏng lẻo, lưỡi kiếm sứt mẻ, nhưng vẫn có thể dùng để tự vệ trong trường hợp khẩn cấp. Được những nhà thám hiểm mới bắt đầu sử dụng như một phương án tạm thời.",
-            ),
+            MDDialogHeadlineText(text=item.name),
+            MDDialogSupportingText(text=item.description),
             MDDialogContentContainer(
                 MDDivider(),
                 MDListItem(
                     MDListItemLeadingIcon(icon="star-four-points-circle-outline"),
-                    MDListItemSupportingText(text="[b]Độ Hiếm:[/b] Thường", markup=True),
+                    MDListItemSupportingText(text=f"[b]Độ Hiếm:[/b] {rarity_text}", markup=True),
                     theme_bg_color="Custom",
                     md_bg_color=self.app.theme_cls.transparentColor),
                 MDListItem(
                     MDListItemLeadingIcon(icon="toolbox"),
-                    MDListItemSupportingText(text="[b]Loại:[/b] Vũ Khí", markup=True),
+                    MDListItemSupportingText(text=f"[b]Loại:[/b] {item.category}", markup=True),
                     theme_bg_color="Custom",
                     md_bg_color=self.app.theme_cls.transparentColor),
                 MDListItem(
                     MDListItemLeadingIcon(icon="arm-flex"),
-                    MDListItemSupportingText(text="[b]DEX:[/b] +5   [b]INT:[/b] +5   [b]LUK:[/b] +5", markup=True),
+                    MDListItemSupportingText(text=f"[b]DEX:[/b]  +{item.on_use_effect['dex']}   [b]INT:[/b]  +{item.on_use_effect['int']}   [b]LUK:[/b]  +{item.on_use_effect['luk']}".replace("+-", "-"), markup=True),
                     theme_bg_color="Custom",
                     md_bg_color=self.app.theme_cls.transparentColor),
                 MDListItem(
                     MDListItemLeadingIcon(icon="heart"),
-                    MDListItemSupportingText(text="[b]HP:[/b]  +10", markup=True),
+                    MDListItemSupportingText(text=f"[b]HP:[/b]  +{item.on_use_effect['hp']}".replace("+-", "-"), markup=True),
                     theme_bg_color="Custom",
                     md_bg_color=self.app.theme_cls.transparentColor),
                 MDListItem(
                     MDListItemLeadingIcon(icon="star-box"),
-                    MDListItemSupportingText(text="[b]XP:[/b]  +5", markup=True),
+                    MDListItemSupportingText(text=f"[b]XP:[/b]  +{item.on_use_effect['xp']}".replace("+-", "-"), markup=True),
                     theme_bg_color="Custom",
                     md_bg_color=self.app.theme_cls.transparentColor),
                 orientation="vertical",
@@ -83,6 +83,67 @@ class Popup:
                     on_release=lambda x: ItemDialog.dismiss(),
                 ),
                 Widget(),
+            ),
+        )
+        ItemDialog.open()
+    
+    def show_owned_item_dialog(self, item):
+        if item in self.app.character.equipment:
+            ActionButton = MDButton(
+                MDButtonText(text="Tháo Bỏ"), style="outlined", pos_hint={'center_x': 0.5},
+                on_release=lambda x: self.app.on_unequip_item(item, ItemDialog),
+            )
+        elif item.category != "Tiêu Hao":
+            ActionButton = MDButton(
+                MDButtonText(text="Trang Bị"), style="outlined", pos_hint={'center_x': 0.5},
+                on_release=lambda x: self.app.on_equip_item(item, ItemDialog),
+            )
+        else:
+            ActionButton = MDButton(
+                MDButtonText(text="Sử Dụng"), style="outlined", pos_hint={'center_x': 0.5},
+                on_release=lambda x: self.app.on_use_item(item, ItemDialog),
+            )
+        rarity_types = [None, "Thường", "Nâng Cao", "Hiếm", "Sử Thi", "Huyền Thoại"]
+        rarity_text = rarity_types[item.rarity.value]
+        ItemDialog = MDDialog(
+            MDDialogIcon(icon="list-box-outline"),
+            MDDialogHeadlineText(text=item.name),
+            MDDialogSupportingText(text=item.description),
+            MDDialogContentContainer(
+                MDDivider(),
+                MDListItem(
+                    MDListItemLeadingIcon(icon="star-four-points-circle-outline"),
+                    MDListItemSupportingText(text=f"[b]Độ Hiếm:[/b] {rarity_text}", markup=True),
+                    theme_bg_color="Custom",
+                    md_bg_color=self.app.theme_cls.transparentColor),
+                MDListItem(
+                    MDListItemLeadingIcon(icon="toolbox"),
+                    MDListItemSupportingText(text=f"[b]Loại:[/b] {item.category}", markup=True),
+                    theme_bg_color="Custom",
+                    md_bg_color=self.app.theme_cls.transparentColor),
+                MDListItem(
+                    MDListItemLeadingIcon(icon="arm-flex"),
+                    MDListItemSupportingText(text=f"[b]DEX:[/b]  +{item.on_use_effect['dex']}   [b]INT:[/b]  +{item.on_use_effect['int']}   [b]LUK:[/b]  +{item.on_use_effect['luk']}".replace("+-", "-"), markup=True),
+                    theme_bg_color="Custom",
+                    md_bg_color=self.app.theme_cls.transparentColor),
+                MDListItem(
+                    MDListItemLeadingIcon(icon="heart"),
+                    MDListItemSupportingText(text=f"[b]HP:[/b]  +{item.on_use_effect['hp']}".replace("+-", "-"), markup=True),
+                    theme_bg_color="Custom",
+                    md_bg_color=self.app.theme_cls.transparentColor),
+                MDListItem(
+                    MDListItemLeadingIcon(icon="star-box"),
+                    MDListItemSupportingText(text=f"[b]XP:[/b]  +{item.on_use_effect['xp']}".replace("+-", "-"), markup=True),
+                    theme_bg_color="Custom",
+                    md_bg_color=self.app.theme_cls.transparentColor),
+                orientation="vertical",
+            ),
+            MDDialogButtonContainer(
+                ActionButton,
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: ItemDialog.dismiss(),
+                ),
+                spacing="20dp",
             ),
         )
         ItemDialog.open()
@@ -212,6 +273,25 @@ class Popup:
             ),
         )
         WarningDialog.open()
+
+    def show_erase_dialog(self):
+        EraseDialog = MDDialog(
+            MDDialogIcon(icon="exclamation-thick", theme_text_color="Custom", text_color=(1, 0, 0, 1)),
+            MDDialogHeadlineText(text=f"[color=ff4444]Xóa Dữ Liệu[/color]", bold=True),
+            MDDialogSupportingText(text="[color=ff4444]Bạn có chắc rằng bạn muốn xóa tất cả dữ liệu nhân vật của mình? Ứng dụng sẽ đóng để khởi động lại![/color]"),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Xóa"), style="filled", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: self.clear_save(EraseDialog),
+                ),
+                MDButton(MDButtonText(text="Hủy"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: EraseDialog.dismiss(),
+                ),
+                Widget(),
+                spacing="20dp",
+            ),
+        )
+        EraseDialog.open()
     
     def get_avatar_save_path(self, filename: str = None):
         '''
@@ -250,6 +330,19 @@ class Popup:
         except Exception as e:
             print(f"Failed to clear avatar directory: {e}")
     
+    def clear_save(self, EraseDialog = None): # Clear save and quit.
+        if EraseDialog:
+            EraseDialog.dismiss()
+        try:
+            self.clear_avatar_save_path()
+            save_file = self.app.session_manager.save_file_path
+            if os.path.isfile(save_file) or os.path.islink(save_file):
+                os.unlink(save_file)
+            self.app.EnableSave = False
+            self.app.get_running_app().stop()
+        except Exception as e:
+            print(f"Failed to clear save: {e}")
+    
     def select_path(self, path: str):
         self.file_manager_exit()
         if not os.path.isfile(path):
@@ -280,10 +373,8 @@ class Popup:
         if platform == 'android':
             from android.storage import primary_external_storage_path # type: ignore
             self.file_manager.show(primary_external_storage_path())
-            print("line triggered")
         else:
             self.file_manager.show(os.path.expanduser("~"))
-            print("line not triggered")
     
     def file_manager_exit(self, *args):
         self.file_manager.close()

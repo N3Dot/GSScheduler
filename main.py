@@ -144,7 +144,7 @@ MDScreenManager:
                                             adaptive_width: True
 
                                     MDLabel:
-                                        text: "Vật Phẩm:"
+                                        text: "Kho Đồ:"
                                         adaptive_height: True
                                         font_style: "Body"
                                         role: "large"
@@ -195,7 +195,7 @@ MDScreenManager:
                                         theme_text_color: "Custom"
                                         text_color: 1, 1, 1, 1
                                     MDLabel:
-                                        text: f"[i]Gian hàng tiếp theo sẽ đến trong: 12:39:42[/i]"
+                                        text: f"[i]Chất lượng hoàng gia, phục vụ hiệp sĩ.[/i]"
                                         halign: "center"
                                         markup: "True"
                                         font_style: "Label"
@@ -281,12 +281,13 @@ MDScreenManager:
                                 MDListItemSupportingText:
                                     text: "Xem Kết Quả"
                             MDListItem:
-                                on_release: app.show_avatar_dialog()
+                                on_release: app.PopupManager.show_avatar_dialog()
                                 MDListItemLeadingIcon:
                                     icon: "image-album"
                                 MDListItemSupportingText:
                                     text: "Đổi Ảnh Nhân Vật"
                             MDListItem:
+                                on_release: app.PopupManager.show_erase_dialog()
                                 MDListItemLeadingIcon:
                                     id: trash_can_icon
                                     icon: "delete-outline"
@@ -615,6 +616,12 @@ MDScreenManager:
                         text: "Kết Thúc Phiên Học"
                         theme_text_color: "Custom"
                         text_color: app.theme_cls.tertiaryColor
+    
+    MDScreen:
+        name: "Login"
+
+    MDScreen:
+        name: "Death"
 
 '''
 
@@ -630,6 +637,8 @@ class GSS(MDApp):
         self.session_manager = Code.SessionManager(character=self.character, reward_system=self.reward_system, analytics=self.analytics)
         self.active_card = None
         self.queued_cards = []
+        self.EnableSave = True
+        self.SessionStarted = False
 
     def build(self):
         self.theme_cls.theme_style = "Light"
@@ -649,32 +658,20 @@ class GSS(MDApp):
         self.character.bind(luk=lambda instance, value: self.update_player_labels(value, "luk"))
         self.character.bind(available_points=lambda instance, value: self.update_player_labels(value, "available_points"))
         self.character.bind(gold=lambda instance, value: self.update_player_labels(value, "gold"))
+        self.Sound_OnPurchase = SoundLoader.load('Sounds/On_Purchase.wav')
+        self.Sound_Eat = SoundLoader.load('Sounds/Eat.wav')
+        self.Sound_Equip = SoundLoader.load('Sounds/Equip.wav')
 
         self.session_manager.create_comprehensive_demo_data()
         self.character.name = "Anh Khôi"
         self.character.show_stats()
+        self.shop = Code.Shop(self.character)
         self.load_tabs()
         # self.root.current = "Lock"
         quest1 = Code.Quest(description="Viết phần Mở đầu báo cáo.", difficulty=2)
         self.root.ids.lock_quest_grid.add_widget(UI.QuestLockCard(quest=quest1))
         self.root.ids.lock_quest_grid.add_widget(UI.QuestLockCard(quest=quest1))
-        # self.watcher = Clock.schedule_interval(self.schedule_watcher, 1)
-
-        AppDict = self.root.ids
-        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Vàng", icon="Art/Items/TEST.png", price="1000", rarity="Legendary"))
-        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Xịn", icon="Art/Items/TEST.png", price="250", rarity="Epic"))
-        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Bạc", icon="Art/Items/TEST.png", price="75", rarity="Rare"))
-        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Bạc", icon="Art/Items/TEST.png", price="75", rarity="Rare"))
-        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Thường", icon="Art/Items/TEST.png", price="25", rarity="Uncommon"))
-        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Thường", icon="Art/Items/TEST.png", price="25", rarity="Uncommon"))
-        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Thường", icon="Art/Items/TEST.png", price="25", rarity="Uncommon"))
-        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
-        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
-        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
-        AppDict.shop_grid.add_widget(UI.ItemShopCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", price="10", rarity="Common"))
-        AppDict.equipment_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
-        AppDict.item_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
-        AppDict.achievement_grid.add_widget(UI.ItemCard(name="Kiếm Rỉ Sét", icon="Art/Items/TEST.png", rarity="Common"))
+        # self.updater = Clock.schedule_interval(self.update, 1)
         if platform == "android":
             from android.permissions import request_permissions, check_permission, Permission # type: ignore
             from jnius import autoclass # type: ignore
@@ -693,16 +690,21 @@ class GSS(MDApp):
             print("Some permissions were denied.")
     
     def on_pause(self): # on_stop() is not reliable on Android.
-        self.session_manager.ExportSave()
-        self.session_manager.generate_qr_code()
-        print("Game data saved and QR generated on app pause.")
+        if self.EnableSave:
+            self.session_manager.ExportSave()
+            self.session_manager.generate_qr_code()
+            print("Game data saved and QR generated on app pause.")
 
     def on_stop(self):
-        self.session_manager.ExportSave()
-        self.session_manager.generate_qr_code()
-        print("Game data saved and QR generated on app close.")
+        if self.EnableSave:
+            self.session_manager.ExportSave()
+            self.session_manager.generate_qr_code()
+            print("Game data saved and QR generated on app close.")
 
     def on_resume(self):
+        pass
+
+    def update(self, dt):
         pass
 
     def load_tabs(self):
@@ -710,9 +712,26 @@ class GSS(MDApp):
         for session in self.session_manager.sessions:
             self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
         # --- Load Character Tab ---
+        self.update_inventories()
+        self.update_achievements()
         self.reload_avatar()
         # --- Load Shop Tab ---
+        for item in self.shop.current_stock:
+            self.root.ids.shop_grid.add_widget(UI.ItemShopCard(item=item))
         self.switch_main()
+
+    def update_inventories(self):
+        self.root.ids.item_grid.clear_widgets()
+        self.root.ids.equipment_grid.clear_widgets()
+        for item in self.character.inventory:
+            self.root.ids.item_grid.add_widget(UI.ItemCard(item=item))
+        for item in self.character.equipment:
+            self.root.ids.equipment_grid.add_widget(UI.ItemCard(item=item))
+    
+    def update_achievements(self):
+        self.root.ids.achievement_grid.clear_widgets()
+        for achievement in self.character.unlocked_achievements:
+            self.root.ids.achievement_grid.add_widget(UI.ItemCard(item=Code.Achievements[achievement]))
     
     def reload_avatar(self):
         self.avatar_path = f"https://picsum.photos/600/600"
@@ -751,14 +770,11 @@ class GSS(MDApp):
 
         else: # Create Session
             self.active_card = None
-            self.root.ids.start_time_label.text = f"[b]Bắt Đầu: [/b] {(datetime.now()+timedelta(hours=1)).strftime('%H')}:00"
-            self.root.ids.end_time_label.text = f"[b]Kết Thúc: [/b] {(datetime.now()+timedelta(hours=2)).strftime('%H')}:00"
+            self.root.ids.start_time_label.text = f"[b]Bắt Đầu: [/b] {(datetime.now()+timedelta(minutes=30)).strftime('%H')}:00"
+            self.root.ids.end_time_label.text = f"[b]Kết Thúc: [/b] {(datetime.now()+timedelta(minutes=90)).strftime('%H')}:00"
             self.add_quest()
 
         self.root.current = "Edit"
-
-    def schedule_watcher(self, dt):
-        pass
 
     def add_session(self):
         description_text = self.root.ids.description_field.text
@@ -938,12 +954,52 @@ class GSS(MDApp):
         self.character.level += 1
         self.on_reward()
 
-    def on_purchase_item(self, ItemShopCardInstance):
-        self.PopupManager.show_item_purchase(ItemShopCardInstance)
+    def on_purchase_item(self, ItemShopCard):
+        if self.character.gold >= ItemShopCard.item.price:
+            self.character.gold -= ItemShopCard.item.price
+            self.character.inventory.append(ItemShopCard.item)
+            self.root.ids.item_grid.add_widget(UI.ItemCard(item=ItemShopCard.item))
+            self.PopupManager.show_item_purchase(ItemShopCard)
+            self.Sound_OnPurchase.play()
+            self.root.ids.shop_grid.remove_widget(ItemShopCard)
+        else:
+            message = f"Bạn chưa đủ vàng! Cần thêm {ItemShopCard.item.price - self.character.gold}G để mua {ItemShopCard.item.name}."
+            self.PopupManager.show_warning_dialog(message)
 
-    def on_click_item(self):
-        self.PopupManager.show_item_dialog()
-        self.debug_function()
+    def on_click_item(self, ItemCard):
+        if ItemCard.item:
+            self.PopupManager.show_item_dialog(ItemCard.item)
+    
+    def on_click_owned_item(self, ItemCard):
+        if ItemCard.item:
+            if ItemCard.item.category == "Thành Tích":
+                self.PopupManager.show_item_dialog(ItemCard.item)
+            else:
+                self.PopupManager.show_owned_item_dialog(ItemCard.item)
+    
+    def on_use_item(self, item, ItemDialog):
+        self.character.use_item(item)
+        self.Sound_Eat.play()
+        self.update_inventories()
+        ItemDialog.dismiss()
+
+    def on_unequip_item(self, item, ItemDialog):
+        Flag = self.character.unequip(item)
+        if isinstance(Flag, str):
+            self.PopupManager.show_warning_dialog(Flag)
+            return
+        self.Sound_Equip.play()
+        self.update_inventories()
+        ItemDialog.dismiss()
+
+    def on_equip_item(self, item, ItemDialog):
+        Flag = self.character.equip(item)
+        if isinstance(Flag, str):
+            self.PopupManager.show_warning_dialog(Flag)
+            return
+        self.Sound_Equip.play()
+        self.update_inventories()
+        ItemDialog.dismiss()
     
     def on_reward(self, XP=0, Gold=0):
         self.PopupManager.show_reward_snackbar(XP, Gold)
@@ -996,9 +1052,6 @@ class GSS(MDApp):
     def show_analytics_dialog(self):
         ReportString = self.analytics.generate_report()
         self.PopupManager.show_analytics_dialog(ReportString)
-    
-    def show_avatar_dialog(self):
-        self.PopupManager.show_avatar_dialog()
 
     def on_home_switch_tab(self, bar: MDNavigationBar, item: MDNavigationItem, item_icon: str, item_text: str):
         self.root.ids.screen_manager_home.current = item_text

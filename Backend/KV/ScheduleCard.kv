@@ -81,4 +81,5 @@
             MDBoxLayout:
                 Widget:
                 MDSwitch:
-                    active: 1
+                    active: root.isOn
+                    on_active: root.toggle(self.active)
