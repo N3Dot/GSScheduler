@@ -619,10 +619,141 @@ MDScreenManager:
     
     MDScreen:
         name: "Login"
+        MDBoxLayout:
+            orientation: 'vertical'
+            MDBoxLayout:
+                orientation: 'vertical'
+                adaptive_height: True
+                padding: "40dp", "40dp"
+                spacing: "10dp"
+                md_bg_color: self.theme_cls.primaryColor
+                MDLabel:
+                    text: "Tạo Nhân Vật"
+                    bold: True
+                    font_style: "Title"
+                    halign: 'center'
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+                MDLabel:
+                    text: "Vận mệnh lặng lẽ gọi tên bạn. Nhưng trước khi hành trình bắt đầu, bạn phải trả lời một câu hỏi đơn giản..."
+                    font_style: 'Label'
+                    halign: 'center'
+                    italic: True
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+            MDBoxLayout:
+                orientation: 'vertical'
+                spacing: "20dp"
+                padding: "20dp"
+                MDLabel:
+                    text: "Tên của bạn là gì?"
+                    halign: 'center'
+                    bold: True
+                    adaptive_height: True
+                MDTextField:
+                    id: login_name_field
+                    hint_text: "Mô tả"
+                    mode: "outlined"
+                    MDTextFieldLeadingIcon:
+                        icon: "account"
+                    MDTextFieldHintText:
+                        text: "Nhập tên nhân vật..."
+                        font_style: "Label"
+                Widget:
+                MDLabel:
+                    text: "Ngoại hình của nhân vật bạn là gì?"
+                    halign: 'center'
+                    bold: True
+                MDBoxLayout:
+                    size_hint: None, None
+                    size: "125dp", "125dp"
+                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                    MDCard:
+                        style: "filled"
+                        radius: [10, ]
+                        padding: "8dp"
+                        size_hint_x: 0.45
+                        FitImage:
+                            id: login_avatar_image
+                            source: app.avatar_path
+                            radius: [10, ]
+                MDListItem:
+                    pos_hint: {"center_x": .5, "center_y": .5}
+                    on_release: app.PopupManager.show_avatar_dialog()
+                    MDListItemLeadingIcon:
+                        icon: "file-image"
+                    MDListItemSupportingText:
+                        text: "Chọn Ảnh Chân Dung"
+                        font_style: "Body"
+                MDButton:
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                    style: "outlined"
+                    on_release: app.confirm_login()
+                    MDButtonText:
+                        text: "Hoàn Tất"
+                Widget:
+            MDBoxLayout:
+                orientation: 'vertical'
+                adaptive_height: True
+                padding: "0dp", "60dp"
+                md_bg_color: self.theme_cls.primaryColor
 
     MDScreen:
         name: "Death"
-
+        md_bg_color: self.theme_cls.primaryColor
+        MDBoxLayout:
+            orientation: 'vertical'
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+            adaptive_height: True
+            spacing: "15dp"
+            padding: "50dp"
+            MDIcon:
+                icon: "emoticon-sad-outline"
+                pos_hint: {"center_x": 0.5}
+                theme_icon_color: "Custom"
+                icon_color: 1, 1, 1, 1
+                theme_font_size: "Custom"
+                font_size: "64dp"
+            MDLabel:
+                text: "Ôi Không..."
+                bold: True
+                font_style: "Title"
+                halign: 'center'
+                adaptive_height: True
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+            MDLabel:
+                text: "Bạn đã gục ngã... Nhưng chưa kết thúc!"
+                bold: True
+                font_style: "Body"
+                halign: 'center'
+                adaptive_height: True
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+            MDLabel:
+                text: "Bạn đã mất toàn bộ HP. Nhưng một anh hùng không được định nghĩa bởi số lần chiến thắng, mà bởi số lần họ đứng dậy sau khi ngã xuống."
+                font_style: "Label"
+                halign: 'center'
+                adaptive_height: True
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+            MDLabel:
+                text: "Vận mệnh của bạn vẫn chưa khép lại. Hãy hồi sinh và viết tiếp câu chuyện còn dang dở của mình."
+                font_style: "Label"
+                halign: 'center'
+                adaptive_height: True
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+            MDButton:
+                style: "elevated"
+                pos_hint: {"center_x": 0.5}
+                on_release: app.revive_character()
+                MDButtonText:
+                    text: "Hồi Sinh"
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryColor
 '''
 
 
@@ -635,9 +766,11 @@ class GSS(MDApp):
         self.reward_system = Code.RewardSystem()
         self.analytics = Code.StudyAnalytics(self.quest_system)
         self.session_manager = Code.SessionManager(character=self.character, reward_system=self.reward_system, analytics=self.analytics)
+        self.avatar_path = f"https://picsum.photos/600/600"
         self.active_card = None
         self.queued_cards = []
         self.EnableSave = True
+        self.HeroKilled = False
         self.SessionStarted = False
 
     def build(self):
@@ -661,17 +794,18 @@ class GSS(MDApp):
         self.Sound_OnPurchase = SoundLoader.load('Sounds/On_Purchase.wav')
         self.Sound_Eat = SoundLoader.load('Sounds/Eat.wav')
         self.Sound_Equip = SoundLoader.load('Sounds/Equip.wav')
+        self.Sound_Hurt = SoundLoader.load('Sounds/Hurt.wav')
 
-        self.session_manager.create_comprehensive_demo_data()
-        self.character.name = "Anh Khôi"
-        self.character.show_stats()
+        # self.session_manager.create_comprehensive_demo_data()
+        SavePresent = self.session_manager.ImportSave()
         self.shop = Code.Shop(self.character)
-        self.load_tabs()
-        # self.root.current = "Lock"
-        quest1 = Code.Quest(description="Viết phần Mở đầu báo cáo.", difficulty=2)
-        self.root.ids.lock_quest_grid.add_widget(UI.QuestLockCard(quest=quest1))
-        self.root.ids.lock_quest_grid.add_widget(UI.QuestLockCard(quest=quest1))
-        # self.updater = Clock.schedule_interval(self.update, 1)
+        self.load_tabs(SavePresent)
+
+        TestQuest = Code.Quest(description="Viết phần Mở đầu báo cáo.", difficulty=2)
+        self.root.ids.lock_quest_grid.add_widget(UI.QuestLockCard(quest=TestQuest))
+        self.root.ids.lock_quest_grid.add_widget(UI.QuestLockCard(quest=TestQuest))
+
+        self.updater = Clock.schedule_interval(self.update, 1)
         if platform == "android":
             from android.permissions import request_permissions, check_permission, Permission # type: ignore
             from jnius import autoclass # type: ignore
@@ -705,20 +839,26 @@ class GSS(MDApp):
         pass
 
     def update(self, dt):
-        pass
+        if self.HeroKilled == False and self.character.hp <= 0 and self.SessionStarted == False:
+            self.HeroKilled = True
+            self.root.current = "Death"
+            self.Sound_Hurt.play()
 
-    def load_tabs(self):
-        # --- Load Saved Sessions ---
-        for session in self.session_manager.sessions:
-            self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
-        # --- Load Character Tab ---
-        self.update_inventories()
-        self.update_achievements()
-        self.reload_avatar()
+    def load_tabs(self, SavePresent: bool):
         # --- Load Shop Tab ---
         for item in self.shop.current_stock:
             self.root.ids.shop_grid.add_widget(UI.ItemShopCard(item=item))
-        self.switch_main()
+        if SavePresent:
+            # --- Load Saved Sessions ---
+            for session in self.session_manager.sessions:
+                self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
+            # --- Load Character Tab ---
+            self.update_inventories()
+            self.update_achievements()
+            self.reload_avatar()
+            self.switch_main()
+        else:
+            self.root.current = "Login"
 
     def update_inventories(self):
         self.root.ids.item_grid.clear_widgets()
@@ -741,12 +881,13 @@ class GSS(MDApp):
                 file_path = os.path.join(avatar_dir, filename)
                 if os.path.isfile(file_path) or os.path.islink(file_path):
                     self.avatar_path = file_path
-            print("Loaded avatar from avatar directory.")
+            print(f"Loaded avatar from avatar directory {self.avatar_path}")
         except Exception as e:
             print(f"Failed to load avatar: {e}")
-        print(self.avatar_path)
         self.root.ids.character_card.imagePath = self.avatar_path
         self.root.ids.schedule_character_card.imagePath = self.avatar_path
+        self.root.ids.login_avatar_image.source = self.avatar_path
+        self.root.ids.login_avatar_image.reload()
 
     def switch_main(self):
         if self.session_manager.sessions:
@@ -944,16 +1085,6 @@ class GSS(MDApp):
         except Exception as e:
             print(f"Error updating QR code: {e}")
 
-    def debug_function(self):
-        self.character.gold += 5
-        self.character.hp -= 2
-        self.character.dex += 1
-        self.character.int += 2
-        self.character.luk += 3
-        self.character.available_points += 1
-        self.character.level += 1
-        self.on_reward()
-
     def on_purchase_item(self, ItemShopCard):
         if self.character.gold >= ItemShopCard.item.price:
             self.character.gold -= ItemShopCard.item.price
@@ -1048,6 +1179,29 @@ class GSS(MDApp):
         elif type == "gold":
             self.root.ids.gold_counter_card.goldAmount = value
             self.root.ids.schedule_character_card.goldAmount = value
+    
+    def confirm_login(self):
+        self.character.name = self.root.ids.login_name_field.text
+        self.switch_main()
+        self.PopupManager.show_welcome_dialog()
+    
+    def revive_character(self):
+        self.character.equipment = []
+        self.character.inventory = []
+        self.character.level = 1
+        self.character.xp = 0
+        self.character.xp_to_next_level = 100
+        self.character.hp = 50
+        self.character.max_hp = 50
+        self.character.dex = 1
+        self.character.int = 1 
+        self.character.luk = 1
+        self.character.available_points = 0
+        self.character.gold = 10
+
+        self.HeroKilled = False
+        self.update_inventories()
+        self.switch_main()
 
     def show_analytics_dialog(self):
         ReportString = self.analytics.generate_report()

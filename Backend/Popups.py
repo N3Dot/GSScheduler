@@ -5,6 +5,7 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.snackbar import MDSnackbar, MDSnackbarButtonContainer, MDSnackbarCloseButton, MDSnackbarText, MDSnackbarSupportingText
 from kivymd.uix.dialog import MDDialog, MDDialogIcon, MDDialogHeadlineText, MDDialogSupportingText, MDDialogContentContainer, MDDialogButtonContainer
 from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.label import MDLabel
 from kivymd.uix.divider import MDDivider
 from kivymd.uix.list import MDListItem, MDListItemLeadingIcon, MDListItemSupportingText
 from kivymd.uix.fitimage import FitImage
@@ -40,6 +41,59 @@ class Popup:
             duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
             background_color=self.app.theme_cls.onPrimaryContainerColor,
             ).open()
+        
+    def show_session_finish_dialog(self, rank: str):
+        if rank == "F":
+            PerfIcon = "emoticon-cry-outline"
+            PerfHeadline = "Chưa Phải Là Ngày Của Bạn?"
+            PerfSupport = "Đôi khi thất bại là một phần không thể thiếu trên con đường trở nên mạnh mẽ hơn. Đừng nản lòng, quay lại, rèn luyện, và chứng minh bản thân! Huyền thoại không được tạo ra trong một ngày!"
+        elif rank == "S":
+            PerfIcon = "party-popper"
+            PerfHeadline = "Tuyệt Đỉnh!"
+            PerfSupport = "Không một nhiệm vụ nào có thể ngăn cản bạn! Sự tập trung, kỹ năng và tinh thần bất khuất đã đưa bạn lên đỉnh vinh quang!"
+        else:
+            PerfIcon = "party-popper"
+            PerfHeadline = "Chúc Mừng!"
+            PerfSupport = "Sự nỗ lực của bạn đã đặt nền móng vững chắc cho những thành tựu lớn hơn. Đường vinh quang luôn mở rộng cho những ai không bỏ cuộc!"
+        FinishDialog = MDDialog(
+            MDDialogIcon(icon=PerfIcon),
+            MDDialogHeadlineText(text=PerfHeadline, bold=True),
+            MDDialogSupportingText(text=PerfSupport),
+            MDDialogContentContainer(
+                MDBoxLayout(
+                    MDLabel(text="Phiên học của bạn đã kết thúc.", font_style="Label", halign='center', theme_text_color="Custom", text_color=self.app.theme_cls.primaryColor, adaptive_height=True),
+                    MDLabel(text="Kết quả cuối cùng:", font_style="Label", halign='center', bold=True, theme_text_color="Custom", text_color=self.app.theme_cls.primaryColor, adaptive_height=True),
+                    MDLabel(text=rank, font_style="Display", role="large", halign='center', theme_text_color="Custom", text_color=self.app.theme_cls.primaryColor, adaptive_height=True),
+                    adaptive_height=True,
+                    spacing="5dp",
+                    orientation="vertical",
+                ),
+                orientation="vertical",
+            ),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: FinishDialog.dismiss(),
+                ),
+                Widget(),
+            ),
+        )
+        FinishDialog.open()
+
+    def show_level_up_dialog(self):
+        LevelUpDialog = MDDialog(
+            MDDialogIcon(icon="progress-upload"),
+            MDDialogHeadlineText(text=f"{self.app.character.name} Đã Lên Cấp {self.app.character.level}!", bold=True),
+            MDDialogSupportingText(text=f"Từ một chiến binh không ngừng nỗ lực, bạn đã vượt qua mọi thử thách và vươn tới tầm cao mới!"),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: LevelUpDialog.dismiss(),
+                ),
+                Widget(),
+            ),
+        )
+        LevelUpDialog.open()
 
     def show_item_dialog(self, item):
         rarity_types = [None, "Thường", "Nâng Cao", "Hiếm", "Sử Thi", "Huyền Thoại"]
@@ -243,6 +297,21 @@ class Popup:
     def use_local_avatar(self, AvatarDialog):
         self.file_manager_open()
         AvatarDialog.dismiss()
+
+    def show_welcome_dialog(self):
+        WelcomeDialog = MDDialog(
+            MDDialogIcon(icon="gamepad-up"),
+            MDDialogHeadlineText(text=f"Chào Mừng Đến Với Học Tập Kiểu RPG!"),
+            MDDialogSupportingText(text="Bắt đầu bằng cách tạo một phiên học, đặt thời gian bắt đầu và kết thúc. Tạo các nhiệm vụ với độ khó tùy chọn - chúng chính là “quái vật” bạn cần tiêu diệt để nhận XP!\n\nKhi đến giờ, ứng dụng sẽ tự động kích hoạt phiên học và đếm giờ. Trong suốt thời gian đó, hãy tập trung hoàn thành nhiệm vụ, đánh dấu tiến độ và đạt hạng cao nhất.\n\nKết thúc phiên học, hệ thống sẽ trao thưởng nếu bạn làm tốt... hoặc trừ HP nếu bạn lười biếng!\n\nĐừng quên ghé qua Shop để tiêu vàng, nâng cấp nhân vật và chuẩn bị cho những phiên học tiếp theo!"),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: WelcomeDialog.dismiss(),
+                ),
+                Widget(),
+            ),
+        )
+        WelcomeDialog.open()
     
     def show_analytics_dialog(self, ReportString: str):
         AnalyticsDialog = MDDialog(
