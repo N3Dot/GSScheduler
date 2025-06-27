@@ -5,6 +5,7 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.snackbar import MDSnackbar, MDSnackbarButtonContainer, MDSnackbarCloseButton, MDSnackbarText, MDSnackbarSupportingText
 from kivymd.uix.dialog import MDDialog, MDDialogIcon, MDDialogHeadlineText, MDDialogSupportingText, MDDialogContentContainer, MDDialogButtonContainer
 from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.label import MDLabel
 from kivymd.uix.divider import MDDivider
 from kivymd.uix.list import MDListItem, MDListItemLeadingIcon, MDListItemSupportingText
 from kivymd.uix.fitimage import FitImage
@@ -40,39 +41,92 @@ class Popup:
             duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
             background_color=self.app.theme_cls.onPrimaryContainerColor,
             ).open()
+        
+    def show_session_finish_dialog(self, rank: str):
+        if rank == "F":
+            PerfIcon = "emoticon-cry-outline"
+            PerfHeadline = "Chưa Phải Là Ngày Của Bạn?"
+            PerfSupport = "Đôi khi thất bại là một phần không thể thiếu trên con đường trở nên mạnh mẽ hơn. Đừng nản lòng, quay lại, rèn luyện, và chứng minh bản thân! Huyền thoại không được tạo ra trong một ngày!"
+        elif rank == "S":
+            PerfIcon = "party-popper"
+            PerfHeadline = "Tuyệt Đỉnh!"
+            PerfSupport = "Không một nhiệm vụ nào có thể ngăn cản bạn! Sự tập trung, kỹ năng và tinh thần bất khuất đã đưa bạn lên đỉnh vinh quang!"
+        else:
+            PerfIcon = "party-popper"
+            PerfHeadline = "Chúc Mừng!"
+            PerfSupport = "Sự nỗ lực của bạn đã đặt nền móng vững chắc cho những thành tựu lớn hơn. Đường vinh quang luôn mở rộng cho những ai không bỏ cuộc!"
+        FinishDialog = MDDialog(
+            MDDialogIcon(icon=PerfIcon),
+            MDDialogHeadlineText(text=PerfHeadline, bold=True),
+            MDDialogSupportingText(text=PerfSupport),
+            MDDialogContentContainer(
+                MDBoxLayout(
+                    MDLabel(text="Phiên học của bạn đã kết thúc.", font_style="Label", halign='center', theme_text_color="Custom", text_color=self.app.theme_cls.primaryColor, adaptive_height=True),
+                    MDLabel(text="Kết quả cuối cùng:", font_style="Label", halign='center', bold=True, theme_text_color="Custom", text_color=self.app.theme_cls.primaryColor, adaptive_height=True),
+                    MDLabel(text=rank, font_style="Display", role="large", halign='center', theme_text_color="Custom", text_color=self.app.theme_cls.primaryColor, adaptive_height=True),
+                    adaptive_height=True,
+                    spacing="5dp",
+                    orientation="vertical",
+                ),
+                orientation="vertical",
+            ),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: FinishDialog.dismiss(),
+                ),
+                Widget(),
+            ),
+        )
+        FinishDialog.open()
 
-    def show_item_dialog(self):
+    def show_level_up_dialog(self):
+        LevelUpDialog = MDDialog(
+            MDDialogIcon(icon="progress-upload"),
+            MDDialogHeadlineText(text=f"{self.app.character.name} Đã Lên Cấp {self.app.character.level}!", bold=True),
+            MDDialogSupportingText(text=f"Từ một chiến binh không ngừng nỗ lực, bạn đã vượt qua mọi thử thách và vươn tới tầm cao mới!"),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: LevelUpDialog.dismiss(),
+                ),
+                Widget(),
+            ),
+        )
+        LevelUpDialog.open()
+
+    def show_item_dialog(self, item):
+        rarity_types = [None, "Thường", "Nâng Cao", "Hiếm", "Sử Thi", "Huyền Thoại"]
+        rarity_text = rarity_types[item.rarity.value]
         ItemDialog = MDDialog(
             MDDialogIcon(icon="list-box-outline"),
-            MDDialogHeadlineText(text="Kiếm Rỉ Sét"),
-            MDDialogSupportingText(
-                text="Một thanh kiếm cũ kỹ, lưỡi kiếm phủ đầy lớp rỉ sét do bị bỏ quên trong thời gian dài. Tay cầm lỏng lẻo, lưỡi kiếm sứt mẻ, nhưng vẫn có thể dùng để tự vệ trong trường hợp khẩn cấp. Được những nhà thám hiểm mới bắt đầu sử dụng như một phương án tạm thời.",
-            ),
+            MDDialogHeadlineText(text=item.name),
+            MDDialogSupportingText(text=item.description),
             MDDialogContentContainer(
                 MDDivider(),
                 MDListItem(
                     MDListItemLeadingIcon(icon="star-four-points-circle-outline"),
-                    MDListItemSupportingText(text="[b]Độ Hiếm:[/b] Thường", markup=True),
+                    MDListItemSupportingText(text=f"[b]Độ Hiếm:[/b] {rarity_text}", markup=True),
                     theme_bg_color="Custom",
                     md_bg_color=self.app.theme_cls.transparentColor),
                 MDListItem(
                     MDListItemLeadingIcon(icon="toolbox"),
-                    MDListItemSupportingText(text="[b]Loại:[/b] Vũ Khí", markup=True),
+                    MDListItemSupportingText(text=f"[b]Loại:[/b] {item.category}", markup=True),
                     theme_bg_color="Custom",
                     md_bg_color=self.app.theme_cls.transparentColor),
                 MDListItem(
                     MDListItemLeadingIcon(icon="arm-flex"),
-                    MDListItemSupportingText(text="[b]DEX:[/b] +5   [b]INT:[/b] +5   [b]LUK:[/b] +5", markup=True),
+                    MDListItemSupportingText(text=f"[b]DEX:[/b]  +{item.on_use_effect['dex']}   [b]INT:[/b]  +{item.on_use_effect['int']}   [b]LUK:[/b]  +{item.on_use_effect['luk']}".replace("+-", "-"), markup=True),
                     theme_bg_color="Custom",
                     md_bg_color=self.app.theme_cls.transparentColor),
                 MDListItem(
                     MDListItemLeadingIcon(icon="heart"),
-                    MDListItemSupportingText(text="[b]HP:[/b]  +10", markup=True),
+                    MDListItemSupportingText(text=f"[b]HP:[/b]  +{item.on_use_effect['hp']}".replace("+-", "-"), markup=True),
                     theme_bg_color="Custom",
                     md_bg_color=self.app.theme_cls.transparentColor),
                 MDListItem(
                     MDListItemLeadingIcon(icon="star-box"),
-                    MDListItemSupportingText(text="[b]XP:[/b]  +5", markup=True),
+                    MDListItemSupportingText(text=f"[b]XP:[/b]  +{item.on_use_effect['xp']}".replace("+-", "-"), markup=True),
                     theme_bg_color="Custom",
                     md_bg_color=self.app.theme_cls.transparentColor),
                 orientation="vertical",
@@ -83,6 +137,67 @@ class Popup:
                     on_release=lambda x: ItemDialog.dismiss(),
                 ),
                 Widget(),
+            ),
+        )
+        ItemDialog.open()
+    
+    def show_owned_item_dialog(self, item):
+        if item in self.app.character.equipment:
+            ActionButton = MDButton(
+                MDButtonText(text="Tháo Bỏ"), style="outlined", pos_hint={'center_x': 0.5},
+                on_release=lambda x: self.app.on_unequip_item(item, ItemDialog),
+            )
+        elif item.category != "Tiêu Hao":
+            ActionButton = MDButton(
+                MDButtonText(text="Trang Bị"), style="outlined", pos_hint={'center_x': 0.5},
+                on_release=lambda x: self.app.on_equip_item(item, ItemDialog),
+            )
+        else:
+            ActionButton = MDButton(
+                MDButtonText(text="Sử Dụng"), style="outlined", pos_hint={'center_x': 0.5},
+                on_release=lambda x: self.app.on_use_item(item, ItemDialog),
+            )
+        rarity_types = [None, "Thường", "Nâng Cao", "Hiếm", "Sử Thi", "Huyền Thoại"]
+        rarity_text = rarity_types[item.rarity.value]
+        ItemDialog = MDDialog(
+            MDDialogIcon(icon="list-box-outline"),
+            MDDialogHeadlineText(text=item.name),
+            MDDialogSupportingText(text=item.description),
+            MDDialogContentContainer(
+                MDDivider(),
+                MDListItem(
+                    MDListItemLeadingIcon(icon="star-four-points-circle-outline"),
+                    MDListItemSupportingText(text=f"[b]Độ Hiếm:[/b] {rarity_text}", markup=True),
+                    theme_bg_color="Custom",
+                    md_bg_color=self.app.theme_cls.transparentColor),
+                MDListItem(
+                    MDListItemLeadingIcon(icon="toolbox"),
+                    MDListItemSupportingText(text=f"[b]Loại:[/b] {item.category}", markup=True),
+                    theme_bg_color="Custom",
+                    md_bg_color=self.app.theme_cls.transparentColor),
+                MDListItem(
+                    MDListItemLeadingIcon(icon="arm-flex"),
+                    MDListItemSupportingText(text=f"[b]DEX:[/b]  +{item.on_use_effect['dex']}   [b]INT:[/b]  +{item.on_use_effect['int']}   [b]LUK:[/b]  +{item.on_use_effect['luk']}".replace("+-", "-"), markup=True),
+                    theme_bg_color="Custom",
+                    md_bg_color=self.app.theme_cls.transparentColor),
+                MDListItem(
+                    MDListItemLeadingIcon(icon="heart"),
+                    MDListItemSupportingText(text=f"[b]HP:[/b]  +{item.on_use_effect['hp']}".replace("+-", "-"), markup=True),
+                    theme_bg_color="Custom",
+                    md_bg_color=self.app.theme_cls.transparentColor),
+                MDListItem(
+                    MDListItemLeadingIcon(icon="star-box"),
+                    MDListItemSupportingText(text=f"[b]XP:[/b]  +{item.on_use_effect['xp']}".replace("+-", "-"), markup=True),
+                    theme_bg_color="Custom",
+                    md_bg_color=self.app.theme_cls.transparentColor),
+                orientation="vertical",
+            ),
+            MDDialogButtonContainer(
+                ActionButton,
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: ItemDialog.dismiss(),
+                ),
+                spacing="20dp",
             ),
         )
         ItemDialog.open()
@@ -182,6 +297,21 @@ class Popup:
     def use_local_avatar(self, AvatarDialog):
         self.file_manager_open()
         AvatarDialog.dismiss()
+
+    def show_welcome_dialog(self):
+        WelcomeDialog = MDDialog(
+            MDDialogIcon(icon="gamepad-up"),
+            MDDialogHeadlineText(text=f"Chào Mừng Đến Với Học Tập Kiểu RPG!"),
+            MDDialogSupportingText(text="Bắt đầu bằng cách tạo một phiên học, đặt thời gian bắt đầu và kết thúc. Tạo các nhiệm vụ với độ khó tùy chọn - chúng chính là “quái vật” bạn cần tiêu diệt để nhận XP!\n\nKhi đến giờ, ứng dụng sẽ tự động kích hoạt phiên học và đếm giờ. Trong suốt thời gian đó, hãy tập trung hoàn thành nhiệm vụ, đánh dấu tiến độ và đạt hạng cao nhất.\n\nKết thúc phiên học, hệ thống sẽ trao thưởng nếu bạn làm tốt... hoặc trừ HP nếu bạn lười biếng!\n\nĐừng quên ghé qua Shop để tiêu vàng, nâng cấp nhân vật và chuẩn bị cho những phiên học tiếp theo!"),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: WelcomeDialog.dismiss(),
+                ),
+                Widget(),
+            ),
+        )
+        WelcomeDialog.open()
     
     def show_analytics_dialog(self, ReportString: str):
         AnalyticsDialog = MDDialog(
@@ -212,6 +342,25 @@ class Popup:
             ),
         )
         WarningDialog.open()
+
+    def show_erase_dialog(self):
+        EraseDialog = MDDialog(
+            MDDialogIcon(icon="exclamation-thick", theme_text_color="Custom", text_color=(1, 0, 0, 1)),
+            MDDialogHeadlineText(text=f"[color=ff4444]Xóa Dữ Liệu[/color]", bold=True),
+            MDDialogSupportingText(text="[color=ff4444]Bạn có chắc rằng bạn muốn xóa tất cả dữ liệu nhân vật của mình? Ứng dụng sẽ đóng để khởi động lại![/color]"),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Xóa"), style="filled", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: self.clear_save(EraseDialog),
+                ),
+                MDButton(MDButtonText(text="Hủy"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: EraseDialog.dismiss(),
+                ),
+                Widget(),
+                spacing="20dp",
+            ),
+        )
+        EraseDialog.open()
     
     def get_avatar_save_path(self, filename: str = None):
         '''
@@ -250,6 +399,19 @@ class Popup:
         except Exception as e:
             print(f"Failed to clear avatar directory: {e}")
     
+    def clear_save(self, EraseDialog = None): # Clear save and quit.
+        if EraseDialog:
+            EraseDialog.dismiss()
+        try:
+            self.clear_avatar_save_path()
+            save_file = self.app.session_manager.save_file_path
+            if os.path.isfile(save_file) or os.path.islink(save_file):
+                os.unlink(save_file)
+            self.app.EnableSave = False
+            self.app.get_running_app().stop()
+        except Exception as e:
+            print(f"Failed to clear save: {e}")
+    
     def select_path(self, path: str):
         self.file_manager_exit()
         if not os.path.isfile(path):
@@ -280,10 +442,8 @@ class Popup:
         if platform == 'android':
             from android.storage import primary_external_storage_path # type: ignore
             self.file_manager.show(primary_external_storage_path())
-            print("line triggered")
         else:
             self.file_manager.show(os.path.expanduser("~"))
-            print("line not triggered")
     
     def file_manager_exit(self, *args):
         self.file_manager.close()

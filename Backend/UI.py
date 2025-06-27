@@ -1,5 +1,3 @@
-import os
-
 from kivy.lang import Builder
 from kivy.properties import StringProperty, ListProperty, NumericProperty, BooleanProperty, ObjectProperty
 from kivymd.app import MDApp
@@ -40,6 +38,7 @@ RARITY_COLORS = {
 
 Builder.load_file("Backend/KV/ItemCard.kv")
 class ItemCard(MDCard):
+    item = ObjectProperty()
     name = StringProperty()
     icon = StringProperty()
     rarity = StringProperty("Common")
@@ -50,9 +49,16 @@ class ItemCard(MDCard):
     def on_touch_down(self, touch):
         for child in self.children[::-1]:
             if child.collide_point(*touch.pos) and child.__class__.__name__ == "MDBoxLayout":
-                MDApp.get_running_app().on_click_item()
+                MDApp.get_running_app().on_click_owned_item(self)
                 return super().on_touch_down(touch)
         return super().on_touch_down(touch)
+
+    def on_item(self, instance, value):
+        if self.item:
+            self.name = self.item.name
+            self.icon = self.item.icon
+            rarity_types = [None, "Common", "Uncommon", "Rare", "Epic", "Legendary"]
+            self.rarity = rarity_types[self.item.rarity.value]
 
     def on_rarity(self, instance, value):
         colors = RARITY_COLORS[self.rarity]
@@ -62,6 +68,7 @@ class ItemCard(MDCard):
 
 Builder.load_file("Backend/KV/ItemShopCard.kv")
 class ItemShopCard(MDCard):
+    item = ObjectProperty()
     name = StringProperty()
     icon = StringProperty()
     price = StringProperty()
@@ -73,9 +80,17 @@ class ItemShopCard(MDCard):
     def on_touch_down(self, touch):
         for child in self.children[::-1]:
             if child.collide_point(*touch.pos) and child.__class__.__name__ == "MDBoxLayout":
-                MDApp.get_running_app().on_click_item()
+                MDApp.get_running_app().on_click_item(self)
                 return super().on_touch_down(touch)
         return super().on_touch_down(touch)
+    
+    def on_item(self, instance, value):
+        if self.item:
+            self.name = self.item.name
+            self.icon = self.item.icon
+            self.price = str(self.item.price)
+            rarity_types = [None, "Common", "Uncommon", "Rare", "Epic", "Legendary"]
+            self.rarity = rarity_types[self.item.rarity.value]
 
     def on_rarity(self, instance, value):
         colors = RARITY_COLORS[self.rarity]
@@ -91,12 +106,18 @@ class ScheduleCard(MDCard):
     description = StringProperty()
     expectedLoot = StringProperty()
     questTotal = NumericProperty()
+    isOn = BooleanProperty()
+
+    def toggle(self, value):
+        if self.session:
+            print(f"Current value is {bool(value)}")
 
     def on_session(self, instance, value):
         if self.session:
             self.startTime=self.session.start_time.strftime("%H:%M")
             self.endTime=self.session.end_time.strftime("%H:%M")
             self.description=self.session.goal_description
+            self.isOn = True
             self.questTotal = 0
             diffTotal = 0
             for quest in self.session.linked_quests:

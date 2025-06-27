@@ -14,101 +14,10 @@ import os
 import qrcode
 import base64
 import gzip
-
-
-class Rarity(Enum):
-    """Định nghĩa các cấp độ hiếm của vật phẩm."""
-    COMMON = 1
-    UNCOMMON = 2
-    RARE = 3
-    EPIC = 4
-    LEGENDARY = 5
-
-
-class Item:
-    """
-    Đại diện cho một vật phẩm trong trò chơi.
-    Lớp này chứa tất cả thông tin chi tiết về một vật phẩm, từ tên, mô tả,
-    đến các hiệu ứng khi sử dụng.
-    """
-    def __init__(self,
-                 name: str,
-                 description: str,
-                 category: str,
-                 rarity: Rarity,
-                 price: int,
-                 icon_path: str,
-                 consumable: bool = False,
-                 passive: bool = False,
-                 on_use_effect: Optional[Dict[str, int]] = None):
-        """
-        Khởi tạo một đối tượng Item mới.
-
-        Args:
-            name (str): Tên của vật phẩm (duy nhất).
-            description (str): Mô tả chi tiết về vật phẩm.
-            category (str): Loại vật phẩm (ví dụ: 'Trang bị', 'Tiêu hao').
-            rarity (Rarity): Độ hiếm của vật phẩm.
-            price (int): Giá trị của vật phẩm bằng vàng.
-            icon_path (str): Đường dẫn đến file icon của vật phẩm.
-            consumable (bool): True nếu vật phẩm sẽ biến mất sau khi sử dụng.
-            passive (bool): True nếu vật phẩm có hiệu ứng bị động khi trang bị.
-            on_use_effect (Dict[str, int]): Các chỉ số cộng thêm khi trang bị.           
-        """
-        self.name: str = name
-        self.description: str = description
-        self.category: str = category
-        self.rarity: Rarity = rarity
-        self.price: int = price
-        self.icon: str = icon_path
-        self.consumable: bool = consumable
-        self.passive: bool = passive
-        # THAY ĐỔI: Đổi tên từ stat_bonuses thành on_use_effect, xóa on_use_effect function cũ
-        self.on_use_effect: Dict[str, int] = on_use_effect or {}
-    
-    def get_details(self) -> Dict[str, Any]:
-        """Trả về một từ điển chứa thông tin chi tiết của vật phẩm."""
-        return {
-            "name": self.name,
-            "description": self.description,
-            "category": self.category,
-            "rarity": self.rarity.name,
-            "price": self.price,
-            "icon": self.icon,
-            "consumable": self.consumable,
-            "passive": self.passive,
-            "on_use_effect": self.on_use_effect  # THAY ĐỔI: đổi tên từ stat_bonuses
-        }
-
-    def use_item(self, character: 'Character', reward_system: 'RewardSystem'):
-        """
-        Xử lý logic khi nhân vật sử dụng vật phẩm này.
-        Chỉ có tác dụng với các vật phẩm 'consumable'.
-        THAY ĐỔI: on_use_effect bây giờ chứa stat bonuses thay vì function
-        """
-        if not self.consumable:
-            print(f"Vật phẩm '{self.name}' không thể sử dụng theo cách này.")
-            return
-
-        print(f"{character.name} đã sử dụng {self.name}.")
-        
-        # Áp dụng stat bonuses từ on_use_effect (tạm thời cho consumable items)
-        if self.on_use_effect:
-            for stat, bonus in self.on_use_effect.items():
-                if hasattr(character, stat):
-                    current_value = getattr(character, stat)
-                    setattr(character, stat, current_value + bonus)
-                    print(f"  +{bonus} {stat.upper()}")
-
-        # Xóa vật phẩm khỏi kho đồ của nhân vật nếu nó là loại tiêu hao
-        if self in character.inventory:
-            character.inventory.remove(self)
-            print(f"'{self.name}' đã biến mất khỏi kho đồ.")
-
-    def __repr__(self) -> str:
-        """Biểu diễn đối tượng Item dưới dạng chuỗi để dễ gỡ lỗi."""
-        return f"Item(name='{self.name}', rarity='{self.rarity.name}')"
-
+if __name__ == "__main__":
+    from Database import Item, Rarity, Items
+else:
+    from Backend.Database import Item, Rarity, Items, Achievements
 
 class Character(EventDispatcher):
     """
@@ -130,10 +39,8 @@ class Character(EventDispatcher):
     def __init__(self, name: str, **kwargs):
         super().__init__(**kwargs)
         self.name: str = name
-        self.avatar_path: str = "default_skin.png"  # Ngoại hình cơ bản
         self.equipment: List[Item] = []  # Danh sách các vật phẩm đã trang bị
         self.inventory: List[Item] = []  # Kho đồ chứa các vật phẩm
-        self.achievements: List[Item] = []  # Các thành tích dưới dạng vật phẩm (nếu có)
         self.unlocked_achievements = set()  # Tập hợp các ID thành tích đã mở khóa
         
         # Chỉ số cấp độ và kinh nghiệm
@@ -153,64 +60,14 @@ class Character(EventDispatcher):
         self.gold: int = 10
         print(f"Nhân vật '{self.name}' đã được tạo với {self.xp} XP và {self.gold} Vàng.")
 
-    def get_total_stat_bonuses(self):
-        """Tính tổng chỉ số cộng thêm từ tất cả trang bị. THAY ĐỔI: sử dụng on_use_effect thay vì stat_bonuses"""
-        total_bonuses = {
-            'hp': 0, 'max_hp': 0, 'dex': 0, 'int': 0, 'luk': 0, 'gold': 0, 'xp': 0
-        }
-        
-        for item in self.equipment:
-            for stat, bonus in item.on_use_effect.items():  # THAY ĐỔI: từ stat_bonuses thành on_use_effect
-                if stat in total_bonuses:
-                    total_bonuses[stat] += bonus        
-        return total_bonuses
-
-    def get_effective_stats(self):
-        """Trả về chỉ số thực tế (base + equipment bonuses)."""
-        bonuses = self.get_total_stat_bonuses()  # THAY ĐỔI: đổi tên method
-        return {
-            'hp': self.hp + bonuses['hp'],
-            'max_hp': self.max_hp + bonuses['max_hp'],
-            'dex': self.dex + bonuses['dex'],
-            'int': self.int + bonuses['int'],
-            'luk': self.luk + bonuses['luk'],
-            'gold': self.gold + bonuses['gold'],
-            'level': self.level,
-            'xp': self.xp + bonuses['xp'],
-            'available_points': self.available_points
-        }
-
-    def equip_item(self, item: Item):
-        """Trang bị một vật phẩm và áp dụng stat bonuses."""
-        if item not in self.inventory:
-            print(f"Vật phẩm '{item.name}' không có trong kho đồ.")
-            return False
-        
-        if not item.passive and item.category.lower() not in ['weapon', 'equipment', 'armor']:
-            print(f"Vật phẩm '{item.name}' không thể trang bị.")
-            return False
-        
-        # Chuyển từ inventory sang equipment
-        self.inventory.remove(item)
-        self.equipment.append(item)        
-        print(f"Đã trang bị '{item.name}'")
-        if item.on_use_effect:  # THAY ĐỔI: từ stat_bonuses thành on_use_effect
-            print(f"  Stat bonuses: {item.on_use_effect}")
-        
-        return True
-
-    def unequip_item(self, item: Item):
-        """Gỡ trang bị và chuyển về inventory."""
-        if item not in self.equipment:
-            print(f"Vật phẩm '{item.name}' không được trang bị.")
-            return False
-        
-        # Chuyển từ equipment về inventory
-        self.equipment.remove(item)
-        self.inventory.append(item)
-        
-        print(f"Đã gỡ trang bị '{item.name}'")
-        return True
+    def check_negative_stats(self):
+        """
+        Kiểm tra các chỉ số nếu bị âm thì đặt lại thành 0.
+        """
+        for stat in ['hp','max_hp','dex', 'int', 'luk', 'gold', 'xp']:
+            value = getattr(self, stat, 0)
+            if value < 0:
+                setattr(self, stat, 0)
 
     def check_level_up(self):
         """
@@ -236,29 +93,109 @@ class Character(EventDispatcher):
             self.unlocked_achievements.add(achievement_id)
             print(f"🏆 THÀNH TÍCH MỚI ĐƯỢC MỞ KHÓA: {achievement_id}")
 
-    def update_appearance(self):
-        """(Mô phỏng) Cập nhật ngoại hình nhân vật dựa trên trang bị đang mặc."""
-        print("Đang cập nhật ngoại hình nhân vật...")
-        print(f"Ngoại hình đã được cập nhật dựa trên {len(self.equipment)} trang bị.")
-
     def show_stats(self):
         """Hiển thị các chỉ số hiện tại của nhân vật một cách trực quan."""
-        stats = self.get_effective_stats()
-        base_stats_str = f"Cơ bản: HP({self.hp}/{self.max_hp}), DEX({self.dex}), INT({self.int}), LUK({self.luk})"
-        
         print("\n--- TRẠNG THÁI NHÂN VẬT ---")
         print(f"Tên: {self.name}")
-        print(f"Cấp độ: {stats['level']}")
-        print(f"Kinh nghiệm: {stats['xp']}/{self.xp_to_next_level}")
-        print(f"Vàng: {stats['gold']}")
-        print(f"Điểm cộng có sẵn: {stats['available_points']}")
-        print(f"Chỉ số hiệu dụng: HP({stats['hp']}/{stats['max_hp']}), DEX({stats['dex']}), INT({stats['int']}), LUK({stats['luk']})")
-        print(f"  ({base_stats_str})")
+        print(f"Cơ bản: HP({self.hp}/{self.max_hp}), DEX({self.dex}), INT({self.int}), LUK({self.luk})")
         print(f"Trang bị: {[item.name for item in self.equipment] or ['Không có']}")
         print(f"Kho đồ: {[item.name for item in self.inventory] or ['Trống']}")
         print(f"Thành tích: {list(self.unlocked_achievements) or ['Chưa có']}")
         print("--------------------------\n")
+    
+    def use_item(self, item: Item):
+        """
+        Xử lý logic khi nhân vật sử dụng vật phẩm này.
+        """
+        print(f"{self.name} đã sử dụng {item.name}.")
+        # Áp dụng stat bonuses từ on_use_effect
+        if item.on_use_effect:
+            for stat, bonus in item.on_use_effect.items():
+                if hasattr(self, stat):
+                    current_value = getattr(self, stat)
+                    setattr(self, stat, current_value + bonus)
 
+        # Xóa vật phẩm khỏi kho đồ của nhân vật nếu nó là loại tiêu hao
+        if item in self.inventory:
+            self.inventory.remove(item)
+    
+    def equip(self, item: Item):
+        # Kiểm tra item có trong inventory không
+        if item not in self.inventory:
+            return f"Không tìm thấy '{item.name}' trong kho đồ."
+
+        # Nếu đã có trang bị cùng category thì unequip nó trước
+        existing_equipped = next((i for i in self.equipment if i.category == item.category), None)
+        if existing_equipped:
+            print(f"Đang có trang bị '{existing_equipped.name}' cùng loại. Gỡ ra trước khi trang bị '{item.name}'.")
+            Flag = self.unequip(existing_equipped)
+            if isinstance(Flag, str):
+                return Flag
+
+        # Trang bị item mới
+        self.equipment.append(item)
+        self.inventory.remove(item)
+
+        # Tăng chỉ số
+        for stat, bonus in item.on_use_effect.items():
+            if stat == 'hp':
+                self.max_hp += bonus
+            elif hasattr(self, stat):
+                setattr(self, stat, getattr(self, stat) + bonus)
+
+        print(f"Đã trang bị '{item.name}'.")
+        self.validate_health()
+        return True
+
+    def unequip(self, item: Item):
+        # Kiểm tra item có trong equipment không
+        if item not in self.equipment:
+            return f"'{item.name}' không có trong trang bị."
+
+        # Ước lượng tác động của việc gỡ bỏ item
+        simulated_max_hp = self.max_hp
+        simulated_hp = self.hp
+
+        for stat, bonus in item.on_use_effect.items():
+            if stat == 'hp':
+                simulated_hp -= bonus
+            elif stat == 'max_hp':
+                simulated_max_hp -= bonus  # Trong trường hợp bạn dùng 'max_hp' riêng biệt
+
+        # Kiểm tra nếu max_hp hoặc hp sau khi gỡ <= 0
+        if simulated_max_hp <= 0 or simulated_hp <= 0:
+            return f"Không thể gỡ '{item.name}' vì sẽ khiến HP bị âm hoặc bằng 0!"
+
+        # Gỡ trang bị
+        self.equipment.remove(item)
+        self.inventory.append(item)
+
+        # Giảm chỉ số
+        for stat, bonus in item.on_use_effect.items():
+            if stat == 'hp':
+                self.max_hp -= bonus
+            elif hasattr(self, stat):
+                setattr(self, stat, getattr(self, stat) - bonus)
+
+        print(f"Đã gỡ trang bị '{item.name}'.")
+        self.check_negative_stats()
+        self.validate_health()
+        return True
+
+    def validate_health(self):
+        if self.hp > self.max_hp:
+            self.hp = self.max_hp
+
+class Shop:
+    def __init__(self, Character: Character):
+        self.current_stock: List[Item] = []
+        for key in Items:
+            item_to_add = Items[key]
+            if (item_to_add.category == "Tiêu Hao") or (item_to_add not in Character.inventory and item_to_add not in Character.equipment):
+                self.current_stock.append(Items[key])
+            else:
+                print(f"Item not added: {item_to_add}")
+        self.current_stock.sort(key=lambda x: x.rarity.value, reverse=True)
 
 class RewardSystem:
     """
@@ -534,9 +471,9 @@ class StudyAnalytics:
         self.unlockable_achievements = {
             'BuocDiDauTien': {'metric': 'total_sessions', 'value': 1, 'name': 'Bước Đi Đầu Tiên'},
             'HocVienXuatSac': {'metric': 'rank_counts.S', 'value': 1, 'name': 'Học Viên Xuất Sắc'},
-            'ChamChiCanCu': {'metric': 'total_study_hours', 'value': 0.01, 'name': 'Chăm Chỉ Cần Cù'},
-            'BacThayNhiemVu': {'metric': 'quests_completed', 'value': 2, 'name': 'Bậc Thầy Nhiệm Vụ'},
-            'Chuoi3Ngay': {'metric': 'focus_streak', 'value': 2, 'name': 'Chuỗi 2 Ngày'}
+            'ChamChiCanCu': {'metric': 'total_study_hours', 'value': 1, 'name': 'Chăm Chỉ Cần Cù'},
+            'BacThayNhiemVu': {'metric': 'quests_completed', 'value': 3, 'name': 'Bậc Thầy Nhiệm Vụ'},
+            'Chuoi3Ngay': {'metric': 'focus_streak', 'value': 3, 'name': 'Chuỗi 3 Ngày'}
         }
 
     def _get_initial_stats(self) -> Dict[str, Any]:
@@ -811,52 +748,9 @@ class SessionManager:
         self.character.unlocked_achievements.add('BuocDiDauTien')
         self.character.unlocked_achievements.add('HocVienXuatSac')
         self.character.unlocked_achievements.add('ChamChiCanCu')        # Create demo items for inventory
-        demo_potion = Item(
-            name="Potion of Focus",
-            description="Increases concentration for studying",
-            category="Consumable",
-            rarity=Rarity.RARE,
-            price=50,
-            icon_path="potion_focus.png",
-            consumable=True,
-            on_use_effect={"xp": 5, "int": 2}  # THAY ĐỔI: đổi tên từ stat_bonuses
-        )
         
-        demo_book = Item(
-            name="Ancient Codex",
-            description="A mystical book that enhances learning",
-            category="Equipment",
-            rarity=Rarity.EPIC,
-            price=200,
-            icon_path="ancient_book.png",
-            passive=True,
-            on_use_effect={"int": 8, "xp": 15, "hp": 10}  # THAY ĐỔI: đổi tên từ stat_bonuses
-        )
-        
-        demo_sword = Item(
-            name="Scholar's Blade",
-            description="A weapon that grows stronger with knowledge",
-            category="Weapon",
-            rarity=Rarity.LEGENDARY,
-            price=500,
-            icon_path="scholar_sword.png",
-            passive=True,
-            on_use_effect={"dex": 12, "int": 10, "hp": 20, "max_hp": 25, "luk": 8}  # THAY ĐỔI: đổi tên từ stat_bonuses
-        )
-        
-        demo_armor = Item(
-            name="Robes of Perseverance",
-            description="Protective gear for dedicated students",
-            category="Armor",
-            rarity=Rarity.EPIC,
-            price=300,
-            icon_path="student_robes.png",
-            passive=True,
-            on_use_effect={"hp": 30, "max_hp": 35, "int": 5, "dex": 3}  # THAY ĐỔI: đổi tên từ stat_bonuses
-        )
-        
-        self.character.inventory.extend([demo_potion, demo_book])
-        self.character.equipment.append(demo_book)
+        self.character.inventory.extend([Items['Khien_Doi_Truong_Meo'], Items['Sach_Phep_Tru_Ta']])
+        self.character.equipment.append(Items['Riu_Tho_San'])
         
         # Create demo quests
         for i in range(8):
@@ -1289,44 +1183,21 @@ if __name__ == "__main__":
     # --- Demo Trang bị và Chỉ số ---
     print("\n--- Demo Trang bị và Cập nhật Chỉ số ---")
     
-    # 1. Tạo các vật phẩm
-    long_sword = Item(
-        name="Kiếm Dài Của Lính", 
-        description="Một thanh kiếm cơ bản, sắc bén.", 
-        category="Weapon", 
-        rarity=Rarity.COMMON, 
-        price=20, 
-        icon_path="sword.png", 
-        passive=True, 
-        on_use_effect={'dex': 2, 'hp': 5}
-    )
+    # 1. Thêm vật phẩm vào kho đồ
+    char.inventory.append(Items['Khien_Doi_Truong_Meo'])
+    char.inventory.append(Items['Gay_Phap_Su'])
     
-    magic_ring = Item(
-        name="Nhẫn Phép Thuật", 
-        description="Chiếc nhẫn chứa đựng năng lượng bí ẩn.", 
-        category="Equipment", 
-        rarity=Rarity.UNCOMMON, 
-        price=50, 
-        icon_path="ring.png", 
-        passive=True, 
-        on_use_effect={'int': 3, 'luk': 1}
-    )
-    
-    # 2. Thêm vật phẩm vào kho đồ
-    char.inventory.append(long_sword)
-    char.inventory.append(magic_ring)
-    
-    # 3. Hiển thị chỉ số ban đầu
+    # 2. Hiển thị chỉ số ban đầu
     print("\n>> Chỉ số TRƯỚC KHI trang bị:")
     char.show_stats()
     
-    # 4. Trang bị vật phẩm
-    print("\n>> Trang bị Kiếm Dài...")
-    char.equip_item(long_sword)
+    # 3. Trang bị vật phẩm
+    print("\n>> Trang bị Khien_Doi_Truong_Meo...")
+    char.equip(Items['Khien_Doi_Truong_Meo'])
     char.show_stats()
     
-    print("\n>> Trang bị thêm Nhẫn Phép Thuật...")
-    char.equip_item(magic_ring)
+    print("\n>> Trang bị thêm Gay_Phap_Su...")
+    char.equip(Items['Gay_Phap_Su'])
     char.show_stats()
     
     print("--- Kết thúc Demo Trang bị ---\n")
