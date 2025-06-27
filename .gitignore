@@ -10,6 +10,9 @@
 *.userosscache
 *.sln.docstates
 .Demos/
+Backend/Avatar
+Backend/save_data.json
+Backend/save_qr.png
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

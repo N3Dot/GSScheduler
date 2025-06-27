@@ -13,93 +13,18 @@ import json
 import os
 import qrcode
 import base64
+import gzip
+if __name__ == "__main__":
+    from Database import Item, Rarity, Items
+else:
+    from Backend.Database import Item, Rarity, Items, Achievements
 
+# Định nghĩa BASE_DATE và hàm tiện ích
+BASE_DATE = datetime(1900, 1, 1)
 
-class Rarity(Enum):
-    """Định nghĩa các cấp độ hiếm của vật phẩm."""
-    COMMON = 1
-    UNCOMMON = 2
-    RARE = 3
-    EPIC = 4
-    LEGENDARY = 5
-
-
-class Item:
-    """
-    Đại diện cho một vật phẩm trong trò chơi.
-    Lớp này chứa tất cả thông tin chi tiết về một vật phẩm, từ tên, mô tả,
-    đến các hiệu ứng khi sử dụng.
-    """
-    def __init__(self,
-                 name: str,
-                 description: str,
-                 category: str,
-                 rarity: Rarity,
-                 price: int,
-                 icon_path: str,
-                 consumable: bool = False,
-                 passive: bool = False,
-                 on_use_effect: Optional[Callable[['Character', 'RewardSystem'], None]] = None):
-        """
-        Khởi tạo một đối tượng Item mới.
-
-        Args:
-            name (str): Tên của vật phẩm (duy nhất).
-            description (str): Mô tả chi tiết về vật phẩm.
-            category (str): Loại vật phẩm (ví dụ: 'Trang bị', 'Tiêu hao').
-            rarity (Rarity): Độ hiếm của vật phẩm.
-            price (int): Giá trị của vật phẩm bằng vàng.
-            icon_path (str): Đường dẫn đến file icon của vật phẩm.
-            consumable (bool): True nếu vật phẩm sẽ biến mất sau khi sử dụng.
-            passive (bool): True nếu vật phẩm có hiệu ứng bị động khi trang bị.
-            on_use_effect (Callable): Một hàm sẽ được gọi khi vật phẩm được sử dụng.
-        """
-        self.name: str = name
-        self.description: str = description
-        self.category: str = category
-        self.rarity: Rarity = rarity
-        self.price: int = price
-        self.icon: str = icon_path
-        self.consumable: bool = consumable
-        self.passive: bool = passive
-        self.on_use_effect = on_use_effect
-
-    def get_details(self) -> Dict[str, Any]:
-        """Trả về một từ điển chứa thông tin chi tiết của vật phẩm."""
-        return {
-            "name": self.name,
-            "description": self.description,
-            "category": self.category,
-            "rarity": self.rarity.name,
-            "price": self.price,
-            "icon": self.icon,
-            "consumable": self.consumable,
-            "passive": self.passive
-        }
-
-    def use_item(self, character: 'Character', reward_system: 'RewardSystem'):
-        """
-        Xử lý logic khi nhân vật sử dụng vật phẩm này.
-        Chỉ có tác dụng với các vật phẩm 'consumable'.
-        """
-        if not self.consumable:
-            print(f"Vật phẩm '{self.name}' không thể sử dụng theo cách này.")
-            return
-
-        print(f"{character.name} đã sử dụng {self.name}.")
-        # Gọi hiệu ứng đặc biệt của vật phẩm nếu có
-        if self.on_use_effect:
-            self.on_use_effect(character, reward_system)
-
-        # Xóa vật phẩm khỏi kho đồ của nhân vật nếu nó là loại tiêu hao
-        if self in character.inventory:
-            character.inventory.remove(self)
-            print(f"'{self.name}' đã biến mất khỏi kho đồ.")
-
-    def __repr__(self) -> str:
-        """Biểu diễn đối tượng Item dưới dạng chuỗi để dễ gỡ lỗi."""
-        return f"Item(name='{self.name}', rarity='{self.rarity.name}')"
-
+def to_basedate_time(dt: datetime) -> datetime:
+    """Chuyển mọi datetime về BASE_DATE, chỉ giữ lại giờ và phút."""
+    return BASE_DATE.replace(hour=dt.hour, minute=dt.minute, second=0, microsecond=0)
 
 class Character(EventDispatcher):
     """
@@ -121,11 +46,8 @@ class Character(EventDispatcher):
     def __init__(self, name: str, **kwargs):
         super().__init__(**kwargs)
         self.name: str = name
-        self.skin_visuals: str = "default_skin.png"  # Ngoại hình cơ bản
-        self.equipment_visuals: List[Tuple[str, Tuple[int, int]]] = []  # Các lớp hình ảnh trang bị
         self.equipment: List[Item] = []  # Danh sách các vật phẩm đã trang bị
         self.inventory: List[Item] = []  # Kho đồ chứa các vật phẩm
-        self.achievements: List[Item] = []  # Các thành tích dưới dạng vật phẩm (nếu có)
         self.unlocked_achievements = set()  # Tập hợp các ID thành tích đã mở khóa
         
         # Chỉ số cấp độ và kinh nghiệm
@@ -144,6 +66,15 @@ class Character(EventDispatcher):
         # Tài sản
         self.gold: int = 10
         print(f"Nhân vật '{self.name}' đã được tạo với {self.xp} XP và {self.gold} Vàng.")
+
+    def check_negative_stats(self):
+        """
+        Kiểm tra các chỉ số nếu bị âm thì đặt lại thành 0.
+        """
+        for stat in ['hp','max_hp','dex', 'int', 'luk', 'gold', 'xp']:
+            value = getattr(self, stat, 0)
+            if value < 0:
+                setattr(self, stat, 0)
 
     def check_level_up(self):
         """
@@ -169,24 +100,109 @@ class Character(EventDispatcher):
             self.unlocked_achievements.add(achievement_id)
             print(f"🏆 THÀNH TÍCH MỚI ĐƯỢC MỞ KHÓA: {achievement_id}")
 
-    def update_appearance(self):
-        """(Mô phỏng) Cập nhật ngoại hình nhân vật dựa trên trang bị đang mặc."""
-        print("Đang cập nhật ngoại hình nhân vật...")
-        print(f"Ngoại hình đã được cập nhật dựa trên {len(self.equipment)} trang bị.")
-
     def show_stats(self):
         """Hiển thị các chỉ số hiện tại của nhân vật một cách trực quan."""
         print("\n--- TRẠNG THÁI NHÂN VẬT ---")
         print(f"Tên: {self.name}")
-        print(f"Cấp độ: {self.level}")
-        print(f"Kinh nghiệm: {self.xp}/{self.xp_to_next_level}")
-        print(f"Vàng: {self.gold}")
-        print(f"Điểm cộng có sẵn: {self.available_points}")
-        print(f"Chỉ số: HP({self.hp}), DEX({self.dex}), INT({self.int}), LUK({self.luk})")
+        print(f"Cơ bản: HP({self.hp}/{self.max_hp}), DEX({self.dex}), INT({self.int}), LUK({self.luk})")
+        print(f"Trang bị: {[item.name for item in self.equipment] or ['Không có']}")
         print(f"Kho đồ: {[item.name for item in self.inventory] or ['Trống']}")
         print(f"Thành tích: {list(self.unlocked_achievements) or ['Chưa có']}")
         print("--------------------------\n")
+    
+    def use_item(self, item: Item):
+        """
+        Xử lý logic khi nhân vật sử dụng vật phẩm này.
+        """
+        print(f"{self.name} đã sử dụng {item.name}.")
+        # Áp dụng stat bonuses từ on_use_effect
+        if item.on_use_effect:
+            for stat, bonus in item.on_use_effect.items():
+                if hasattr(self, stat):
+                    current_value = getattr(self, stat)
+                    setattr(self, stat, current_value + bonus)
 
+        # Xóa vật phẩm khỏi kho đồ của nhân vật nếu nó là loại tiêu hao
+        if item in self.inventory:
+            self.inventory.remove(item)
+    
+    def equip(self, item: Item):
+        # Kiểm tra item có trong inventory không
+        if item not in self.inventory:
+            return f"Không tìm thấy '{item.name}' trong kho đồ."
+
+        # Nếu đã có trang bị cùng category thì unequip nó trước
+        existing_equipped = next((i for i in self.equipment if i.category == item.category), None)
+        if existing_equipped:
+            print(f"Đang có trang bị '{existing_equipped.name}' cùng loại. Gỡ ra trước khi trang bị '{item.name}'.")
+            Flag = self.unequip(existing_equipped)
+            if isinstance(Flag, str):
+                return Flag
+
+        # Trang bị item mới
+        self.equipment.append(item)
+        self.inventory.remove(item)
+
+        # Tăng chỉ số
+        for stat, bonus in item.on_use_effect.items():
+            if stat == 'hp':
+                self.max_hp += bonus
+            elif hasattr(self, stat):
+                setattr(self, stat, getattr(self, stat) + bonus)
+
+        print(f"Đã trang bị '{item.name}'.")
+        self.validate_health()
+        return True
+
+    def unequip(self, item: Item):
+        # Kiểm tra item có trong equipment không
+        if item not in self.equipment:
+            return f"'{item.name}' không có trong trang bị."
+
+        # Ước lượng tác động của việc gỡ bỏ item
+        simulated_max_hp = self.max_hp
+        simulated_hp = self.hp
+
+        for stat, bonus in item.on_use_effect.items():
+            if stat == 'hp':
+                simulated_hp -= bonus
+            elif stat == 'max_hp':
+                simulated_max_hp -= bonus  # Trong trường hợp bạn dùng 'max_hp' riêng biệt
+
+        # Kiểm tra nếu max_hp hoặc hp sau khi gỡ <= 0
+        if simulated_max_hp <= 0 or simulated_hp <= 0:
+            return f"Không thể gỡ '{item.name}' vì sẽ khiến HP bị âm hoặc bằng 0!"
+
+        # Gỡ trang bị
+        self.equipment.remove(item)
+        self.inventory.append(item)
+
+        # Giảm chỉ số
+        for stat, bonus in item.on_use_effect.items():
+            if stat == 'hp':
+                self.max_hp -= bonus
+            elif hasattr(self, stat):
+                setattr(self, stat, getattr(self, stat) - bonus)
+
+        print(f"Đã gỡ trang bị '{item.name}'.")
+        self.check_negative_stats()
+        self.validate_health()
+        return True
+
+    def validate_health(self):
+        if self.hp > self.max_hp:
+            self.hp = self.max_hp
+
+class Shop:
+    def __init__(self, Character: Character):
+        self.current_stock: List[Item] = []
+        for key in Items:
+            item_to_add = Items[key]
+            if (item_to_add.category == "Tiêu Hao") or (item_to_add not in Character.inventory and item_to_add not in Character.equipment):
+                self.current_stock.append(Items[key])
+            else:
+                print(f"Item not added: {item_to_add}")
+        self.current_stock.sort(key=lambda x: x.rarity.value, reverse=True)
 
 class RewardSystem:
     """
@@ -272,18 +288,18 @@ class RewardSystem:
         Chỉ số INT giúp giảm thiểu hình phạt.
         """
         punishment_type = punishment.get("type")
-        if punishment_type == "gold":
+        if punishment_type == "hp":
             base_amount = punishment.get("amount", 0)
-            # Mỗi điểm INT giảm 2% lượng vàng bị phạt, tối đa giảm 80%
+            # Mỗi điểm INT giảm 2% lượng máu bị phạt, tối đa giảm 80%
             reduction_modifier = max(0.2, 1 - (character.int * 0.02))
             final_amount = int(base_amount * reduction_modifier)
             
-            character.gold -= final_amount
-            # Đảm bảo vàng không bị âm
-            if character.gold < 0:
-                character.gold = 0
+            character.hp -= final_amount
+            # Đảm bảo máu không bị âm
+            if character.hp < 0:
+                character.hp = 0
             
-            print(f"Nhân vật {character.name} bị phạt {final_amount} vàng vì không hoàn thành mục tiêu.")
+            print(f"Nhân vật {character.name} bị phạt {final_amount} máu vì không hoàn thành mục tiêu.")
         else:
             print(f"Loại hình phạt '{punishment_type}' không hợp lệ.")
 
@@ -306,7 +322,7 @@ class Quest:
 
 class StudySession:
     """
-    Quản lý một phiên học. Đã loại bỏ thuộc tính 'tags'.
+    Quản lý một phiên học. Đã thêm theo dõi thời gian bắt đầu thực tế.
     """
     def __init__(
         self,
@@ -322,10 +338,14 @@ class StudySession:
         self.session_id: str = str(uuid.uuid4())
         self.goal_description: str = goal_description
         self.linked_quests: List[Quest] = linked_quests
-        self.start_time: datetime = start_time
-        self.end_time: datetime = end_time
-        #Thời gian kết thúc thật
-        self.actual_end_time: Optional[datetime] = None
+        # Chỉ giữ giờ và phút, bỏ ngày
+        self.start_time: datetime = to_basedate_time(start_time)
+        self.end_time: datetime = to_basedate_time(end_time)      # Thời gian dự kiến kết thúc
+        
+        # Thời gian thực tế
+        self.actual_start_time: Optional[datetime] = None  # Thời gian bắt đầu thực tế
+        self.actual_end_time: Optional[datetime] = None    # Thời gian kết thúc thực tế
+        
         self.status: str = 'Scheduled' #scheduled - running - finished
         self.rank: str = "N/A" #rank gồm a,b,c,d,f
 
@@ -337,7 +357,7 @@ class StudySession:
             print(f"   -> Nhiệm vụ '{quest_found.description}' trong phiên học đã được đánh dấu hoàn thành!")
         elif not quest_found:
             print(f"Lỗi: Không tìm thấy nhiệm vụ với ID {quest_id} trong phiên học này.")
-
+    
     @property
     def quest_progress(self) -> float:
         """Trả về tỷ lệ hoàn thành quest (0.0 đến 1.0). Đây là tỉ lệ số quest đã làm so chia với tổng số quest dự tính phải làm"""
@@ -356,14 +376,16 @@ class StudySession:
         
         # Đánh dấu phiên học đã kết thúc
         self.status = 'Finished'
-        # Ghi lại thời gian kết thúc thực tế (dùng thời gian được truyền vào hoặc thời gian dự kiến)
-        self.actual_end_time = end_time_override if end_time_override else self.end_time
+        # Ghi lại thời gian kết thúc thực tế (dùng thời gian được truyền vào hoặc thời gian hiện tại)
+        self.actual_end_time = end_time_override if end_time_override else datetime.now()
         
         # Tính điểm hoàn thành nhiệm vụ (tỷ lệ từ 0.0 đến 1.0)
         quest_completion_score = self.quest_progress
         
-        # Tính thời gian thực tế đã học (đơn vị: giây)
-        time_spent_seconds = (self.actual_end_time - self.start_time).total_seconds()
+        # Tính thời gian thực tế đã học - sử dụng actual_start_time nếu có
+        start_time_for_calc = self.actual_start_time if self.actual_start_time else self.start_time
+        time_spent_seconds = (self.actual_end_time - start_time_for_calc).total_seconds()
+        
         # Tính thời gian dự kiến ban đầu (đơn vị: giây)
         time_planned_seconds = (self.end_time - self.start_time).total_seconds()
         # Tính tỷ lệ thời gian thực tế so với dự kiến
@@ -387,12 +409,32 @@ class StudySession:
         # Chuyển đổi tỷ lệ hoàn thành thành phần trăm để hiển thị
         progress_percent = f"{int(quest_completion_score * 100)}%"
         # In thông báo kết quả phiên học
-        print(f"Phiên học '{self.goal_description}' đã kết thúc với Hạng: {self.rank} (Hoàn thành {progress_percent} nhiệm vụ, điểm: {final_performance_score:.2f}).")
+        actual_duration = f"{time_spent_seconds/60:.1f} phút"
+        print(f"Phiên học '{self.goal_description}' đã kết thúc với Hạng: {self.rank} (Hoàn thành {progress_percent} nhiệm vụ, thời gian thực: {actual_duration}).")
+
+    def start_session(self, actual_start_time: Optional[datetime] = None):
+        """Bắt đầu phiên học và ghi lại thời gian bắt đầu thực tế."""
+        if self.status != 'Scheduled':
+            print(f"Không thể bắt đầu phiên học '{self.goal_description}' - trạng thái hiện tại: {self.status}")
+            return False        
+        self.status = 'Running'
+        self.actual_start_time = actual_start_time if actual_start_time else datetime.now()
+        print(f"▶️  BẮT ĐẦU THỰC TẾ: '{self.goal_description}' lúc {self.actual_start_time.strftime('%H:%M:%S')}")
+        return True
 
     def get_session_data(self) -> Dict[str, Any]:
         """Trả về dữ liệu tóm tắt của phiên học, không có 'tags'."""
-        # Tính thời lượng thực tế của phiên học (nếu đã kết thúc) hoặc 0 (nếu chưa kết thúc)
-        duration = self.actual_end_time - self.start_time if self.actual_end_time else timedelta(0)
+        # Tính thời lượng thực tế của phiên học
+        if self.actual_end_time and self.actual_start_time:
+            # Nếu có cả thời gian bắt đầu và kết thúc thực tế
+            duration = self.actual_end_time - self.actual_start_time
+        elif self.actual_end_time:
+            # Nếu chỉ có thời gian kết thúc thực tế, dùng thời gian bắt đầu dự kiến
+            duration = self.actual_end_time - self.start_time
+        else:
+            # Nếu chưa kết thúc hoặc chưa có thời gian thực tế
+            duration = timedelta(0)
+            
         # Trả về dictionary chứa tất cả thông tin quan trọng của phiên học
         return {
             "session_id": self.session_id,                           # ID duy nhất của phiên học
@@ -400,6 +442,8 @@ class StudySession:
             "status": self.status,                                   # Trạng thái hiện tại (Scheduled/Running/Finished)
             "start_time": self.start_time,                          # Thời gian bắt đầu dự kiến
             "end_time": self.end_time,                              # Thời gian kết thúc dự kiến
+            "actual_start_time": self.actual_start_time,            # Thời gian bắt đầu thực tế
+            "actual_end_time": self.actual_end_time,                # Thời gian kết thúc thực tế
             "rank": self.rank,                                      # Hạng đạt được (S/A/B/C/F)
             "duration_seconds": duration.total_seconds(),           # Thời lượng thực tế tính bằng giây
             "linked_quests_data": [q.to_dict() for q in self.linked_quests]  # Danh sách dữ liệu các nhiệm vụ liên kết
@@ -435,9 +479,9 @@ class StudyAnalytics:
         self.unlockable_achievements = {
             'BuocDiDauTien': {'metric': 'total_sessions', 'value': 1, 'name': 'Bước Đi Đầu Tiên'},
             'HocVienXuatSac': {'metric': 'rank_counts.S', 'value': 1, 'name': 'Học Viên Xuất Sắc'},
-            'ChamChiCanCu': {'metric': 'total_study_hours', 'value': 0.01, 'name': 'Chăm Chỉ Cần Cù'},
-            'BacThayNhiemVu': {'metric': 'quests_completed', 'value': 2, 'name': 'Bậc Thầy Nhiệm Vụ'},
-            'Chuoi3Ngay': {'metric': 'focus_streak', 'value': 2, 'name': 'Chuỗi 2 Ngày'}
+            'ChamChiCanCu': {'metric': 'total_study_hours', 'value': 1, 'name': 'Chăm Chỉ Cần Cù'},
+            'BacThayNhiemVu': {'metric': 'quests_completed', 'value': 3, 'name': 'Bậc Thầy Nhiệm Vụ'},
+            'Chuoi3Ngay': {'metric': 'focus_streak', 'value': 3, 'name': 'Chuỗi 3 Ngày'}
         }
 
     def _get_initial_stats(self) -> Dict[str, Any]:
@@ -523,13 +567,17 @@ class StudyAnalytics:
         """Tạo báo cáo chi tiết, không có phần 'Time Breakdown by Tag'."""
         stats = self.aggregated_stats
         report_lines = [
-            "📊======= BÁO CÁO HỌC TẬP CỦA BẠN =======📊",
+            "==========================================",
             # ... các dòng báo cáo khác giữ nguyên ...
-            f"   S: {stats['rank_counts']['S']} | A: {stats['rank_counts']['A']} | B: {stats['rank_counts']['B']} | C: {stats['rank_counts']['C']} | F: {stats['rank_counts']['F']}",
+            "--- Đánh Giá ---",
+            f"S: {stats['rank_counts']['S']} | A: {stats['rank_counts']['A']} | B: {stats['rank_counts']['B']} | C: {stats['rank_counts']['C']} | F: {stats['rank_counts']['F']}",
+            "",
+            "--- Ngày Học Liên Tiếp ---",
+            f"{self.focus_streak}",
             "",
             "--- Nhiệm Vụ ---",
-            f"🎯 Nhiệm Vụ Hoàn Thành: {stats['quests_completed']} / {len(self.quest_system.active_quests)}",
-            f"   Tỷ Lệ Hoàn Thành: {stats['quest_completion_rate']:.1f}%",
+            f"Nhiệm Vụ Hoàn Thành: {stats['quests_completed']} / {len(self.quest_system.active_quests)}",
+            f"Tỷ Lệ Hoàn Thành: {stats['quest_completion_rate']:.1f}%",
             "=========================================="
         ]
         return "\n".join(report_lines)
@@ -556,9 +604,11 @@ class SessionManager:
         if platform == 'android':
             from android.storage import app_storage_path # type: ignore
             save_dir = app_storage_path()
+            print(os.path.join(save_dir, "save_data.json"))
             return os.path.join(save_dir, "save_data.json")
         else:
             save_dir = os.path.dirname(os.path.abspath(__file__))
+            print(os.path.join(save_dir, "save_data.json"))
             return os.path.join(save_dir, "save_data.json")
 
     def _get_qr_path(self):
@@ -583,7 +633,6 @@ class SessionManager:
             json_string = json.dumps(save_data, ensure_ascii=False, separators=(',', ':'))
             
             # Nén dữ liệu bằng base64
-            import gzip
             compressed_bytes = gzip.compress(json_string.encode('utf-8'))
             compressed_data = base64.b64encode(compressed_bytes).decode('ascii')
             
@@ -637,7 +686,6 @@ class SessionManager:
             compressed_data = qr_data[4:]  # Bỏ prefix "GSS:"
             
             # Giải nén base64 và gzip
-            import gzip
             compressed_bytes = base64.b64decode(compressed_data.encode('ascii'))
             json_string = gzip.decompress(compressed_bytes).decode('utf-8')
             
@@ -708,31 +756,10 @@ class SessionManager:
         # Add some achievements
         self.character.unlocked_achievements.add('BuocDiDauTien')
         self.character.unlocked_achievements.add('HocVienXuatSac')
-        self.character.unlocked_achievements.add('ChamChiCanCu')
+        self.character.unlocked_achievements.add('ChamChiCanCu')        # Create demo items for inventory
         
-        # Create demo items for inventory
-        demo_potion = Item(
-            name="Potion of Focus",
-            description="Increases concentration for studying",
-            category="Consumable",
-            rarity=Rarity.RARE,
-            price=50,
-            icon_path="potion_focus.png",
-            consumable=True
-        )
-        
-        demo_book = Item(
-            name="Ancient Codex",
-            description="A mystical book that enhances learning",
-            category="Equipment",
-            rarity=Rarity.EPIC,
-            price=200,
-            icon_path="ancient_book.png",
-            passive=True
-        )
-        
-        self.character.inventory.extend([demo_potion, demo_book])
-        self.character.equipment.append(demo_book)
+        self.character.inventory.extend([Items['Khien_Doi_Truong_Meo'], Items['Sach_Phep_Tru_Ta']])
+        self.character.equipment.append(Items['Riu_Tho_San'])
         
         # Create demo quests
         for i in range(8):
@@ -833,11 +860,11 @@ class SessionManager:
                             "name": item.name,
                             "description": item.description,
                             "category": item.category,
-                            "rarity": item.rarity.name,
-                            "price": item.price,
+                            "rarity": item.rarity.name,                            "price": item.price,
                             "icon": item.icon,
                             "consumable": item.consumable,
-                            "passive": item.passive
+                            "passive": item.passive,
+                            "on_use_effect": item.on_use_effect  # THAY ĐỔI: đổi tên từ stat_bonuses
                         } for item in self.character.inventory
                     ],
                     "equipment": [
@@ -845,11 +872,11 @@ class SessionManager:
                             "name": item.name,
                             "description": item.description,
                             "category": item.category,
-                            "rarity": item.rarity.name,
-                            "price": item.price,
+                            "rarity": item.rarity.name,                            "price": item.price,
                             "icon": item.icon,
                             "consumable": item.consumable,
-                            "passive": item.passive
+                            "passive": item.passive,
+                            "on_use_effect": item.on_use_effect  # THAY ĐỔI: đổi tên từ stat_bonuses
                         } for item in self.character.equipment
                     ]
                 },
@@ -931,11 +958,11 @@ class SessionManager:
                         name=item_data.get("name", "Unknown Item"),
                         description=item_data.get("description", ""),
                         category=item_data.get("category", "misc"),
-                        rarity=rarity_enum,
-                        price=item_data.get("price", 0),
+                        rarity=rarity_enum,                        price=item_data.get("price", 0),
                         icon_path=item_data.get("icon", ""),
                         consumable=item_data.get("consumable", False),
-                        passive=item_data.get("passive", False)
+                        passive=item_data.get("passive", False),
+                        on_use_effect=item_data.get("on_use_effect", {})  # THAY ĐỔI: đổi tên từ stat_bonuses
                     )
                     self.character.inventory.append(item)
                 except (KeyError, ValueError) as e:
@@ -950,11 +977,11 @@ class SessionManager:
                         name=item_data.get("name", "Unknown Equipment"),
                         description=item_data.get("description", ""),
                         category=item_data.get("category", "equipment"),
-                        rarity=rarity_enum,
-                        price=item_data.get("price", 0),
+                        rarity=rarity_enum,                        price=item_data.get("price", 0),
                         icon_path=item_data.get("icon", ""),
                         consumable=item_data.get("consumable", False),
-                        passive=item_data.get("passive", True)
+                        passive=item_data.get("passive", True),
+                        on_use_effect=item_data.get("on_use_effect", {})  # THAY ĐỔI: đổi tên từ stat_bonuses
                     )
                     self.character.equipment.append(item)
                 except (KeyError, ValueError) as e:
@@ -1042,13 +1069,23 @@ class SessionManager:
     ) -> Optional[StudySession]:
         """
         Xác thực và lên lịch một phiên học mới.
-        Thuộc tính 'tags' đã được loại bỏ khỏi phương thức này.
+        Kiểm tra trùng lặp thời gian với các session đã có.
 
         Returns:
             Đối tượng StudySession vừa được tạo nếu thành công, ngược lại là None.
         """
         try:
-            # (Có thể thêm logic kiểm tra trùng lặp thời gian ở đây nếu cần)
+            # Chỉ giữ giờ và phút
+            start_time = to_basedate_time(start_time)
+            end_time = to_basedate_time(end_time)
+
+            # Kiểm tra trùng lặp thời gian với các session đã có
+            conflicting_session = self._check_time_conflict(start_time, end_time)
+            if conflicting_session:
+                print(f"❌ XUNG ĐỘT THỜI GIAN: Phiên học mới trùng với '{conflicting_session.goal_description}'")
+                print(f"   Thời gian bị trùng: {conflicting_session.start_time.strftime('%H:%M')} - {conflicting_session.end_time.strftime('%H:%M')}")
+                return None
+            
             session = StudySession(goal_description, start_time, end_time, linked_quests)
             self.sessions.append(session)
             print(f"🗓️  ĐÃ LÊN LỊCH: '{session.goal_description}' lúc {session.start_time.strftime('%H:%M:%S')}")
@@ -1057,10 +1094,44 @@ class SessionManager:
             print(f"❌ LÊN LỊCH THẤT BẠI: {e}")
             return None
 
+    def _check_time_conflict(self, new_start: datetime, new_end: datetime) -> Optional[StudySession]:
+        """
+        Kiểm tra xem thời gian mới có xung đột với session nào đã có không.
+        Chỉ so sánh giờ:phút, bỏ qua ngày (theo comment trong main.py).
+        
+        Returns:
+            StudySession bị xung đột nếu có, None nếu không có xung đột.
+        """
+        # Chuyển đổi về cùng ngày để so sánh chỉ thời gian
+        base_date = datetime(1900, 1, 1)  # Sử dụng ngày cơ sở như trong main.py
+        
+        new_start_time_only = to_basedate_time(new_start)
+        new_end_time_only = to_basedate_time(new_end)
+        
+        # Xử lý trường hợp qua ngày (ví dụ: 23:00 - 01:00)
+        if new_end_time_only <= new_start_time_only:
+            new_end_time_only += timedelta(days=1)
+        
+        for existing_session in self.sessions:
+            if existing_session.status == 'Finished':
+                continue  # Bỏ qua các session đã kết thúc
+            
+            # Chuyển session hiện có về cùng định dạng
+            existing_start = to_basedate_time(existing_session.start_time)
+            existing_end = to_basedate_time(existing_session.end_time)
+            
+            # Xử lý trường hợp session hiện có qua ngày
+            if existing_end <= existing_start:
+                existing_end += timedelta(days=1)
+            
+            # Kiểm tra xung đột: hai khoảng thời gian overlap
+            if (new_start_time_only < existing_end and new_end_time_only > existing_start):
+                return existing_session
+        
+        return None
     def mark_quest_as_complete(self, session_id: str, quest_id: str):
         """
-        Đánh dấu một nhiệm vụ là đã hoàn thành trong một phiên học đang chạy.
-        Đây là "cầu nối" giữa giao diện người dùng và logic của StudySession.
+        Đánh dấu một nhiệm vụ là đã hoàn thành trong một phiên học đang chạy.        Đây là "cầu nối" giữa giao diện người dùng và logic của StudySession.
         """
         session = self._find_session_by_id(session_id)
         if session and session.status == 'Running':
@@ -1075,8 +1146,7 @@ class SessionManager:
         """
         for session in self.sessions[:]: # Lặp trên bản sao để xóa an toàn
             if session.status == 'Scheduled' and current_time >= session.start_time:
-                session.status = 'Running'
-                print(f"▶️  BẮT ĐẦU: '{session.goal_description}'")
+                session.start_session(current_time)  # Sử dụng method mới với thời gian thực tế
             
             if session.status == 'Running' and current_time >= session.end_time:
                 # Gọi finish() không có tham số -> kết thúc tự động khi hết giờ
@@ -1146,78 +1216,7 @@ class SessionManager:
             total_difficulty_failed = sum(q.difficulty for q in session.linked_quests if not q.is_completed)
             if total_difficulty_failed > 0:
                 print(f"Phiên học kết thúc với hạng F, áp dụng hình phạt.")
-                self.reward_system.punish(self.character, {'type': 'gold', 'amount': total_difficulty_failed * 5})
-
-# --- VÍ DỤ MÔ PHỎNG ---
-# =============================================================================
-if __name__ == "__main__":
-    char = Character(name="Nhật Nam")
-    rewards = RewardSystem()
-    
-    # SỬA ĐỔI Ở ĐÂY:
-    # 1. Tạo một đối tượng QuestSystem.
-    quests = QuestSystem() 
-    # 2. Truyền đối tượng quests vào StudyAnalytics, không phải None.
-    analytics = StudyAnalytics(quest_system=quests) 
-    
-    # 3. SessionManager không cần quest_system nữa, vì nó không tạo quest.
-    # Nó chỉ nhận quest từ bên ngoài khi lên lịch.
-    manager = SessionManager(character=char, reward_system=rewards, analytics=analytics)
-    
-    # 2. Tạo các đối tượng Quest riêng lẻ thông qua QuestSystem
-    # Cách tạo quest không thay đổi, chỉ là giờ chúng được quản lý bởi `quests`.
-    quest1 = quests.create_quest(description="Viết phần Mở đầu báo cáo", difficulty=2)
-    quest2 = quests.create_quest(description="Thiết kế Class Diagram", difficulty=4)
-    quest3 = quests.create_quest(description="Viết code cho 3 Class", difficulty=5)
-
-    # 3. Lên lịch một phiên học và liên kết với các Quest đã tạo
-    simulated_now = datetime.now()
-    session1 = manager.schedule_session(
-        goal_description="Làm báo cáo OOP - Giai đoạn 1",
-        start_time=simulated_now + timedelta(seconds=2),
-        end_time=simulated_now + timedelta(seconds=25), # Thời gian dự kiến là 23 giây
-        linked_quests=[quest1, quest2, quest3] # Truyền danh sách các đối tượng Quest
-    )
-
-    # ... phần còn lại của vòng lặp mô phỏng giữ nguyên ...
-    print("\n--- Bắt đầu Vòng lặp Mô phỏng ---")
-    end_of_simulation = simulated_now + timedelta(seconds=30)
-    current_sim_time = simulated_now
-    
-    session_has_started = False
-    
-    while current_sim_time < end_of_simulation:
-        print(f"\n--- Tick lúc {current_sim_time.strftime('%H:%M:%S')} ---")
-        manager.update(current_time=current_sim_time)
-        
-        # Mô phỏng người dùng hoàn thành các quest trong lúc học
-        if session1 and session1.status == 'Running':
-            if not session_has_started:
-                session_has_started = True
-                print(">>> Phiên học đang chạy. Người dùng bắt đầu làm việc...")
-
-            time_in_session = (current_sim_time - session1.start_time).total_seconds()
-            
-            # Sau 5 giây, người dùng làm xong quest đầu tiên
-            if 5 <= time_in_session < 6 and not quest1.is_completed:
-                manager.mark_quest_as_complete(session1.session_id, quest1.quest_id)
-            
-            # Sau 12 giây, làm xong quest thứ hai
-            if 12 <= time_in_session < 13 and not quest2.is_completed:
-                manager.mark_quest_as_complete(session1.session_id, quest2.quest_id)
-            
-            # Người dùng quyết định kết thúc sớm sau 18 giây
-            if 18 <= time_in_session < 19:
-                manager.end_session_manually(session1.session_id)
-                break
-
-        time.sleep(1)
-        current_sim_time += timedelta(seconds=1)
-        
-    print("\n\n--- MÔ PHỎNG KẾT THÚC ---")
-    # In ra báo cáo cuối cùng nếu cần
-    print(analytics.generate_report())
-    char.show_stats()
+                self.reward_system.punish(self.character, {'type': 'hp', 'amount': total_difficulty_failed * 4})
 
 
 
@@ -1509,3 +1508,52 @@ def generate_demo_base64_codes(count: int = 5) -> List[str]:
         codes.append(base64_data)
     
     return codes
+
+if __name__ == "__main__":
+    print("\n=== DEMO BASE_DATE: So sánh giờ và phút, bỏ qua ngày ===")
+    # Tạo SessionManager và các session demo
+    char = Character(name="Demo")
+    rewards = RewardSystem()
+    quests = QuestSystem()
+    analytics = StudyAnalytics(quest_system=quests)
+    manager = SessionManager(character=char, reward_system=rewards, analytics=analytics)
+
+    # Tạo 2 session trùng giờ (dù khác ngày)
+    s1 = manager.schedule_session(
+        "Session Sáng",
+        datetime(2025, 6, 27, 8, 0),
+        datetime(2025, 6, 27, 9, 0),
+        [quests.create_quest("Toán", 2)]
+    )
+    s2 = manager.schedule_session(
+        "Session Trùng Giờ (khác ngày)",
+        datetime(2025, 7, 1, 8, 0),
+        datetime(2025, 7, 1, 9, 0),
+        [quests.create_quest("Lý", 2)]
+    )
+    if not s2:
+        print("❌ Đã phát hiện trùng giờ dù khác ngày (ĐÚNG)")
+    else:
+        print("⚠️ Không phát hiện trùng giờ (SAI)")
+
+    # Tạo session không trùng giờ
+    s3 = manager.schedule_session(
+        "Session Chiều",
+        datetime(2025, 6, 27, 14, 0),
+        datetime(2025, 6, 27, 15, 0),
+        [quests.create_quest("Hóa", 2)]
+    )
+    if s3:
+        print("✅ Session chiều tạo thành công (không trùng)")
+
+    # Tạo session qua ngày (23:00-01:00)
+    s4 = manager.schedule_session(
+        "Session Đêm",
+        datetime(2025, 6, 27, 23, 0),
+        datetime(2025, 6, 28, 1, 0),
+        [quests.create_quest("Anh", 2)]
+    )
+    if s4:
+        print("✅ Session đêm tạo thành công (qua ngày)")
+
+    print("\n=== Kết thúc demo BASE_DATE ===\n")

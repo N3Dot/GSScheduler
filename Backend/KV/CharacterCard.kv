@@ -24,7 +24,8 @@
         size_hint_x: 0.45
         on_release: app.on_click_character()
         FitImage:
-            source: root.imagePath
+            id: character_image
+            source: f""
             radius: [10, ]
     # --- Character Stats ---
     MDScrollView:
@@ -145,7 +146,7 @@
             MDBoxLayout:
                 orientation: "horizontal"
                 adaptive_height: True
-                padding: 0, "6dp"
+                padding: 0, "3dp"
                 MDLabel:
                     id: points_hint
                     text: f"Bạn có thể nâng cấp {root.available_points} thuộc tính!" if (root.available_points > 0) else ""

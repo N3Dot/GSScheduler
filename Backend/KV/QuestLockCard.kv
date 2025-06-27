@@ -1,21 +1,18 @@
-<QuestCard>:
+<QuestLockCard>:
     size_hint_y: None
     height: "115dp"
     padding: "4dp"
     MDRelativeLayout:
-        MDIconButton:
-            icon: "close-circle-outline"
-            pos_hint: {"top": 1, "right": 1}
-            theme_icon_color: "Secondary"
-            icon_size: "20sp"
-            on_release: app.remove_quest(root)
-        MDIconButton:
-            icon: "pencil-outline"
-            pos_hint: {"bottom": 1, "right": 1}
-            on_release: app.edit_quest(root)
+        MDCheckbox:
+            size_hint: None, None
+            size: dp(48), dp(48)
+            color_active: app.theme_cls.tertiaryColor
+            pos_hint: {"center_x": 0.08, "center_y": 0.86}
         MDBoxLayout:
             orientation: "horizontal"
             padding: "5dp"
+            MDBoxLayout:
+                size_hint_x: 0.15
             MDBoxLayout:
                 pos_hint: {'top': 1}
                 orientation: "vertical"
@@ -29,12 +26,10 @@
                     markup: True
                     adaptive_height: True
                     theme_text_color: "Custom"
-                    text_color: app.theme_cls.primaryColor
+                    text_color: app.theme_cls.tertiaryColor
                 MDLabel:
                     text: f"[b]Mô Tả:[/b] {root.description}"
                     font_style: "Body"
                     role: "medium"
                     markup: True
                     adaptive_height: True
-            MDBoxLayout:
-                size_hint_x: 0.15

@@ -16,7 +16,7 @@
                 orientation: "horizontal"
                 MDBoxLayout:
                     MDLabel:
-                        text: f"[b]{root.startTime} - {root.endTime}[/b]"
+                        text: f"[b]Chặng {root.startTime} - {root.endTime}[/b]"
                         markup: True
                         size_hint_x: None
                         width: dp(265)
@@ -50,7 +50,7 @@
                     role: "medium"
                     pos_hint: {"center_y": 0.4}
                 MDIcon:
-                    icon: "gold"
+                    icon: "skull-outline"
                     pos_hint: {"center_y": 0.5}
                 MDLabel:
                     text: f"{root.expectedLoot}"
@@ -71,22 +71,15 @@
                     size: dp(24), dp(24)
                     style: "text"
                     radius: [15, 15, 15, 15]
-                    on_release: app.spawn_schedule_options(self)
+                    on_release: app.get_schedule_options(self, root)
                     MDButtonIcon:
                         icon: "dots-vertical"
                         size_hint: None, None
-                        size: dp(8), dp(8)
+                        size: dp(16), dp(16)
+                        pos_hint: {'center_x': 0.8}
 
             MDBoxLayout:
                 Widget:
-                MDChip:
-                    height: dp(24)  # Default: ~32dp
-                    theme_bg_color: "Custom"
-                    md_bg_color: (0.82, 0.86, 0.82, 1)
-                    on_release: app.on_enable_schedule(self)
-                    MDChipLeadingIcon:
-                        icon: "check"
-                        theme_font_size: "Custom"
-                        font_size: "15dp"
-                    MDChipText:
-                        text: "Bật"
+                MDSwitch:
+                    active: root.isOn
+                    on_active: root.toggle(self.active)
