@@ -110,14 +110,21 @@ class ScheduleCard(MDCard):
 
     def toggle(self, value):
         if self.session:
-            print(f"Current value is {bool(value)}")
+            if value == False:
+                self.session.status = "Finished"
+                print(f"Current session is temporarily marked as Finished (Disabled)")
+            else:
+                self.session.status = "Scheduled"
 
     def on_session(self, instance, value):
         if self.session:
             self.startTime=self.session.start_time.strftime("%H:%M")
             self.endTime=self.session.end_time.strftime("%H:%M")
             self.description=self.session.goal_description
-            self.isOn = True
+            if self.session.status == "Finished":
+                self.isOn = False
+            else:
+                self.isOn = True
             self.questTotal = 0
             diffTotal = 0
             for quest in self.session.linked_quests:
@@ -148,6 +155,14 @@ class QuestLockCard(MDCard):
     difficulty = StringProperty()
     description = StringProperty()
     quest = ObjectProperty()
+
+    def on_checkbox_active(self, checkbox, value):
+        if self.quest:
+            if value == False:
+                self.quest.is_completed = False
+            else:
+                self.quest.is_completed = True
+                print(f"   -> Nhiệm vụ '{self.quest.description}' đã được đánh dấu hoàn thành!")
 
     def on_quest(self, instance, value):
         self.difficulty = str(self.quest.difficulty)

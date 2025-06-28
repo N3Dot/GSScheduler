@@ -19,6 +19,13 @@ if __name__ == "__main__":
 else:
     from Backend.Database import Item, Rarity, Items, Achievements
 
+# Định nghĩa BASE_DATE và hàm tiện ích
+BASE_DATE = datetime(1900, 1, 1)
+
+def to_basedate_time(dt: datetime) -> datetime:
+    """Chuyển mọi datetime về BASE_DATE, chỉ giữ lại giờ và phút."""
+    return BASE_DATE.replace(hour=dt.hour, minute=dt.minute, second=0, microsecond=0)
+
 class Character(EventDispatcher):
     """
     Đại diện cho người dùng trong ứng dụng.
@@ -81,10 +88,9 @@ class Character(EventDispatcher):
             self.level += 1
             self.available_points += 1
             # Lượng XP cần cho cấp tiếp theo tăng theo cấp số nhân
-            self.xp_to_next_level = int(self.xp_to_next_level * 1.5)
+            self.xp_to_next_level = int(self.xp_to_next_level * 1.25)
             
-            print(f"🎉 CHÚC MỪNG! {self.name} đã lên cấp {self.level}!")
-            print(f"   Bạn nhận được 1 điểm cộng. XP cần cho cấp tiếp theo: {self.xp_to_next_level}.")
+            print(f"{self.name} đã lên cấp {self.level}!")
         return leveled_up
 
     def add_achievement(self, achievement_id: str):
@@ -204,6 +210,7 @@ class RewardSystem:
     """
     def __init__(self):
         self.reward_types: List[str] = ["xp", "gold", "item", "achievement"]
+        self.public_messages = {'xp': 0, 'gold': 0}
 
     def calculate_xp(self, character: Character, difficulty: int) -> int:
         """Tính toán lượng XP nhận được dựa trên độ khó và chỉ số DEX."""
@@ -238,11 +245,13 @@ class RewardSystem:
             if reward_type == "xp":
                 amount = int(reward["amount"])
                 character.xp += amount
+                self.public_messages['xp'] += amount
                 print(f"   + {amount} XP.")
                 character.check_level_up() # Tự động kiểm tra lên cấp
             elif reward_type == "gold":
                 amount = int(reward["amount"])
                 character.gold += amount
+                self.public_messages['gold'] += amount
                 print(f"   + {amount} Vàng.")
             elif reward_type == "item":
                 item = reward.get("item_object")
@@ -331,8 +340,9 @@ class StudySession:
         self.session_id: str = str(uuid.uuid4())
         self.goal_description: str = goal_description
         self.linked_quests: List[Quest] = linked_quests
-        self.start_time: datetime = start_time  # Thời gian dự kiến bắt đầu
-        self.end_time: datetime = end_time      # Thời gian dự kiến kết thúc
+        # Chỉ giữ giờ và phút, bỏ ngày
+        self.start_time: datetime = to_basedate_time(start_time)
+        self.end_time: datetime = to_basedate_time(end_time)      # Thời gian dự kiến kết thúc
         
         # Thời gian thực tế
         self.actual_start_time: Optional[datetime] = None  # Thời gian bắt đầu thực tế
@@ -340,6 +350,7 @@ class StudySession:
         
         self.status: str = 'Scheduled' #scheduled - running - finished
         self.rank: str = "N/A" #rank gồm a,b,c,d,f
+        self.active: bool = True #TODO
 
     def mark_quest_as_complete(self, quest_id: str):
         """Tìm và đánh dấu một quest trong các quest liên kết là đã hoàn thành."""
@@ -487,7 +498,10 @@ class StudyAnalytics:
 
     def log_session(self, session_data: Dict[str, Any]):
         """Ghi lại một phiên học đã kết thúc và gọi hàm cập nhật thống kê."""
-        self.session_history.append(session_data)
+        # !!!
+        # Gây lỗi khi ImportSave()
+        # !!!
+        # self.session_history.append(session_data)
         self._update_stats()
 
     def _update_stats(self):
@@ -517,13 +531,15 @@ class StudyAnalytics:
             stats['quest_completion_rate'] = (stats['quests_completed'] / total_quests) * 100
 
         self.aggregated_stats = stats
-        self.focus_streak = self._calculate_focus_streak()
+        # !!!
+        # !!! Gây lỗi nếu chạy !!!
+        # !!!
+        # self.focus_streak = self._calculate_focus_streak()
 
     def _calculate_focus_streak(self) -> int:
         """Tính số ngày học liên tiếp."""
         if not self.session_history: return 0
         
-        # Lấy danh sách các ngày học duy nhất và sắp xếp chúng
         study_dates = sorted(list(set(s['end_time'].date() for s in self.session_history)))
         if not study_dates: return 0
         
@@ -587,8 +603,11 @@ class SessionManager:
         self.character = character
         self.reward_system = reward_system
         self.analytics = analytics
+        self.arena = Arena(character)  # Thêm hệ thống đấu trường
         self.save_file_path = self._get_save_path()
         self.qr_image_path = self._get_qr_path()
+        self.public_rewards = [0, 0]
+        self.public_rank = ''
     
     def _get_save_path(self):
         """Xác định đường dẫn lưu file tùy theo platform"""
@@ -1060,14 +1079,23 @@ class SessionManager:
     ) -> Optional[StudySession]:
         """
         Xác thực và lên lịch một phiên học mới.
-        Thuộc tính 'tags' đã được loại bỏ khỏi phương thức này.
+        Kiểm tra trùng lặp thời gian với các session đã có.
 
         Returns:
             Đối tượng StudySession vừa được tạo nếu thành công, ngược lại là None.
         """
         try:
-            # (Có thể thêm logic kiểm tra trùng lặp thời gian ở đây nếu cần)
+            # Chỉ giữ giờ và phút
+            start_time = to_basedate_time(start_time)
+            end_time = to_basedate_time(end_time)
+
+            # Kiểm tra trùng lặp thời gian với các session đã có
             session = StudySession(goal_description, start_time, end_time, linked_quests)
+            conflicting_session = self._check_time_conflict(start_time, end_time)
+            if conflicting_session:
+                print(f"Xung đột thời gian: Phiên học mới trùng với '{conflicting_session.goal_description}'")
+                return [conflicting_session, session]
+            
             self.sessions.append(session)
             print(f"🗓️  ĐÃ LÊN LỊCH: '{session.goal_description}' lúc {session.start_time.strftime('%H:%M:%S')}")
             return session
@@ -1075,9 +1103,44 @@ class SessionManager:
             print(f"❌ LÊN LỊCH THẤT BẠI: {e}")
             return None
 
+    def _check_time_conflict(self, new_start: datetime, new_end: datetime) -> Optional[StudySession]:
+        """
+        Kiểm tra xem thời gian mới có xung đột với session nào đã có không.
+        Chỉ so sánh giờ:phút, bỏ qua ngày (theo comment trong main.py).
+        
+        Returns:
+            StudySession bị xung đột nếu có, None nếu không có xung đột.
+        """
+        # Chuyển đổi về cùng ngày để so sánh chỉ thời gian
+        base_date = datetime(1900, 1, 1)  # Sử dụng ngày cơ sở như trong main.py
+        
+        new_start_time_only = to_basedate_time(new_start)
+        new_end_time_only = to_basedate_time(new_end)
+        
+        # Xử lý trường hợp qua ngày (ví dụ: 23:00 - 01:00)
+        if new_end_time_only <= new_start_time_only:
+            new_end_time_only += timedelta(days=1)
+        
+        for existing_session in self.sessions:
+            # if existing_session.status == 'Finished': Không bỏ qua các session đã kết thúc. Đây là trạng thái bật tắt.
+            
+            # Chuyển session hiện có về cùng định dạng
+            existing_start = to_basedate_time(existing_session.start_time)
+            existing_end = to_basedate_time(existing_session.end_time)
+            
+            # Xử lý trường hợp session hiện có qua ngày
+            if existing_end <= existing_start:
+                existing_end += timedelta(days=1)
+            
+            # Kiểm tra xung đột: hai khoảng thời gian overlap
+            if (new_start_time_only <= existing_end and new_end_time_only >= existing_start):
+                return existing_session
+        
+        return None
+    
     def mark_quest_as_complete(self, session_id: str, quest_id: str):
         """
-        Đánh dấu một nhiệm vụ là đã hoàn thành trong một phiên học đang chạy.        Đây là "cầu nối" giữa giao diện người dùng và logic của StudySession.
+        Đánh dấu một nhiệm vụ là đã hoàn thành trong một phiên học đang chạy. Đây là "cầu nối" giữa giao diện người dùng và logic của StudySession.
         """
         session = self._find_session_by_id(session_id)
         if session and session.status == 'Running':
@@ -1164,98 +1227,334 @@ class SessionManager:
                 print(f"Phiên học kết thúc với hạng F, áp dụng hình phạt.")
                 self.reward_system.punish(self.character, {'type': 'hp', 'amount': total_difficulty_failed * 4})
 
-# --- VÍ DỤ MÔ PHỎNG ---
-# =============================================================================
+
+class SkillType(Enum):
+    """Các loại skill trong đấu trường"""
+    ATTACK = "attack"  # Đánh thường
+    DEFEND = "defend"  # Thủ
+    MAGIC = "magic"    # Dùng phép
+
+
+class ArenaBot:
+    """Bot đấu trường được tạo từ dữ liệu base64 của người chơi khác"""
+    def __init__(self, name: str = "Bot", level: int = 1, hp: int = 50, 
+                 max_hp: int = 50, dex: int = 1, int_stat: int = 1, luk: int = 1):
+        self.name = name
+        self.level = level
+        self.hp = hp
+        self.max_hp = max_hp
+        self.dex = dex
+        self.int_stat = int_stat  # Tránh conflict với keyword 'int'
+        self.luk = luk
+        self.is_alive = True
+    
+    @classmethod
+    def from_base64(cls, base64_data: str):
+        """Tạo bot từ dữ liệu base64"""
+        try:
+            # Decode base64 và parse JSON
+            json_data = base64.b64decode(base64_data).decode('utf-8')
+            data = json.loads(json_data)
+            
+            # Lấy thông tin từ dữ liệu (có thể là format rút gọn hoặc đầy đủ)
+            if 'c' in data:  # Format rút gọn
+                char_data = data['c']
+                return cls(
+                    name=char_data.get('n', 'Unknown Player'),
+                    level=char_data.get('l', 1),
+                    hp=char_data.get('h', 50),
+                    max_hp=char_data.get('m', 50),
+                    dex=char_data.get('d', 1),
+                    int_stat=char_data.get('i', 1),
+                    luk=char_data.get('k', 1)
+                )
+            else:  # Format đầy đủ
+                char_data = data.get('character', {})
+                return cls(
+                    name=char_data.get('name', 'Unknown Player'),
+                    level=char_data.get('level', 1),
+                    hp=char_data.get('hp', 50),
+                    max_hp=char_data.get('max_hp', 50),
+                    dex=char_data.get('dex', 1),
+                    int_stat=char_data.get('int', 1),
+                    luk=char_data.get('luk', 1)
+                )
+        except Exception as e:
+            print(f"Error parsing base64 data: {e}")
+            # Trả về bot mặc định nếu lỗi
+            return cls(name="Error Bot")
+    
+    def choose_skill(self) -> SkillType:
+        """Bot chọn skill ngẫu nhiên với tỷ lệ"""
+        choices = [SkillType.ATTACK, SkillType.DEFEND, SkillType.MAGIC]
+        weights = [0.5, 0.3, 0.2]  # 50% attack, 30% defend, 20% magic
+        return random.choices(choices, weights=weights)[0]
+
+
+class Arena:
+    """Hệ thống đấu trường"""
+    def __init__(self, character: 'Character'):
+        self.player = character
+        self.bot: Optional[ArenaBot] = None
+        self.battle_log: List[str] = []
+        self.turn_count = 0
+        self.player_defended = False
+        self.bot_defended = False
+        self.battle_active = False
+    
+    def load_opponent(self, base64_data: str) -> bool:
+        """Load đối thủ từ dữ liệu base64"""
+        try:
+            self.bot = ArenaBot.from_base64(base64_data)
+            return True
+        except Exception as e:
+            print(f"Error loading opponent: {e}")
+            return False
+    
+    def generate_demo_opponent(self) -> str:
+        """Tạo đối thủ demo và trả về mã base64"""
+        demo_names = ["Mom", "Nhật Nam", "Natsu", "Luffy", "Goku", "Vegeta", "Saitama"]
+        demo_data = {
+            "c": {
+                "n": random.choice(demo_names),
+                "l": random.randint(1, 10),
+                "h": random.randint(40, 100),
+                "m": random.randint(50, 120),
+                "d": random.randint(1, 15),
+                "i": random.randint(1, 15),
+                "k": random.randint(1, 15)
+            }
+        }
+        
+        json_str = json.dumps(demo_data)
+        base64_data = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
+        return base64_data
+    
+    def start_battle(self) -> bool:
+        """Bắt đầu trận đấu"""
+        if not self.bot:
+            return False
+        
+        self.battle_active = True
+        self.turn_count = 0
+        self.battle_log = []
+        self.player_defended = False
+        self.bot_defended = False
+        
+        # Reset HP về max
+        self.player.hp = self.player.max_hp
+        self.bot.hp = self.bot.max_hp
+        self.bot.is_alive = True
+        
+        self.battle_log.append(f"Trận đấu bắt đầu! {self.player.name} vs {self.bot.name}")
+        return True
+    
+    def calculate_damage(self, attacker_stats: Dict[str, int], defender_stats: Dict[str, int], 
+                        skill_type: SkillType, defender_defended: bool = False) -> int:
+        """Tính toán sát thương dựa trên chỉ số và loại skill"""
+        base_damage = 0
+        
+        if skill_type == SkillType.ATTACK:
+            # Đánh thường: phụ thuộc vào DEX và LUK
+            base_damage = 10 + (attacker_stats['dex'] * 2) + (attacker_stats['luk'] * 1.5)
+        elif skill_type == SkillType.MAGIC:
+            # Phép thuật: phụ thuộc vào INT và LUK
+            base_damage = 15 + (attacker_stats['int'] * 3) + (attacker_stats['luk'] * 1)
+        elif skill_type == SkillType.DEFEND:
+            # Thủ không gây sát thương
+            return 0
+        
+        # Thêm yếu tố ngẫu nhiên
+        damage_variance = random.uniform(0.8, 1.2)
+        base_damage *= damage_variance
+        
+        # Giảm sát thương nếu đối thủ đang thủ
+        if defender_defended:
+            defense_reduction = 0.3 + (defender_stats['dex'] * 0.02)  # 30% + 2% per DEX
+            base_damage *= (1 - min(defense_reduction, 0.8))  # Tối đa giảm 80%
+        
+        return max(1, int(base_damage))  # Tối thiểu 1 damage
+    
+    def execute_turn(self, player_skill: SkillType) -> Dict[str, Any]:
+        """Thực hiện một lượt đấu"""
+        if not self.battle_active or not self.bot:
+            return {"error": "Battle not active"}
+        
+        self.turn_count += 1
+        bot_skill = self.bot.choose_skill()
+        
+        turn_result = {
+            "turn": self.turn_count,
+            "player_skill": player_skill.value,
+            "bot_skill": bot_skill.value,
+            "player_damage": 0,
+            "bot_damage": 0,
+            "messages": [],
+            "battle_ended": False,
+            "winner": None
+        }
+        
+        # Chuẩn bị stats
+        player_stats = {
+            'dex': self.player.dex,
+            'int': self.player.int,
+            'luk': self.player.luk
+        }
+        bot_stats = {
+            'dex': self.bot.dex,
+            'int': self.bot.int_stat,
+            'luk': self.bot.luk
+        }
+        
+        # Xử lý skill của người chơi
+        if player_skill == SkillType.DEFEND:
+            self.player_defended = True
+            turn_result["messages"].append(f"{self.player.name} đang thủ!")
+        else:
+            self.player_defended = False
+            damage = self.calculate_damage(player_stats, bot_stats, player_skill, self.bot_defended)
+            self.bot.hp -= damage
+            turn_result["player_damage"] = damage
+            
+            skill_name = "đánh thường" if player_skill == SkillType.ATTACK else "dùng phép"
+            turn_result["messages"].append(f"{self.player.name} {skill_name} gây {damage} sát thương!")
+        
+        # Xử lý skill của bot
+        if bot_skill == SkillType.DEFEND:
+            self.bot_defended = True
+            turn_result["messages"].append(f"{self.bot.name} đang thủ!")
+        else:
+            self.bot_defended = False
+            damage = self.calculate_damage(bot_stats, player_stats, bot_skill, self.player_defended)
+            self.player.hp -= damage
+            turn_result["bot_damage"] = damage
+            
+            skill_name = "đánh thường" if bot_skill == SkillType.ATTACK else "dùng phép"
+            turn_result["messages"].append(f"{self.bot.name} {skill_name} gây {damage} sát thương!")
+        
+        # Kiểm tra kết thúc trận đấu
+        if self.player.hp <= 0:
+            self.battle_active = False
+            turn_result["battle_ended"] = True
+            turn_result["winner"] = "bot"
+            turn_result["messages"].append(f"{self.bot.name} thắng!")
+        elif self.bot.hp <= 0:
+            self.battle_active = False
+            turn_result["battle_ended"] = True
+            turn_result["winner"] = "player"
+            turn_result["messages"].append(f"{self.player.name} thắng!")
+            
+            # Thưởng cho người chơi khi thắng
+            xp_reward = 50 + (self.bot.level * 10)
+            gold_reward = 25 + (self.bot.level * 5)
+            self.player.xp += xp_reward
+            self.player.gold += gold_reward
+            turn_result["messages"].append(f"Thưởng: +{xp_reward} XP, +{gold_reward} Vàng!")
+            self.player.check_level_up()
+        
+        # Lưu vào battle log
+        for message in turn_result["messages"]:
+            self.battle_log.append(message)
+        
+        return turn_result
+    
+    def get_battle_state(self) -> Dict[str, Any]:
+        """Lấy trạng thái hiện tại của trận đấu"""
+        return {
+            "battle_active": self.battle_active,
+            "turn_count": self.turn_count,
+            "player": {
+                "name": self.player.name,
+                "hp": self.player.hp,
+                "max_hp": self.player.max_hp,
+                "level": self.player.level,
+                "dex": self.player.dex,
+                "int": self.player.int,
+                "luk": self.player.luk
+            },
+            "bot": {
+                "name": self.bot.name if self.bot else "No Bot",
+                "hp": self.bot.hp if self.bot else 0,
+                "max_hp": self.bot.max_hp if self.bot else 0,
+                "level": self.bot.level if self.bot else 0,
+                "dex": self.bot.dex if self.bot else 0,
+                "int": self.bot.int_stat if self.bot else 0,
+                "luk": self.bot.luk if self.bot else 0
+            } if self.bot else None,
+            "battle_log": self.battle_log
+        }
+
+
+# Utility function để tạo demo data
+def generate_demo_base64_codes(count: int = 5) -> List[str]:
+    """Tạo nhiều mã base64 demo cho test"""
+    demo_names = ["Kirito", "Asuna", "Natsu", "Luffy", "Goku", "Vegeta", "Saitama", "Ichigo", "Naruto", "Sasuke"]
+    codes = []
+    
+    for i in range(count):
+        demo_data = {
+            "c": {
+                "n": demo_names[i % len(demo_names)],
+                "l": random.randint(1, 10),
+                "h": random.randint(40, 100),
+                "m": random.randint(50, 120),
+                "d": random.randint(1, 15),
+                "i": random.randint(1, 15),
+                "k": random.randint(1, 15)
+            }
+        }
+        
+        json_str = json.dumps(demo_data)
+        base64_data = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
+        codes.append(base64_data)
+    
+    return codes
+
 if __name__ == "__main__":
-    char = Character(name="Nhật Nam")
+    print("\n=== DEMO BASE_DATE: So sánh giờ và phút, bỏ qua ngày ===")
+    # Tạo SessionManager và các session demo
+    char = Character(name="Demo")
     rewards = RewardSystem()
-    
-    # SỬA ĐỔI Ở ĐÂY:
-    # 1. Tạo một đối tượng QuestSystem.
-    quests = QuestSystem() 
-    # 2. Truyền đối tượng quests vào StudyAnalytics, không phải None.
-    analytics = StudyAnalytics(quest_system=quests) 
-    
-    # 3. SessionManager không cần quest_system nữa, vì nó không tạo quest.
-    # Nó chỉ nhận quest từ bên ngoài khi lên lịch.
+    quests = QuestSystem()
+    analytics = StudyAnalytics(quest_system=quests)
     manager = SessionManager(character=char, reward_system=rewards, analytics=analytics)
-    
-    # --- Demo Trang bị và Chỉ số ---
-    print("\n--- Demo Trang bị và Cập nhật Chỉ số ---")
-    
-    # 1. Thêm vật phẩm vào kho đồ
-    char.inventory.append(Items['Khien_Doi_Truong_Meo'])
-    char.inventory.append(Items['Gay_Phap_Su'])
-    
-    # 2. Hiển thị chỉ số ban đầu
-    print("\n>> Chỉ số TRƯỚC KHI trang bị:")
-    char.show_stats()
-    
-    # 3. Trang bị vật phẩm
-    print("\n>> Trang bị Khien_Doi_Truong_Meo...")
-    char.equip(Items['Khien_Doi_Truong_Meo'])
-    char.show_stats()
-    
-    print("\n>> Trang bị thêm Gay_Phap_Su...")
-    char.equip(Items['Gay_Phap_Su'])
-    char.show_stats()
-    
-    print("--- Kết thúc Demo Trang bị ---\n")
-    
-    # --- Bắt đầu Mô phỏng Phiên học ---
-    print("\n--- Bắt đầu Mô phỏng Phiên học ---")
-    
-    # 2. Tạo các đối tượng Quest riêng lẻ thông qua QuestSystem
-    # Cách tạo quest không thay đổi, chỉ là giờ chúng được quản lý bởi `quests`.
-    quest1 = quests.create_quest(description="Viết phần Mở đầu báo cáo", difficulty=2)
-    quest2 = quests.create_quest(description="Thiết kế Class Diagram", difficulty=4)
-    quest3 = quests.create_quest(description="Viết code cho 3 Class", difficulty=5)
 
-    # 3. Lên lịch một phiên học và liên kết với các Quest đã tạo
-    simulated_now = datetime.now()
-    session1 = manager.schedule_session(
-        goal_description="Làm báo cáo OOP - Giai đoạn 1",
-        start_time=simulated_now + timedelta(seconds=2),
-        end_time=simulated_now + timedelta(seconds=25), # Thời gian dự kiến là 23 giây
-        linked_quests=[quest1, quest2, quest3] # Truyền danh sách các đối tượng Quest
+    # Tạo 2 session trùng giờ (dù khác ngày)
+    s1 = manager.schedule_session(
+        "Session Sáng",
+        datetime(2025, 6, 27, 8, 0),
+        datetime(2025, 6, 27, 9, 0),
+        [quests.create_quest("Toán", 2)]
     )
+    s2 = manager.schedule_session(
+        "Session Trùng Giờ (khác ngày)",
+        datetime(2025, 7, 1, 8, 0),
+        datetime(2025, 7, 1, 9, 0),
+        [quests.create_quest("Lý", 2)]
+    )
+    if not s2:
+        print("❌ Đã phát hiện trùng giờ dù khác ngày (ĐÚNG)")
+    else:
+        print("⚠️ Không phát hiện trùng giờ (SAI)")
 
-    # ... phần còn lại của vòng lặp mô phỏng giữ nguyên ...
-    print("\n--- Bắt đầu Vòng lặp Mô phỏng ---")
-    end_of_simulation = simulated_now + timedelta(seconds=30)
-    current_sim_time = simulated_now
-    
-    session_has_started = False
-    
-    while current_sim_time < end_of_simulation:
-        print(f"\n--- Tick lúc {current_sim_time.strftime('%H:%M:%S')} ---")
-        manager.update(current_time=current_sim_time)
-        
-        # Mô phỏng người dùng hoàn thành các quest trong lúc học
-        if session1 and session1.status == 'Running':
-            if not session_has_started:
-                session_has_started = True
-                print(">>> Phiên học đang chạy. Người dùng bắt đầu làm việc...")
+    # Tạo session không trùng giờ
+    s3 = manager.schedule_session(
+        "Session Chiều",
+        datetime(2025, 6, 27, 14, 0),
+        datetime(2025, 6, 27, 15, 0),
+        [quests.create_quest("Hóa", 2)]
+    )
+    if s3:
+        print("✅ Session chiều tạo thành công (không trùng)")
 
-            time_in_session = (current_sim_time - session1.start_time).total_seconds()
-            
-            # Sau 5 giây, người dùng làm xong quest đầu tiên
-            if 5 <= time_in_session < 6 and not quest1.is_completed:
-                manager.mark_quest_as_complete(session1.session_id, quest1.quest_id)
-            
-            # Sau 12 giây, làm xong quest thứ hai
-            if 12 <= time_in_session < 13 and not quest2.is_completed:
-                manager.mark_quest_as_complete(session1.session_id, quest2.quest_id)
-            
-            # Người dùng quyết định kết thúc sớm sau 18 giây
-            if 18 <= time_in_session < 19:
-                manager.end_session_manually(session1.session_id)
-                break
+    # Tạo session qua ngày (23:00-01:00)
+    s4 = manager.schedule_session(
+        "Session Đêm",
+        datetime(2025, 6, 27, 23, 0),
+        datetime(2025, 6, 28, 1, 0),
+        [quests.create_quest("Anh", 2)]
+    )
+    if s4:
+        print("✅ Session đêm tạo thành công (qua ngày)")
 
-        time.sleep(1)
-        current_sim_time += timedelta(seconds=1)
-        
-    print("\n\n--- MÔ PHỎNG KẾT THÚC ---")
-    # In ra báo cáo cuối cùng nếu cần
-    print(analytics.generate_report())
-    char.show_stats()
+    print("\n=== Kết thúc demo BASE_DATE ===\n")

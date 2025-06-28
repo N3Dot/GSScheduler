@@ -1,5 +1,6 @@
 import os
 import shutil
+import random
 
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.snackbar import MDSnackbar, MDSnackbarButtonContainer, MDSnackbarCloseButton, MDSnackbarText, MDSnackbarSupportingText
@@ -12,7 +13,10 @@ from kivymd.uix.fitimage import FitImage
 from kivymd.uix.filemanager import MDFileManager
 from kivy.uix.widget import Widget
 from kivy.metrics import dp
+from kivy.clock import Clock
 from kivy.utils import platform
+from kivy.graphics import Color, Rectangle
+
 
 class Popup:
     """
@@ -33,16 +37,8 @@ class Popup:
             duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.72}, size_hint_x=0.5,
             background_color=self.app.theme_cls.onPrimaryContainerColor,
         ).open()
-    
-    def show_reward_snackbar(self, XP=0, Gold=0):
-        MDSnackbar(
-            MDSnackbarText(text="Bạn đã được thưởng!"),
-            MDSnackbarSupportingText(text=f"[b]XP:[/b] +{XP}\n[b]Vàng:[/b] +{Gold}", markup=True),
-            duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
-            background_color=self.app.theme_cls.onPrimaryContainerColor,
-            ).open()
         
-    def show_session_finish_dialog(self, rank: str):
+    def show_session_finish_dialog(self, rank: str, xp=0, gold=0):
         if rank == "F":
             PerfIcon = "emoticon-cry-outline"
             PerfHeadline = "Chưa Phải Là Ngày Của Bạn?"
@@ -73,12 +69,32 @@ class Popup:
             MDDialogButtonContainer(
                 Widget(),
                 MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
-                    on_release=lambda x: FinishDialog.dismiss(),
+                    on_release=lambda x: self.session_finish_follow_up(FinishDialog, rank, xp, gold),
                 ),
                 Widget(),
             ),
         )
         FinishDialog.open()
+        if rank != "F":
+            self.app.trigger_confetti()
+    
+    def session_finish_follow_up(self, FinishDialog, rank, xp=0, gold=0):
+        FinishDialog.dismiss()
+        if rank != "F":
+            if xp != 0 or gold != 0:
+                MDSnackbar(
+                    MDSnackbarText(text="Bạn đã được thưởng!"),
+                    MDSnackbarSupportingText(text=f"[b]XP:[/b] +{xp}\n[b]Vàng:[/b] +{gold}", markup=True),
+                    duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
+                    background_color=self.app.theme_cls.onPrimaryContainerColor,
+                ).open()
+        else:
+            MDSnackbar(
+                MDSnackbarText(text="Bạn đã mất máu..."),
+                MDSnackbarSupportingText(text="Máu có thể mất, nhưng ý chí vẫn còn nguyên vẹn. Hãy tiếp tục, chiến binh dũng cảm!"),
+                duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
+                background_color=self.app.theme_cls.onPrimaryContainerColor,
+            ).open()
 
     def show_level_up_dialog(self):
         LevelUpDialog = MDDialog(
@@ -94,6 +110,7 @@ class Popup:
             ),
         )
         LevelUpDialog.open()
+        self.app.trigger_confetti()
 
     def show_item_dialog(self, item):
         rarity_types = [None, "Thường", "Nâng Cao", "Hiếm", "Sử Thi", "Huyền Thoại"]
@@ -447,3 +464,38 @@ class Popup:
     
     def file_manager_exit(self, *args):
         self.file_manager.close()
+
+class ConfettiParticle(Widget):
+    def __init__(self, pos, **kwargs):
+        super().__init__(**kwargs)
+        self.size = (10, 10)
+        self.x, self.y = pos
+        self.velocity = [
+            random.uniform(-250, 250),
+            random.uniform(450, 650)
+        ]
+        self.gravity = -300
+        self.lifetime = 8
+        self.age = 0
+
+        r, g, b = random.random(), random.random(), random.random()
+        with self.canvas:
+            Color(r, g, b)
+            self.rect = Rectangle(pos=self.pos, size=self.size)
+
+        self.bind(pos=self.update_graphics)
+        Clock.schedule_interval(self.update, 1 / 60)
+
+    def update_graphics(self, *args):
+        self.rect.pos = self.pos
+
+    def update(self, dt):
+        self.age += dt
+        if self.age > self.lifetime:
+            if self.parent:
+                self.parent.remove_widget(self)
+            return False
+        self.velocity[1] += self.gravity * dt
+        self.x += self.velocity[0] * dt
+        self.y += self.velocity[1] * dt
+        return True

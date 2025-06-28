@@ -5,20 +5,19 @@ from kivy.config import Config
 from kivy.core.audio import SoundLoader
 from kivy.lang import Builder
 from kivy.utils import platform
-from kivy.clock import Clock # Clock.schedule_once()
+from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.widget import Widget
 # Config.set('graphics', 'resizable', False)
 from kivy.core.window import Window
 if platform not in ('android', 'ios'):
-    # Window.always_on_top = True
+    Window.always_on_top = True
     Window.size = (520, 780) # Debug Note 8 View With Original (720, 1480)
 else:
     Window.keep_screen_on = True
 
 from kivymd.app import MDApp
 from kivymd.uix.menu import MDDropdownMenu
-from kivymd.uix.chip import MDChip, MDChipText, MDChipLeadingIcon
 from kivymd.uix.navigationbar import MDNavigationBar, MDNavigationItem
 from Backend import Code, UI, Popups
 
@@ -358,7 +357,9 @@ MDScreenManager:
                             icon: "exit-to-app"
                         MDNavigationDrawerItemText:
                             text: "Thoát"
-    
+        MDFloatLayout:
+            id: effect_layer                  
+
     MDScreen:
         name: "Edit"
         MDBoxLayout:
@@ -471,17 +472,25 @@ MDScreenManager:
                             adaptive_height: True
             
             MDBoxLayout:
-                orientation: "vertical"
-                padding: "20dp", "10dp", "20dp", "40dp"
+                orientation: "horizontal"
+                padding: "10dp", "10dp", "10dp", "40dp"
+                spacing: "20dp"
                 adaptive_height: True
+                Widget:
+                MDButton:
+                    style: "filled"
+                    pos_hint: {"center_x": 0.5}
+                    on_release: app.add_session()
+                    MDButtonText:
+                        text: "Hoàn Thành"
                 MDButton:
                     style: "outlined"
                     pos_hint: {"center_x": 0.5}
-                    on_release: 
-                        app.add_session()
+                    on_release: app.cancel_session()
                     MDButtonText:
-                        text: "Hoàn Thành"
-    
+                        text: "Hủy"
+                Widget:
+                
     MDScreen:
         name: "Lock"
         MDBoxLayout:
@@ -570,7 +579,7 @@ MDScreenManager:
                             text_color: app.theme_cls.tertiaryColor
                         MDLabel:
                             id: lock_time_label
-                            text: "02:17:21"
+                            text: ""
                             bold: True
                             font_style: "Body"
                             halign: 'center'
@@ -610,8 +619,7 @@ MDScreenManager:
                 MDButton:
                     style: "outlined"
                     pos_hint: {"center_x": 0.5}
-                    on_release: 
-                        print("Ayo...")
+                    on_release: app.on_end_session()
                     MDButtonText:
                         text: "Kết Thúc Phiên Học"
                         theme_text_color: "Custom"
@@ -756,7 +764,6 @@ MDScreenManager:
                     text_color: self.theme_cls.primaryColor
 '''
 
-
 class GSS(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -771,7 +778,8 @@ class GSS(MDApp):
         self.queued_cards = []
         self.EnableSave = True
         self.HeroKilled = False
-        self.SessionStarted = False
+        self.FullyLoaded = False
+        self.SessionStarted = None
 
     def build(self):
         self.theme_cls.theme_style = "Light"
@@ -795,17 +803,17 @@ class GSS(MDApp):
         self.Sound_Eat = SoundLoader.load('Sounds/Eat.wav')
         self.Sound_Equip = SoundLoader.load('Sounds/Equip.wav')
         self.Sound_Hurt = SoundLoader.load('Sounds/Hurt.wav')
+        self.Sound_Pop = SoundLoader.load('Sounds/Pop.wav')
+        self.Sound_Ding = SoundLoader.load('Sounds/Ding.wav')
+        self.Sound_LevelUp = SoundLoader.load('Sounds/Level_Up.wav')
 
-        # self.session_manager.create_comprehensive_demo_data()
         SavePresent = self.session_manager.ImportSave()
+
+        self.character.show_stats()
         self.shop = Code.Shop(self.character)
         self.load_tabs(SavePresent)
-
-        TestQuest = Code.Quest(description="Viết phần Mở đầu báo cáo.", difficulty=2)
-        self.root.ids.lock_quest_grid.add_widget(UI.QuestLockCard(quest=TestQuest))
-        self.root.ids.lock_quest_grid.add_widget(UI.QuestLockCard(quest=TestQuest))
-
         self.updater = Clock.schedule_interval(self.update, 1)
+        self.FullyLoaded = True
         if platform == "android":
             from android.permissions import request_permissions, check_permission, Permission # type: ignore
             from jnius import autoclass # type: ignore
@@ -839,10 +847,50 @@ class GSS(MDApp):
         pass
 
     def update(self, dt):
-        if self.HeroKilled == False and self.character.hp <= 0 and self.SessionStarted == False:
+        if self.HeroKilled == False and self.character.hp <= 0 and self.SessionStarted is None:
             self.HeroKilled = True
             self.root.current = "Death"
             self.Sound_Hurt.play()
+        else:
+            cur = datetime.now()
+            time_now = datetime(1900, 1, 1).replace(hour=cur.hour, minute=cur.minute, second=cur.second)
+            if self.SessionStarted is None:
+                for session in self.session_manager.sessions[:]: # Lặp trên bản sao để xóa an toàn
+                    if (time_now <= session.end_time and time_now >= session.start_time) and session.status != "Finished":
+                        self.SessionStarted = session
+                        self.root.ids.lock_description_label.text = f"[b]Mô tả: [/b] {self.SessionStarted.goal_description}"
+                        self.root.ids.lock_schedule_label.text = f"[b]Chặng: [/b] {self.SessionStarted.start_time.strftime('%H:%M')} - {self.SessionStarted.end_time.strftime('%H:%M')}"
+                        self.root.ids.lock_quest_grid.clear_widgets()
+                        for quest in self.SessionStarted.linked_quests:
+                            QuestLockCard = UI.QuestLockCard(quest=quest)
+                            self.root.ids.lock_quest_grid.add_widget(QuestLockCard)
+                        self.SessionStarted.start_session()
+                        self.reward_system.public_messages = {'xp': 0, 'gold': 0}
+                        self.Sound_Ding.play()
+                        self.root.current = "Lock"
+                        return
+            else:
+                self.root.ids.lock_time_label.text = str(self.SessionStarted.end_time - time_now)
+                if self.root.current != "Lock":
+                    self.root.current = "Lock"
+                if time_now > self.SessionStarted.end_time and self.SessionStarted.status == "Running":
+                    self.on_end_session()
+    
+    def on_end_session(self):
+        if self.SessionStarted:
+            self.session_manager.end_session_manually(self.SessionStarted.session_id)
+            self.root.ids.schedule_grid.clear_widgets()
+            for session in self.session_manager.sessions:
+                self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
+            
+            self.update_achievements()
+            self.switch_main()
+            self.Sound_Ding.play()
+            self.PopupManager.show_session_finish_dialog(self.SessionStarted.rank, self.reward_system.public_messages['xp'], self.reward_system.public_messages['gold'])
+            self.SessionStarted = None
+        else:
+            print("Chưa có phiên học nào bắt đầu!")
+            self.switch_main()
 
     def load_tabs(self, SavePresent: bool):
         # --- Load Shop Tab ---
@@ -911,8 +959,9 @@ class GSS(MDApp):
 
         else: # Create Session
             self.active_card = None
-            self.root.ids.start_time_label.text = f"[b]Bắt Đầu: [/b] {(datetime.now()+timedelta(minutes=30)).strftime('%H')}:00"
-            self.root.ids.end_time_label.text = f"[b]Kết Thúc: [/b] {(datetime.now()+timedelta(minutes=90)).strftime('%H')}:00"
+            self.root.ids.description_field.text = ""
+            self.root.ids.start_time_label.text = f"[b]Bắt Đầu: [/b] {(datetime.now()+timedelta(minutes=10)).strftime('%H:%M')}"
+            self.root.ids.end_time_label.text = f"[b]Kết Thúc: [/b] {(datetime.now()+timedelta(minutes=70)).strftime('%H:%M')}"
             self.add_quest()
 
         self.root.current = "Edit"
@@ -929,17 +978,32 @@ class GSS(MDApp):
         
         start_date = datetime.strptime(self.root.ids.start_time_label.text.split()[-1], "%H:%M") # Dạng: 1900-01-01 H:M (Không phân biệt ngày!)
         end_date = datetime.strptime(self.root.ids.end_time_label.text.split()[-1], "%H:%M") # Dạng: 1900-01-01 H:M (Không phân biệt ngày!)
-        if abs(start_date - end_date) < timedelta(minutes=5):
-            self.PopupManager.show_warning_dialog("Nhanh quá! Hãy dành ít nhất 5 phút cho phiên học của mình nha!")
+        if abs(start_date - end_date) < timedelta(minutes=1):
+            self.PopupManager.show_warning_dialog("Nhanh quá! Hãy dành ít nhất 1 phút cho phiên học của mình nha!")
             return
         
         session = self.session_manager.schedule_session(goal_description=description_text, start_time=start_date, end_time=end_date, linked_quests=quests)
+        if isinstance(session, list):
+            if self.active_card is None: # Handle time conflicts when there is no sessions being edited.
+                conflicting_session = session[0]
+                self.PopupManager.show_warning_dialog(f"Xung đột thời gian! Phiên học này mới trùng với chặng {conflicting_session.start_time.strftime('%H:%M')} - {conflicting_session.end_time.strftime('%H:%M')}.")
+                return
+            else:
+                session = session[1]
+                self.session_manager.sessions.append(session)
+        
         if self.active_card: # Edit
+            session.status = self.active_card.session.status
             self.session_manager.sessions.remove(self.active_card.session)
             self.active_card.session = session
         else: # Create
             self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
         print(self.session_manager.sessions)
+        self.queued_cards = []
+        self.active_card = None
+        self.switch_main()
+    
+    def cancel_session(self):
         self.queued_cards = []
         self.active_card = None
         self.switch_main()
@@ -1060,26 +1124,11 @@ class GSS(MDApp):
             self.root.ids.end_time_label.text = f"[b]Kết Thúc: [/b] {HM_Format}"
         time_picker_vertical.dismiss()
 
-    def walk_demo(self, instanceChip):
-        chip_text_widget = None
-        chip_icon_widget = None
-
-        for child in instanceChip.walk(restrict=True):
-            if isinstance(child, MDChipText):
-                chip_text_widget = child
-            elif isinstance(child, MDChipLeadingIcon):
-                chip_icon_widget = child
-        
-        if not chip_text_widget or not chip_icon_widget:
-            print("Widget Error: Could not find text or icon inside the chip.")
-            return
-
     def on_click_character(self):
         try:
             qr_path = self.session_manager.generate_qr_code()
             if qr_path:
                 self.PopupManager.show_character_dialog(qr_path)
-                print(f"QR code updated successfully at {qr_path}")
             else:
                 print("Failed to update QR code - no path or widget not found!")
         except Exception as e:
@@ -1113,6 +1162,8 @@ class GSS(MDApp):
         self.Sound_Eat.play()
         self.update_inventories()
         ItemDialog.dismiss()
+        self.character.check_level_up()
+        self.character.validate_health()
 
     def on_unequip_item(self, item, ItemDialog):
         Flag = self.character.unequip(item)
@@ -1131,9 +1182,6 @@ class GSS(MDApp):
         self.Sound_Equip.play()
         self.update_inventories()
         ItemDialog.dismiss()
-    
-    def on_reward(self, XP=0, Gold=0):
-        self.PopupManager.show_reward_snackbar(XP, Gold)
     
     def handle_attribute_upgrade(self, type: str):
         self.character.available_points -= 1
@@ -1154,6 +1202,9 @@ class GSS(MDApp):
         elif type == "level":
             AppDict.character_card.level = value
             AppDict.schedule_character_card.level = value
+            if self.FullyLoaded:
+                self.Sound_LevelUp.play()
+                self.PopupManager.show_level_up_dialog()
         elif type == "xp":
             AppDict.character_card.xpCurrent = value
             AppDict.schedule_character_card.xpCurrent = value
@@ -1209,6 +1260,14 @@ class GSS(MDApp):
 
     def on_home_switch_tab(self, bar: MDNavigationBar, item: MDNavigationItem, item_icon: str, item_text: str):
         self.root.ids.screen_manager_home.current = item_text
+    
+    def trigger_confetti(self, amount: int = 40):
+        if self.root.current != "Main":
+            return
+        self.Sound_Pop.play()
+        for _ in range(amount):
+            particle = Popups.ConfettiParticle(pos=(Window.width/2, 0))
+            self.root.ids.effect_layer.add_widget(particle)
 
     def on_toggle_theme(self): # Switch to theme_cls.primary_palette
         self.theme_cls.theme_style = "Dark" if self.theme_cls.theme_style == "Light" else "Light"

@@ -63,6 +63,11 @@ class Item:
             "passive": self.passive,
             "on_use_effect": self.on_use_effect  # THAY ĐỔI: đổi tên từ stat_bonuses
         }
+    
+    def __eq__(self, other):
+        if not isinstance(other, Item):
+            return NotImplemented
+        return self.name == other.name
 
     def __repr__(self) -> str:
         """Biểu diễn đối tượng Item dưới dạng chuỗi để dễ gỡ lỗi."""
@@ -194,7 +199,7 @@ Items = {
         description="Một khẩu súng lục cơ bản, dùng đạn thông thường...",
         category="Vũ Khí",
         rarity=Rarity.LEGENDARY,
-        price=1000,
+        price=1250,
         icon_path="Art/Items/Sung_Dan_chu.png",
         passive=True,
         on_use_effect={'dex': 999, 'int': -3, 'luk': -3, 'hp': 0, 'xp': 0}
@@ -426,7 +431,7 @@ Items = {
         price=10,
         icon_path="Art/Items/Sinh_To_Lua_Mach.png",
         passive=False,
-        on_use_effect={'dex': 0, 'int': 0, 'luk': 0, 'hp': 0, 'xp': 1}
+        on_use_effect={'dex': 0, 'int': 0, 'luk': 0, 'hp': 3, 'xp': 3}
     ),
     "Tai_Loc": Item(
         name="Tài Lộc",
@@ -449,7 +454,7 @@ Items = {
         on_use_effect={'dex': 0, 'int': 3, 'luk': 0, 'hp': 0, 'xp': 0}
     ),
     "Thuoc_HP": Item(
-        name="Thuốc HP",
+        name="Thuốc Đỏ",
         description="Bình thuốc hồi máu cơ bản, giúp phục hồi một phần HP.",
         category="Tiêu Hao",
         rarity=Rarity.UNCOMMON,
@@ -466,7 +471,7 @@ Items = {
         price=10,
         icon_path="Art/Items/Thuoc_Kinh_Nghiem.png",
         passive=False,
-        on_use_effect={'dex': 0, 'int': 0, 'luk': 0, 'hp': 0, 'xp': 1}
+        on_use_effect={'dex': 0, 'int': 0, 'luk': 0, 'hp': 0, 'xp': 6}
     ),
     "Thuoc_May_Man": Item(
         name="Thuốc May Mắn",
@@ -496,7 +501,7 @@ Items = {
         price=60,
         icon_path="Art/Items/Sau_Rieng.png",
         passive=False,
-        on_use_effect={'dex': 8, 'int': -2, 'luk': 0, 'hp': -20, 'xp': 1}
+        on_use_effect={'dex': 8, 'int': -2, 'luk': 0, 'hp': -20, 'xp': 5}
     )
 }
 

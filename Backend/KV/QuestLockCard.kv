@@ -4,6 +4,7 @@
     padding: "4dp"
     MDRelativeLayout:
         MDCheckbox:
+            on_active: root.on_checkbox_active(*args)
             size_hint: None, None
             size: dp(48), dp(48)
             color_active: app.theme_cls.tertiaryColor
