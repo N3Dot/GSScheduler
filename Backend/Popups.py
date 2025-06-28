@@ -1,17 +1,22 @@
 import os
 import shutil
+import random
 
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.snackbar import MDSnackbar, MDSnackbarButtonContainer, MDSnackbarCloseButton, MDSnackbarText, MDSnackbarSupportingText
 from kivymd.uix.dialog import MDDialog, MDDialogIcon, MDDialogHeadlineText, MDDialogSupportingText, MDDialogContentContainer, MDDialogButtonContainer
 from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.label import MDLabel
 from kivymd.uix.divider import MDDivider
 from kivymd.uix.list import MDListItem, MDListItemLeadingIcon, MDListItemSupportingText
 from kivymd.uix.fitimage import FitImage
 from kivymd.uix.filemanager import MDFileManager
 from kivy.uix.widget import Widget
 from kivy.metrics import dp
+from kivy.clock import Clock
 from kivy.utils import platform
+from kivy.graphics import Color, Rectangle
+
 
 class Popup:
     """
@@ -32,14 +37,80 @@ class Popup:
             duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.72}, size_hint_x=0.5,
             background_color=self.app.theme_cls.onPrimaryContainerColor,
         ).open()
+        
+    def show_session_finish_dialog(self, rank: str, xp=0, gold=0):
+        if rank == "F":
+            PerfIcon = "emoticon-cry-outline"
+            PerfHeadline = "Chưa Phải Là Ngày Của Bạn?"
+            PerfSupport = "Đôi khi thất bại là một phần không thể thiếu trên con đường trở nên mạnh mẽ hơn. Đừng nản lòng, quay lại, rèn luyện, và chứng minh bản thân! Huyền thoại không được tạo ra trong một ngày!"
+        elif rank == "S":
+            PerfIcon = "party-popper"
+            PerfHeadline = "Tuyệt Đỉnh!"
+            PerfSupport = "Không một nhiệm vụ nào có thể ngăn cản bạn! Sự tập trung, kỹ năng và tinh thần bất khuất đã đưa bạn lên đỉnh vinh quang!"
+        else:
+            PerfIcon = "party-popper"
+            PerfHeadline = "Chúc Mừng!"
+            PerfSupport = "Sự nỗ lực của bạn đã đặt nền móng vững chắc cho những thành tựu lớn hơn. Đường vinh quang luôn mở rộng cho những ai không bỏ cuộc!"
+        FinishDialog = MDDialog(
+            MDDialogIcon(icon=PerfIcon),
+            MDDialogHeadlineText(text=PerfHeadline, bold=True),
+            MDDialogSupportingText(text=PerfSupport),
+            MDDialogContentContainer(
+                MDBoxLayout(
+                    MDLabel(text="Phiên học của bạn đã kết thúc.", font_style="Label", halign='center', theme_text_color="Custom", text_color=self.app.theme_cls.primaryColor, adaptive_height=True),
+                    MDLabel(text="Kết quả cuối cùng:", font_style="Label", halign='center', bold=True, theme_text_color="Custom", text_color=self.app.theme_cls.primaryColor, adaptive_height=True),
+                    MDLabel(text=rank, font_style="Display", role="large", halign='center', theme_text_color="Custom", text_color=self.app.theme_cls.primaryColor, adaptive_height=True),
+                    adaptive_height=True,
+                    spacing="5dp",
+                    orientation="vertical",
+                ),
+                orientation="vertical",
+            ),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: self.session_finish_follow_up(FinishDialog, rank, xp, gold),
+                ),
+                Widget(),
+            ),
+        )
+        FinishDialog.open()
+        if rank != "F":
+            self.app.trigger_confetti()
     
-    def show_reward_snackbar(self, XP=0, Gold=0):
-        MDSnackbar(
-            MDSnackbarText(text="Bạn đã được thưởng!"),
-            MDSnackbarSupportingText(text=f"[b]XP:[/b] +{XP}\n[b]Vàng:[/b] +{Gold}", markup=True),
-            duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
-            background_color=self.app.theme_cls.onPrimaryContainerColor,
+    def session_finish_follow_up(self, FinishDialog, rank, xp=0, gold=0):
+        FinishDialog.dismiss()
+        if rank != "F":
+            if xp != 0 or gold != 0:
+                MDSnackbar(
+                    MDSnackbarText(text="Bạn đã được thưởng!"),
+                    MDSnackbarSupportingText(text=f"[b]XP:[/b] +{xp}\n[b]Vàng:[/b] +{gold}", markup=True),
+                    duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
+                    background_color=self.app.theme_cls.onPrimaryContainerColor,
+                ).open()
+        else:
+            MDSnackbar(
+                MDSnackbarText(text="Bạn đã mất máu..."),
+                MDSnackbarSupportingText(text="Máu có thể mất, nhưng ý chí vẫn còn nguyên vẹn. Hãy tiếp tục, chiến binh dũng cảm!"),
+                duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
+                background_color=self.app.theme_cls.onPrimaryContainerColor,
             ).open()
+
+    def show_level_up_dialog(self):
+        LevelUpDialog = MDDialog(
+            MDDialogIcon(icon="progress-upload"),
+            MDDialogHeadlineText(text=f"{self.app.character.name} Đã Lên Cấp {self.app.character.level}!", bold=True),
+            MDDialogSupportingText(text=f"Từ một chiến binh không ngừng nỗ lực, bạn đã vượt qua mọi thử thách và vươn tới tầm cao mới!"),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: LevelUpDialog.dismiss(),
+                ),
+                Widget(),
+            ),
+        )
+        LevelUpDialog.open()
+        self.app.trigger_confetti()
 
     def show_item_dialog(self, item):
         rarity_types = [None, "Thường", "Nâng Cao", "Hiếm", "Sử Thi", "Huyền Thoại"]
@@ -243,6 +314,21 @@ class Popup:
     def use_local_avatar(self, AvatarDialog):
         self.file_manager_open()
         AvatarDialog.dismiss()
+
+    def show_welcome_dialog(self):
+        WelcomeDialog = MDDialog(
+            MDDialogIcon(icon="gamepad-up"),
+            MDDialogHeadlineText(text=f"Chào Mừng Đến Với Học Tập Kiểu RPG!"),
+            MDDialogSupportingText(text="Bắt đầu bằng cách tạo một phiên học, đặt thời gian bắt đầu và kết thúc. Tạo các nhiệm vụ với độ khó tùy chọn - chúng chính là “quái vật” bạn cần tiêu diệt để nhận XP!\n\nKhi đến giờ, ứng dụng sẽ tự động kích hoạt phiên học và đếm giờ. Trong suốt thời gian đó, hãy tập trung hoàn thành nhiệm vụ, đánh dấu tiến độ và đạt hạng cao nhất.\n\nKết thúc phiên học, hệ thống sẽ trao thưởng nếu bạn làm tốt... hoặc trừ HP nếu bạn lười biếng!\n\nĐừng quên ghé qua Shop để tiêu vàng, nâng cấp nhân vật và chuẩn bị cho những phiên học tiếp theo!"),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
+                    on_release=lambda x: WelcomeDialog.dismiss(),
+                ),
+                Widget(),
+            ),
+        )
+        WelcomeDialog.open()
     
     def show_analytics_dialog(self, ReportString: str):
         AnalyticsDialog = MDDialog(
@@ -379,7 +465,6 @@ class Popup:
     def file_manager_exit(self, *args):
         self.file_manager.close()
 
-
     def show_info_snackbar(self, message: str):
         """Hiển thị thông báo snackbar đơn giản"""
         MDSnackbar(
@@ -476,3 +561,39 @@ class Popup:
             ),
         )
         dialog.open()
+
+        
+class ConfettiParticle(Widget):
+    def __init__(self, pos, **kwargs):
+        super().__init__(**kwargs)
+        self.size = (10, 10)
+        self.x, self.y = pos
+        self.velocity = [
+            random.uniform(-250, 250),
+            random.uniform(450, 650)
+        ]
+        self.gravity = -300
+        self.lifetime = 8
+        self.age = 0
+
+        r, g, b = random.random(), random.random(), random.random()
+        with self.canvas:
+            Color(r, g, b)
+            self.rect = Rectangle(pos=self.pos, size=self.size)
+
+        self.bind(pos=self.update_graphics)
+        Clock.schedule_interval(self.update, 1 / 60)
+
+    def update_graphics(self, *args):
+        self.rect.pos = self.pos
+
+    def update(self, dt):
+        self.age += dt
+        if self.age > self.lifetime:
+            if self.parent:
+                self.parent.remove_widget(self)
+            return False
+        self.velocity[1] += self.gravity * dt
+        self.x += self.velocity[0] * dt
+        self.y += self.velocity[1] * dt
+        return True

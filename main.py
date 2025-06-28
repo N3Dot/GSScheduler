@@ -5,20 +5,19 @@ from kivy.config import Config
 from kivy.core.audio import SoundLoader
 from kivy.lang import Builder
 from kivy.utils import platform
-from kivy.clock import Clock # Clock.schedule_once()
+from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.widget import Widget
 # Config.set('graphics', 'resizable', False)
 from kivy.core.window import Window
 if platform not in ('android', 'ios'):
-    # Window.always_on_top = True
+    Window.always_on_top = True
     Window.size = (520, 780) # Debug Note 8 View With Original (720, 1480)
 else:
     Window.keep_screen_on = True
 
 from kivymd.app import MDApp
 from kivymd.uix.menu import MDDropdownMenu
-from kivymd.uix.chip import MDChip, MDChipText, MDChipLeadingIcon
 from kivymd.uix.navigationbar import MDNavigationBar, MDNavigationItem
 from kivymd.uix.floatlayout import MDFloatLayout
 from Backend import Code, UI, Popups
@@ -550,7 +549,9 @@ MDScreenManager:
                             icon: "exit-to-app"
                         MDNavigationDrawerItemText:
                             text: "Thoát"
-    
+        MDFloatLayout:
+            id: effect_layer                  
+
     MDScreen:
         name: "Edit"
         MDBoxLayout:
@@ -663,17 +664,25 @@ MDScreenManager:
                             adaptive_height: True
             
             MDBoxLayout:
-                orientation: "vertical"
-                padding: "20dp", "10dp", "20dp", "40dp"
+                orientation: "horizontal"
+                padding: "10dp", "10dp", "10dp", "40dp"
+                spacing: "20dp"
                 adaptive_height: True
+                Widget:
+                MDButton:
+                    style: "filled"
+                    pos_hint: {"center_x": 0.5}
+                    on_release: app.add_session()
+                    MDButtonText:
+                        text: "Hoàn Thành"
                 MDButton:
                     style: "outlined"
                     pos_hint: {"center_x": 0.5}
-                    on_release: 
-                        app.add_session()
+                    on_release: app.cancel_session()
                     MDButtonText:
-                        text: "Hoàn Thành"
-    
+                        text: "Hủy"
+                Widget:
+                
     MDScreen:
         name: "Lock"
         MDBoxLayout:
@@ -762,7 +771,7 @@ MDScreenManager:
                             text_color: app.theme_cls.tertiaryColor
                         MDLabel:
                             id: lock_time_label
-                            text: "02:17:21"
+                            text: ""
                             bold: True
                             font_style: "Body"
                             halign: 'center'
@@ -802,8 +811,7 @@ MDScreenManager:
                 MDButton:
                     style: "outlined"
                     pos_hint: {"center_x": 0.5}
-                    on_release: 
-                        print("Ayo...")
+                    on_release: app.on_end_session()
                     MDButtonText:
                         text: "Kết Thúc Phiên Học"
                         theme_text_color: "Custom"
@@ -811,12 +819,142 @@ MDScreenManager:
     
     MDScreen:
         name: "Login"
+        MDBoxLayout:
+            orientation: 'vertical'
+            MDBoxLayout:
+                orientation: 'vertical'
+                adaptive_height: True
+                padding: "40dp", "40dp"
+                spacing: "10dp"
+                md_bg_color: self.theme_cls.primaryColor
+                MDLabel:
+                    text: "Tạo Nhân Vật"
+                    bold: True
+                    font_style: "Title"
+                    halign: 'center'
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+                MDLabel:
+                    text: "Vận mệnh lặng lẽ gọi tên bạn. Nhưng trước khi hành trình bắt đầu, bạn phải trả lời một câu hỏi đơn giản..."
+                    font_style: 'Label'
+                    halign: 'center'
+                    italic: True
+                    adaptive_height: True
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+            MDBoxLayout:
+                orientation: 'vertical'
+                spacing: "20dp"
+                padding: "20dp"
+                MDLabel:
+                    text: "Tên của bạn là gì?"
+                    halign: 'center'
+                    bold: True
+                    adaptive_height: True
+                MDTextField:
+                    id: login_name_field
+                    hint_text: "Mô tả"
+                    mode: "outlined"
+                    MDTextFieldLeadingIcon:
+                        icon: "account"
+                    MDTextFieldHintText:
+                        text: "Nhập tên nhân vật..."
+                        font_style: "Label"
+                Widget:
+                MDLabel:
+                    text: "Ngoại hình của nhân vật bạn là gì?"
+                    halign: 'center'
+                    bold: True
+                MDBoxLayout:
+                    size_hint: None, None
+                    size: "125dp", "125dp"
+                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                    MDCard:
+                        style: "filled"
+                        radius: [10, ]
+                        padding: "8dp"
+                        size_hint_x: 0.45
+                        FitImage:
+                            id: login_avatar_image
+                            source: app.avatar_path
+                            radius: [10, ]
+                MDListItem:
+                    pos_hint: {"center_x": .5, "center_y": .5}
+                    on_release: app.PopupManager.show_avatar_dialog()
+                    MDListItemLeadingIcon:
+                        icon: "file-image"
+                    MDListItemSupportingText:
+                        text: "Chọn Ảnh Chân Dung"
+                        font_style: "Body"
+                MDButton:
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                    style: "outlined"
+                    on_release: app.confirm_login()
+                    MDButtonText:
+                        text: "Hoàn Tất"
+                Widget:
+            MDBoxLayout:
+                orientation: 'vertical'
+                adaptive_height: True
+                padding: "0dp", "60dp"
+                md_bg_color: self.theme_cls.primaryColor
 
     MDScreen:
         name: "Death"
-
+        md_bg_color: self.theme_cls.primaryColor
+        MDBoxLayout:
+            orientation: 'vertical'
+            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+            adaptive_height: True
+            spacing: "15dp"
+            padding: "50dp"
+            MDIcon:
+                icon: "emoticon-sad-outline"
+                pos_hint: {"center_x": 0.5}
+                theme_icon_color: "Custom"
+                icon_color: 1, 1, 1, 1
+                theme_font_size: "Custom"
+                font_size: "64dp"
+            MDLabel:
+                text: "Ôi Không..."
+                bold: True
+                font_style: "Title"
+                halign: 'center'
+                adaptive_height: True
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+            MDLabel:
+                text: "Bạn đã gục ngã... Nhưng chưa kết thúc!"
+                bold: True
+                font_style: "Body"
+                halign: 'center'
+                adaptive_height: True
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+            MDLabel:
+                text: "Bạn đã mất toàn bộ HP. Nhưng một anh hùng không được định nghĩa bởi số lần chiến thắng, mà bởi số lần họ đứng dậy sau khi ngã xuống."
+                font_style: "Label"
+                halign: 'center'
+                adaptive_height: True
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+            MDLabel:
+                text: "Vận mệnh của bạn vẫn chưa khép lại. Hãy hồi sinh và viết tiếp câu chuyện còn dang dở của mình."
+                font_style: "Label"
+                halign: 'center'
+                adaptive_height: True
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+            MDButton:
+                style: "elevated"
+                pos_hint: {"center_x": 0.5}
+                on_release: app.revive_character()
+                MDButtonText:
+                    text: "Hồi Sinh"
+                    theme_text_color: "Custom"
+                    text_color: self.theme_cls.primaryColor
 '''
-
 
 class GSS(MDApp):
     def __init__(self, **kwargs):
@@ -827,12 +965,13 @@ class GSS(MDApp):
         self.reward_system = Code.RewardSystem()
         self.analytics = Code.StudyAnalytics(self.quest_system)
         self.session_manager = Code.SessionManager(character=self.character, reward_system=self.reward_system, analytics=self.analytics)
+        self.avatar_path = f"https://picsum.photos/600/600"
         self.active_card = None
         self.queued_cards = []
         self.EnableSave = True
-        self.SessionStarted = False
-        
-        # Đảm bảo Arena được khởi tạo
+        self.HeroKilled = False
+        self.FullyLoaded = False
+        self.SessionStarted = None
         if not hasattr(self.session_manager, 'arena') or self.session_manager.arena is None:
             self.session_manager.arena = Code.Arena(player=self.character)
 
@@ -857,17 +996,18 @@ class GSS(MDApp):
         self.Sound_OnPurchase = SoundLoader.load('Sounds/On_Purchase.wav')
         self.Sound_Eat = SoundLoader.load('Sounds/Eat.wav')
         self.Sound_Equip = SoundLoader.load('Sounds/Equip.wav')
+        self.Sound_Hurt = SoundLoader.load('Sounds/Hurt.wav')
+        self.Sound_Pop = SoundLoader.load('Sounds/Pop.wav')
+        self.Sound_Ding = SoundLoader.load('Sounds/Ding.wav')
+        self.Sound_LevelUp = SoundLoader.load('Sounds/Level_Up.wav')
 
-        self.session_manager.create_comprehensive_demo_data()
-        self.character.name = "Anh Khôi"
+        SavePresent = self.session_manager.ImportSave()
+
         self.character.show_stats()
         self.shop = Code.Shop(self.character)
-        self.load_tabs()
-        # self.root.current = "Lock"
-        quest1 = Code.Quest(description="Viết phần Mở đầu báo cáo.", difficulty=2)
-        self.root.ids.lock_quest_grid.add_widget(UI.QuestLockCard(quest=quest1))
-        self.root.ids.lock_quest_grid.add_widget(UI.QuestLockCard(quest=quest1))
-        # self.updater = Clock.schedule_interval(self.update, 1)
+        self.load_tabs(SavePresent)
+        self.updater = Clock.schedule_interval(self.update, 1)
+        self.FullyLoaded = True
         if platform == "android":
             from android.permissions import request_permissions, check_permission, Permission # type: ignore
             from jnius import autoclass # type: ignore
@@ -901,20 +1041,66 @@ class GSS(MDApp):
         pass
 
     def update(self, dt):
-        pass
+        if self.HeroKilled == False and self.character.hp <= 0 and self.SessionStarted is None:
+            self.HeroKilled = True
+            self.root.current = "Death"
+            self.Sound_Hurt.play()
+        else:
+            cur = datetime.now()
+            time_now = datetime(1900, 1, 1).replace(hour=cur.hour, minute=cur.minute, second=cur.second)
+            if self.SessionStarted is None:
+                for session in self.session_manager.sessions[:]: # Lặp trên bản sao để xóa an toàn
+                    if (time_now <= session.end_time and time_now >= session.start_time) and session.status != "Finished":
+                        self.SessionStarted = session
+                        self.root.ids.lock_description_label.text = f"[b]Mô tả: [/b] {self.SessionStarted.goal_description}"
+                        self.root.ids.lock_schedule_label.text = f"[b]Chặng: [/b] {self.SessionStarted.start_time.strftime('%H:%M')} - {self.SessionStarted.end_time.strftime('%H:%M')}"
+                        self.root.ids.lock_quest_grid.clear_widgets()
+                        for quest in self.SessionStarted.linked_quests:
+                            QuestLockCard = UI.QuestLockCard(quest=quest)
+                            self.root.ids.lock_quest_grid.add_widget(QuestLockCard)
+                        self.SessionStarted.start_session()
+                        self.reward_system.public_messages = {'xp': 0, 'gold': 0}
+                        self.Sound_Ding.play()
+                        self.root.current = "Lock"
+                        return
+            else:
+                self.root.ids.lock_time_label.text = str(self.SessionStarted.end_time - time_now)
+                if self.root.current != "Lock":
+                    self.root.current = "Lock"
+                if time_now > self.SessionStarted.end_time and self.SessionStarted.status == "Running":
+                    self.on_end_session()
+    
+    def on_end_session(self):
+        if self.SessionStarted:
+            self.session_manager.end_session_manually(self.SessionStarted.session_id)
+            self.root.ids.schedule_grid.clear_widgets()
+            for session in self.session_manager.sessions:
+                self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
+            
+            self.update_achievements()
+            self.switch_main()
+            self.Sound_Ding.play()
+            self.PopupManager.show_session_finish_dialog(self.SessionStarted.rank, self.reward_system.public_messages['xp'], self.reward_system.public_messages['gold'])
+            self.SessionStarted = None
+        else:
+            print("Chưa có phiên học nào bắt đầu!")
+            self.switch_main()
 
-    def load_tabs(self):
-        # --- Load Saved Sessions ---
-        for session in self.session_manager.sessions:
-            self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
-        # --- Load Character Tab ---
-        self.update_inventories()
-        self.update_achievements()
-        self.reload_avatar()
+    def load_tabs(self, SavePresent: bool):
         # --- Load Shop Tab ---
         for item in self.shop.current_stock:
             self.root.ids.shop_grid.add_widget(UI.ItemShopCard(item=item))
-        self.switch_main()
+        if SavePresent:
+            # --- Load Saved Sessions ---
+            for session in self.session_manager.sessions:
+                self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
+            # --- Load Character Tab ---
+            self.update_inventories()
+            self.update_achievements()
+            self.reload_avatar()
+            self.switch_main()
+        else:
+            self.root.current = "Login"
 
     def update_inventories(self):
         self.root.ids.item_grid.clear_widgets()
@@ -937,12 +1123,13 @@ class GSS(MDApp):
                 file_path = os.path.join(avatar_dir, filename)
                 if os.path.isfile(file_path) or os.path.islink(file_path):
                     self.avatar_path = file_path
-            print("Loaded avatar from avatar directory.")
+            print(f"Loaded avatar from avatar directory {self.avatar_path}")
         except Exception as e:
             print(f"Failed to load avatar: {e}")
-        print(self.avatar_path)
         self.root.ids.character_card.imagePath = self.avatar_path
         self.root.ids.schedule_character_card.imagePath = self.avatar_path
+        self.root.ids.login_avatar_image.source = self.avatar_path
+        self.root.ids.login_avatar_image.reload()
 
     def switch_main(self):
         if self.session_manager.sessions:
@@ -966,8 +1153,9 @@ class GSS(MDApp):
 
         else: # Create Session
             self.active_card = None
-            self.root.ids.start_time_label.text = f"[b]Bắt Đầu: [/b] {(datetime.now()+timedelta(minutes=30)).strftime('%H')}:00"
-            self.root.ids.end_time_label.text = f"[b]Kết Thúc: [/b] {(datetime.now()+timedelta(minutes=90)).strftime('%H')}:00"
+            self.root.ids.description_field.text = ""
+            self.root.ids.start_time_label.text = f"[b]Bắt Đầu: [/b] {(datetime.now()+timedelta(minutes=10)).strftime('%H:%M')}"
+            self.root.ids.end_time_label.text = f"[b]Kết Thúc: [/b] {(datetime.now()+timedelta(minutes=70)).strftime('%H:%M')}"
             self.add_quest()
 
         self.root.current = "Edit"
@@ -984,17 +1172,32 @@ class GSS(MDApp):
         
         start_date = datetime.strptime(self.root.ids.start_time_label.text.split()[-1], "%H:%M") # Dạng: 1900-01-01 H:M (Không phân biệt ngày!)
         end_date = datetime.strptime(self.root.ids.end_time_label.text.split()[-1], "%H:%M") # Dạng: 1900-01-01 H:M (Không phân biệt ngày!)
-        if abs(start_date - end_date) < timedelta(minutes=5):
-            self.PopupManager.show_warning_dialog("Nhanh quá! Hãy dành ít nhất 5 phút cho phiên học của mình nha!")
+        if abs(start_date - end_date) < timedelta(minutes=1):
+            self.PopupManager.show_warning_dialog("Nhanh quá! Hãy dành ít nhất 1 phút cho phiên học của mình nha!")
             return
         
         session = self.session_manager.schedule_session(goal_description=description_text, start_time=start_date, end_time=end_date, linked_quests=quests)
+        if isinstance(session, list):
+            if self.active_card is None: # Handle time conflicts when there is no sessions being edited.
+                conflicting_session = session[0]
+                self.PopupManager.show_warning_dialog(f"Xung đột thời gian! Phiên học này mới trùng với chặng {conflicting_session.start_time.strftime('%H:%M')} - {conflicting_session.end_time.strftime('%H:%M')}.")
+                return
+            else:
+                session = session[1]
+                self.session_manager.sessions.append(session)
+        
         if self.active_card: # Edit
+            session.status = self.active_card.session.status
             self.session_manager.sessions.remove(self.active_card.session)
             self.active_card.session = session
         else: # Create
             self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
         print(self.session_manager.sessions)
+        self.queued_cards = []
+        self.active_card = None
+        self.switch_main()
+    
+    def cancel_session(self):
         self.queued_cards = []
         self.active_card = None
         self.switch_main()
@@ -1115,40 +1318,15 @@ class GSS(MDApp):
             self.root.ids.end_time_label.text = f"[b]Kết Thúc: [/b] {HM_Format}"
         time_picker_vertical.dismiss()
 
-    def walk_demo(self, instanceChip):
-        chip_text_widget = None
-        chip_icon_widget = None
-
-        for child in instanceChip.walk(restrict=True):
-            if isinstance(child, MDChipText):
-                chip_text_widget = child
-            elif isinstance(child, MDChipLeadingIcon):
-                chip_icon_widget = child
-        
-        if not chip_text_widget or not chip_icon_widget:
-            print("Widget Error: Could not find text or icon inside the chip.")
-            return
-
     def on_click_character(self):
         try:
             qr_path = self.session_manager.generate_qr_code()
             if qr_path:
                 self.PopupManager.show_character_dialog(qr_path)
-                print(f"QR code updated successfully at {qr_path}")
             else:
                 print("Failed to update QR code - no path or widget not found!")
         except Exception as e:
             print(f"Error updating QR code: {e}")
-
-    def debug_function(self):
-        self.character.gold += 5
-        self.character.hp -= 2
-        self.character.dex += 1
-        self.character.int += 2
-        self.character.luk += 3
-        self.character.available_points += 1
-        self.character.level += 1
-        self.on_reward()
 
     def on_purchase_item(self, ItemShopCard):
         if self.character.gold >= ItemShopCard.item.price:
@@ -1178,6 +1356,8 @@ class GSS(MDApp):
         self.Sound_Eat.play()
         self.update_inventories()
         ItemDialog.dismiss()
+        self.character.check_level_up()
+        self.character.validate_health()
 
     def on_unequip_item(self, item, ItemDialog):
         Flag = self.character.unequip(item)
@@ -1197,9 +1377,6 @@ class GSS(MDApp):
         self.update_inventories()
         ItemDialog.dismiss()
     
-    def on_reward(self, XP=0, Gold=0):
-        self.PopupManager.show_reward_snackbar(XP, Gold)
-    
     def handle_attribute_upgrade(self, type: str):
         self.character.available_points -= 1
         if type == "max_hp":
@@ -1213,70 +1390,66 @@ class GSS(MDApp):
 
     def update_player_labels(self, value, type: str):
         try:
-            AppDict = self.root.ids
-            if type == "name":
-                # Update character screen
-                AppDict.character_name_label.text = value
-                # Update schedule screen  
-                AppDict.schedule_character_name.text = value
-            elif type == "level":
-                # Update character screen
-                AppDict.character_level_label.text = f"Cấp độ: {value}"
-                # Update schedule screen
-                AppDict.schedule_character_level.text = f"Cấp độ: {value}"
-            elif type == "xp":
-                # Update XP progress
-                if hasattr(self.character, 'xp_to_next_level') and self.character.xp_to_next_level > 0:
-                    xp_progress = value / self.character.xp_to_next_level
-                    AppDict.character_xp_bar.value = xp_progress
-                    AppDict.character_xp_label.text = f"{value}/{self.character.xp_to_next_level} XP"
-            elif type == "xp_to_next_level":
-                # Update XP progress when max changes
-                if hasattr(self.character, 'xp') and value > 0:
-                    xp_progress = self.character.xp / value
-                    AppDict.character_xp_bar.value = xp_progress
-                    AppDict.character_xp_label.text = f"{self.character.xp}/{value} XP"
-            elif type == "hp":
-                # Update HP displays
-                if hasattr(self.character, 'max_hp') and self.character.max_hp > 0:
-                    hp_progress = value / self.character.max_hp
-                    # Character screen
-                    AppDict.character_hp_bar.value = hp_progress
-                    AppDict.character_hp_label.text = f"{value}/{self.character.max_hp}"
-                    # Schedule screen
-                    AppDict.schedule_character_hp_bar.value = hp_progress
-                    AppDict.schedule_character_hp_text.text = f"{value}/{self.character.max_hp}"
-                    # Shop screen
-                    AppDict.hp_bar_shop.value = hp_progress
-                    AppDict.hp_bar_shop_label.text = f"{value}/{self.character.max_hp}"
-            elif type == "max_hp":
-                # Update HP displays when max changes
-                if hasattr(self.character, 'hp') and value > 0:
-                    hp_progress = self.character.hp / value
-                    # Character screen
-                    AppDict.character_hp_bar.value = hp_progress
-                    AppDict.character_hp_label.text = f"{self.character.hp}/{value}"
-                    # Schedule screen
-                    AppDict.schedule_character_hp_bar.value = hp_progress
-                    AppDict.schedule_character_hp_text.text = f"{self.character.hp}/{value}"
-                    # Shop screen
-                    AppDict.hp_bar_shop.value = hp_progress
-                    AppDict.hp_bar_shop_label.text = f"{self.character.hp}/{value}"
-            elif type == "dex":
-                AppDict.character_dex_label.text = str(value)
-            elif type == "int":
-                AppDict.character_int_label.text = str(value)
-            elif type == "luk":
-                AppDict.character_luk_label.text = str(value)
-            elif type == "available_points":
-                AppDict.character_available_points_label.text = str(value)
-            elif type == "gold":
-                # Update gold displays
-                AppDict.character_gold_label.text = f"💰 {value}"
-                AppDict.schedule_character_gold.text = f"💰 {value} Vàng"
-                AppDict.gold_counter_label.text = str(value)
+          AppDict = self.root.ids
+          if type == "name":
+              AppDict.character_card.name = value
+              AppDict.schedule_character_card.name = value
+          elif type == "level":
+              AppDict.character_card.level = value
+              AppDict.schedule_character_card.level = value
+              if self.FullyLoaded:
+                  self.Sound_LevelUp.play()
+                  self.PopupManager.show_level_up_dialog()
+          elif type == "xp":
+              AppDict.character_card.xpCurrent = value
+              AppDict.schedule_character_card.xpCurrent = value
+          elif type == "xp_to_next_level":
+              AppDict.character_card.xpMax = value
+              AppDict.schedule_character_card.xpMax = value
+          elif type == "hp":
+              AppDict.character_card.hpCurrent = value
+              AppDict.schedule_character_card.hpCurrent = value
+              AppDict.hp_bar_shop.current = value
+          elif type == "max_hp":
+              AppDict.character_card.hpMax = value
+              AppDict.schedule_character_card.hpMax = value
+              AppDict.hp_bar_shop.max = value
+          elif type == "dex":
+              AppDict.character_card.dex = value
+          elif type == "int":
+              AppDict.character_card.int = value
+          elif type == "luk":
+              AppDict.character_card.luk = value
+          elif type == "available_points":
+              AppDict.character_card.available_points = value
+          elif type == "gold":
+              self.root.ids.gold_counter_card.goldAmount = value
+              self.root.ids.schedule_character_card.goldAmount = value
         except Exception as e:
             print(f"Error updating player labels: {e}")
+    
+    def confirm_login(self):
+        self.character.name = self.root.ids.login_name_field.text
+        self.switch_main()
+        self.PopupManager.show_welcome_dialog()
+    
+    def revive_character(self):
+        self.character.equipment = []
+        self.character.inventory = []
+        self.character.level = 1
+        self.character.xp = 0
+        self.character.xp_to_next_level = 100
+        self.character.hp = 50
+        self.character.max_hp = 50
+        self.character.dex = 1
+        self.character.int = 1 
+        self.character.luk = 1
+        self.character.available_points = 0
+        self.character.gold = 10
+
+        self.HeroKilled = False
+        self.update_inventories()
+        self.switch_main()
 
     def show_analytics_dialog(self):
         ReportString = self.analytics.generate_report()
@@ -1284,6 +1457,14 @@ class GSS(MDApp):
 
     def on_home_switch_tab(self, bar: MDNavigationBar, item: MDNavigationItem, item_icon: str, item_text: str):
         self.root.ids.screen_manager_home.current = item_text
+    
+    def trigger_confetti(self, amount: int = 40):
+        if self.root.current != "Main":
+            return
+        self.Sound_Pop.play()
+        for _ in range(amount):
+            particle = Popups.ConfettiParticle(pos=(Window.width/2, 0))
+            self.root.ids.effect_layer.add_widget(particle)
 
     def on_toggle_theme(self): # Switch to theme_cls.primary_palette
         self.theme_cls.theme_style = "Dark" if self.theme_cls.theme_style == "Light" else "Light"

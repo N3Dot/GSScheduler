@@ -88,10 +88,9 @@ class Character(EventDispatcher):
             self.level += 1
             self.available_points += 1
             # Lượng XP cần cho cấp tiếp theo tăng theo cấp số nhân
-            self.xp_to_next_level = int(self.xp_to_next_level * 1.5)
+            self.xp_to_next_level = int(self.xp_to_next_level * 1.25)
             
-            print(f"🎉 CHÚC MỪNG! {self.name} đã lên cấp {self.level}!")
-            print(f"   Bạn nhận được 1 điểm cộng. XP cần cho cấp tiếp theo: {self.xp_to_next_level}.")
+            print(f"{self.name} đã lên cấp {self.level}!")
         return leveled_up
 
     def add_achievement(self, achievement_id: str):
@@ -211,6 +210,7 @@ class RewardSystem:
     """
     def __init__(self):
         self.reward_types: List[str] = ["xp", "gold", "item", "achievement"]
+        self.public_messages = {'xp': 0, 'gold': 0}
 
     def calculate_xp(self, character: Character, difficulty: int) -> int:
         """Tính toán lượng XP nhận được dựa trên độ khó và chỉ số DEX."""
@@ -245,11 +245,13 @@ class RewardSystem:
             if reward_type == "xp":
                 amount = int(reward["amount"])
                 character.xp += amount
+                self.public_messages['xp'] += amount
                 print(f"   + {amount} XP.")
                 character.check_level_up() # Tự động kiểm tra lên cấp
             elif reward_type == "gold":
                 amount = int(reward["amount"])
                 character.gold += amount
+                self.public_messages['gold'] += amount
                 print(f"   + {amount} Vàng.")
             elif reward_type == "item":
                 item = reward.get("item_object")
@@ -348,6 +350,7 @@ class StudySession:
         
         self.status: str = 'Scheduled' #scheduled - running - finished
         self.rank: str = "N/A" #rank gồm a,b,c,d,f
+        self.active: bool = True #TODO
 
     def mark_quest_as_complete(self, quest_id: str):
         """Tìm và đánh dấu một quest trong các quest liên kết là đã hoàn thành."""
@@ -495,7 +498,10 @@ class StudyAnalytics:
 
     def log_session(self, session_data: Dict[str, Any]):
         """Ghi lại một phiên học đã kết thúc và gọi hàm cập nhật thống kê."""
-        self.session_history.append(session_data)
+        # !!!
+        # Gây lỗi khi ImportSave()
+        # !!!
+        # self.session_history.append(session_data)
         self._update_stats()
 
     def _update_stats(self):
@@ -525,13 +531,15 @@ class StudyAnalytics:
             stats['quest_completion_rate'] = (stats['quests_completed'] / total_quests) * 100
 
         self.aggregated_stats = stats
-        self.focus_streak = self._calculate_focus_streak()
+        # !!!
+        # !!! Gây lỗi nếu chạy !!!
+        # !!!
+        # self.focus_streak = self._calculate_focus_streak()
 
     def _calculate_focus_streak(self) -> int:
         """Tính số ngày học liên tiếp."""
         if not self.session_history: return 0
         
-        # Lấy danh sách các ngày học duy nhất và sắp xếp chúng
         study_dates = sorted(list(set(s['end_time'].date() for s in self.session_history)))
         if not study_dates: return 0
         
@@ -598,6 +606,8 @@ class SessionManager:
         self.arena = Arena(character)  # Thêm hệ thống đấu trường
         self.save_file_path = self._get_save_path()
         self.qr_image_path = self._get_qr_path()
+        self.public_rewards = [0, 0]
+        self.public_rank = ''
     
     def _get_save_path(self):
         """Xác định đường dẫn lưu file tùy theo platform"""
@@ -1080,13 +1090,12 @@ class SessionManager:
             end_time = to_basedate_time(end_time)
 
             # Kiểm tra trùng lặp thời gian với các session đã có
+            session = StudySession(goal_description, start_time, end_time, linked_quests)
             conflicting_session = self._check_time_conflict(start_time, end_time)
             if conflicting_session:
-                print(f"❌ XUNG ĐỘT THỜI GIAN: Phiên học mới trùng với '{conflicting_session.goal_description}'")
-                print(f"   Thời gian bị trùng: {conflicting_session.start_time.strftime('%H:%M')} - {conflicting_session.end_time.strftime('%H:%M')}")
-                return None
+                print(f"Xung đột thời gian: Phiên học mới trùng với '{conflicting_session.goal_description}'")
+                return [conflicting_session, session]
             
-            session = StudySession(goal_description, start_time, end_time, linked_quests)
             self.sessions.append(session)
             print(f"🗓️  ĐÃ LÊN LỊCH: '{session.goal_description}' lúc {session.start_time.strftime('%H:%M:%S')}")
             return session
@@ -1113,8 +1122,7 @@ class SessionManager:
             new_end_time_only += timedelta(days=1)
         
         for existing_session in self.sessions:
-            if existing_session.status == 'Finished':
-                continue  # Bỏ qua các session đã kết thúc
+            # if existing_session.status == 'Finished': Không bỏ qua các session đã kết thúc. Đây là trạng thái bật tắt.
             
             # Chuyển session hiện có về cùng định dạng
             existing_start = to_basedate_time(existing_session.start_time)
@@ -1125,13 +1133,13 @@ class SessionManager:
                 existing_end += timedelta(days=1)
             
             # Kiểm tra xung đột: hai khoảng thời gian overlap
-            if (new_start_time_only < existing_end and new_end_time_only > existing_start):
+            if (new_start_time_only <= existing_end and new_end_time_only >= existing_start):
                 return existing_session
-        
         return None
+
     def mark_quest_as_complete(self, session_id: str, quest_id: str):
         """
-        Đánh dấu một nhiệm vụ là đã hoàn thành trong một phiên học đang chạy.        Đây là "cầu nối" giữa giao diện người dùng và logic của StudySession.
+        Đánh dấu một nhiệm vụ là đã hoàn thành trong một phiên học đang chạy. Đây là "cầu nối" giữa giao diện người dùng và logic của StudySession.
         """
         session = self._find_session_by_id(session_id)
         if session and session.status == 'Running':
@@ -1217,14 +1225,6 @@ class SessionManager:
             if total_difficulty_failed > 0:
                 print(f"Phiên học kết thúc với hạng F, áp dụng hình phạt.")
                 self.reward_system.punish(self.character, {'type': 'hp', 'amount': total_difficulty_failed * 4})
-
-
-
-import base64
-import json
-import random
-from enum import Enum
-from typing import Dict, Any, List, Tuple, Optional
 
 
 class SkillType(Enum):
