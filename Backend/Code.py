@@ -1135,9 +1135,8 @@ class SessionManager:
             # Kiểm tra xung đột: hai khoảng thời gian overlap
             if (new_start_time_only <= existing_end and new_end_time_only >= existing_start):
                 return existing_session
-        
         return None
-    
+
     def mark_quest_as_complete(self, session_id: str, quest_id: str):
         """
         Đánh dấu một nhiệm vụ là đã hoàn thành trong một phiên học đang chạy. Đây là "cầu nối" giữa giao diện người dùng và logic của StudySession.

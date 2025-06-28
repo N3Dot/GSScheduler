@@ -19,6 +19,7 @@ else:
 from kivymd.app import MDApp
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.navigationbar import MDNavigationBar, MDNavigationItem
+from kivymd.uix.floatlayout import MDFloatLayout
 from Backend import Code, UI, Popups
 
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -252,14 +253,205 @@ MDScreenManager:
                             MDNavigationItemLabel:
                                 text: "Cửa Hàng"
                     MenuButton:
-                        on_release: navigation_drawer.set_state("toggle")
+                        on_release: app.root.ids.navigation_drawer.set_state("toggle")
                 # --- Trang Chủ End Section ---
                 # --- Đấu Trường Start Section ---
                 MDScreen:
                     name: "Arena"
-                    
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        MDBoxLayout:
+                            size_hint_y: None
+                            height: "50dp"
+                            padding: "50dp", "8dp", "8dp", "8dp"  # Thêm padding left 50dp để tránh nút menu
+                            spacing: "8dp"
+                            MDTextField:
+                                id: opponent_code_input
+                                hint_text: "Nhập mã đối thủ (Base64)"
+                                size_hint_x: 0.7
+                                size_hint_y: None
+                                height: "36dp"
+                                mode: "outlined"
+                            Button:
+                                text: "Load"
+                                size_hint_x: 0.15
+                                size_hint_y: None
+                                height: "36dp"
+                                on_press: app.load_arena_opponent()
+                            MDIconButton:
+                                icon: "dice-6"
+                                size_hint_x: 0.15
+                                size_hint_y: None
+                                height: "36dp"
+                                on_press: app.load_demo_opponent()
+                        FloatLayout:
+                            # Modern background image approach: Image widget as first child
+                            Image:
+                                source: "Art/Backgrounds/arena_bg.jpg" if app.check_background_exists() else ""
+                                allow_stretch: True
+                                keep_ratio: False
+                                fit_mode: "cover"
+                                size_hint: 1, 1
+                                pos_hint: {"x": 0, "y": 0}
+                                z: 0
+                            # Arena widgets above background
+                            MDCard:
+                                id: bot_character_card
+                                size_hint: None, None
+                                size: "140dp", "180dp"
+                                pos_hint: {"x": 0.65, "y": 0.65}
+                                elevation: 6
+                                radius: [12]
+                                md_bg_color: [0.8, 0.2, 0.2, 0.9]
+                                on_release: app.show_bot_stats_dialog()
+                                MDBoxLayout:
+                                    orientation: "vertical"
+                                    padding: "8dp"
+                                    spacing: "4dp"
+                                    AsyncImage:
+                                        id: bot_avatar
+                                        source: "https://picsum.photos/100/100?random=2"
+                                        size_hint: None, None
+                                        size: "80dp", "80dp"
+                                        pos_hint: {"center_x": 0.5}
+                                    MDLabel:
+                                        id: bot_name_label
+                                        text: "Bot - Lv.1"
+                                        font_style: "Title"
+                                        role: "small"
+                                        halign: "center"
+                                        adaptive_height: True
+                                        theme_text_color: "Custom"
+                                        text_color: [0, 0, 0, 1]
+                                    MDBoxLayout:
+                                        size_hint_y: None
+                                        height: "16dp"
+                                        spacing: "1dp"
+                                        MDLabel:
+                                            text: "HP:"
+                                            size_hint_x: None
+                                            width: "24dp"
+                                            font_style: "Body"
+                                            role: "small"
+                                            theme_text_color: "Custom"
+                                            text_color: [0, 0, 0, 1]
+                                        MDLabel:
+                                            id: bot_hp_label
+                                            text: "50/50"
+                                            font_style: "Body"
+                                            role: "small"
+                                            halign: "center"
+                                            adaptive_height: True
+                                            theme_text_color: "Custom"
+                                            text_color: [0, 0, 0, 1]
+                            MDCard:
+                                id: player_character_card
+                                size_hint: None, None
+                                size: "140dp", "180dp"
+                                pos_hint: {"x": 0.15, "y": 0.05}
+                                on_release: app.show_character_stats_dialog()
+                                elevation: 6
+                                radius: [12]
+                                md_bg_color: [0.2, 0.6, 0.9, 0.9]
+                                MDBoxLayout:
+                                    orientation: "vertical"
+                                    padding: "8dp"
+                                    spacing: "4dp"
+                                    AsyncImage:
+                                        id: player_avatar
+                                        source: "https://picsum.photos/100/100?random=1"
+                                        size_hint: None, None
+                                        size: "80dp", "80dp"
+                                        pos_hint: {"center_x": 0.5}
+                                    MDLabel:
+                                        id: player_name_label
+                                        text: "Player - Lv.1"
+                                        font_style: "Title"
+                                        role: "small"
+                                        halign: "center"
+                                        adaptive_height: True
+                                        theme_text_color: "Primary"
+                                    MDBoxLayout:
+                                        size_hint_y: None
+                                        height: "16dp"
+                                        spacing: "1dp"
+                                        MDLabel:
+                                            text: "HP:"
+                                            size_hint_x: None
+                                            width: "24dp"
+                                            font_style: "Body"
+                                            role: "small"
+                                            theme_text_color: "Primary"
+                                            halign: "center"
+                                        MDLabel:
+                                            id: player_hp_label
+                                            text: "50/50"
+                                            font_style: "Body"
+                                            role: "small"
+                                            halign: "center"
+                                            adaptive_height: True
+                                            theme_text_color: "Primary"
+                            MDLabel:
+                                text: " VS "
+                                font_style: "Headline"
+                                role: "large"
+                                halign: "center"
+                                pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                                theme_text_color: "Custom"
+                                text_color: [0, 0, 0, 1]
+                        BoxLayout:
+                            size_hint_y: None
+                            height: "60dp"
+                            spacing: "8dp"
+                            Button:
+                                text: "Attack"
+                                background_normal: ""
+                                background_color: 0.95, 0.95, 0.95, 1
+                                color: 0, 0, 0, 1
+                                font_size: "18sp"
+                                bold: True
+                                on_release: app.on_arena_skill_selected("attack")
+                            Button:
+                                text: "Defend"
+                                background_normal: ""
+                                background_color: 0.92, 0.95, 1, 1
+                                color: 0, 0, 0, 1
+                                font_size: "18sp"
+                                bold: True
+                                on_release: app.on_arena_skill_selected("defend")
+                            Button:
+                                text: "Magic"
+                                background_normal: ""
+                                background_color: 0.95, 0.92, 1, 1
+                                color: 0, 0, 0, 1
+                                font_size: "18sp"
+                                bold: True
+                                on_release: app.on_arena_skill_selected("magic")
+                        BoxLayout:
+                            size_hint_y: None
+                            height: "60dp"
+                            spacing: "8dp"
+                            Button:
+                                id: start_battle_btn
+                                text: "Bắt Đầu Trận Đấu"
+                                background_normal: ""
+                                background_color: 0.92, 1, 0.92, 1
+                                color: 0, 0, 0, 1
+                                font_size: "18sp"
+                                bold: True
+                                on_press: app.start_arena_battle()
+                            Button:
+                                id: reset_battle_btn
+                                text: "Reset"
+                                background_normal: ""
+                                background_color: 1, 0.92, 0.92, 1
+                                color: 0, 0, 0, 1
+                                font_size: "18sp"
+                                bold: True
+                                on_press: app.reset_arena_battle()
+                        
                     MenuButton:
-                        on_release: navigation_drawer.set_state("toggle")
+                        on_release: app.root.ids.navigation_drawer.set_state("toggle")
                 # --- Đấu Trường End Section ---
                 # --- Cài Đặt Start Section ---
                 MDScreen:
@@ -295,7 +487,7 @@ MDScreenManager:
                                 MDListItemSupportingText:
                                     text: "[color=ff4444]Xóa Dữ Liệu[/color]"
                     MenuButton:
-                        on_release: navigation_drawer.set_state("toggle")
+                        on_release: app.root.ids.navigation_drawer.set_state("toggle")
                 # --- Cài Đặt End Section ---
 
             MDNavigationDrawer:
@@ -780,6 +972,8 @@ class GSS(MDApp):
         self.HeroKilled = False
         self.FullyLoaded = False
         self.SessionStarted = None
+        if not hasattr(self.session_manager, 'arena') or self.session_manager.arena is None:
+            self.session_manager.arena = Code.Arena(player=self.character)
 
     def build(self):
         self.theme_cls.theme_style = "Light"
@@ -1195,41 +1389,44 @@ class GSS(MDApp):
             self.character.luk += 1
 
     def update_player_labels(self, value, type: str):
-        AppDict = self.root.ids
-        if type == "name":
-            AppDict.character_card.name = value
-            AppDict.schedule_character_card.name = value
-        elif type == "level":
-            AppDict.character_card.level = value
-            AppDict.schedule_character_card.level = value
-            if self.FullyLoaded:
-                self.Sound_LevelUp.play()
-                self.PopupManager.show_level_up_dialog()
-        elif type == "xp":
-            AppDict.character_card.xpCurrent = value
-            AppDict.schedule_character_card.xpCurrent = value
-        elif type == "xp_to_next_level":
-            AppDict.character_card.xpMax = value
-            AppDict.schedule_character_card.xpMax = value
-        elif type == "hp":
-            AppDict.character_card.hpCurrent = value
-            AppDict.schedule_character_card.hpCurrent = value
-            AppDict.hp_bar_shop.current = value
-        elif type == "max_hp":
-            AppDict.character_card.hpMax = value
-            AppDict.schedule_character_card.hpMax = value
-            AppDict.hp_bar_shop.max = value
-        elif type == "dex":
-            AppDict.character_card.dex = value
-        elif type == "int":
-            AppDict.character_card.int = value
-        elif type == "luk":
-            AppDict.character_card.luk = value
-        elif type == "available_points":
-            AppDict.character_card.available_points = value
-        elif type == "gold":
-            self.root.ids.gold_counter_card.goldAmount = value
-            self.root.ids.schedule_character_card.goldAmount = value
+        try:
+          AppDict = self.root.ids
+          if type == "name":
+              AppDict.character_card.name = value
+              AppDict.schedule_character_card.name = value
+          elif type == "level":
+              AppDict.character_card.level = value
+              AppDict.schedule_character_card.level = value
+              if self.FullyLoaded:
+                  self.Sound_LevelUp.play()
+                  self.PopupManager.show_level_up_dialog()
+          elif type == "xp":
+              AppDict.character_card.xpCurrent = value
+              AppDict.schedule_character_card.xpCurrent = value
+          elif type == "xp_to_next_level":
+              AppDict.character_card.xpMax = value
+              AppDict.schedule_character_card.xpMax = value
+          elif type == "hp":
+              AppDict.character_card.hpCurrent = value
+              AppDict.schedule_character_card.hpCurrent = value
+              AppDict.hp_bar_shop.current = value
+          elif type == "max_hp":
+              AppDict.character_card.hpMax = value
+              AppDict.schedule_character_card.hpMax = value
+              AppDict.hp_bar_shop.max = value
+          elif type == "dex":
+              AppDict.character_card.dex = value
+          elif type == "int":
+              AppDict.character_card.int = value
+          elif type == "luk":
+              AppDict.character_card.luk = value
+          elif type == "available_points":
+              AppDict.character_card.available_points = value
+          elif type == "gold":
+              self.root.ids.gold_counter_card.goldAmount = value
+              self.root.ids.schedule_character_card.goldAmount = value
+        except Exception as e:
+            print(f"Error updating player labels: {e}")
     
     def confirm_login(self):
         self.character.name = self.root.ids.login_name_field.text
@@ -1272,5 +1469,235 @@ class GSS(MDApp):
     def on_toggle_theme(self): # Switch to theme_cls.primary_palette
         self.theme_cls.theme_style = "Dark" if self.theme_cls.theme_style == "Light" else "Light"
     
+    # Arena Methods
+    def load_arena_opponent(self):
+        """Load đối thủ từ mã base64"""
+        code_input = self.root.ids.opponent_code_input
+        base64_code = code_input.text.strip()
+        
+        if not base64_code:
+            self.PopupManager.show_info_snackbar("Vui lòng nhập mã đối thủ!")
+            return
+        
+        try:
+            success = self.session_manager.arena.load_opponent(base64_code)
+            if success:
+                self.update_arena_display()
+                self.PopupManager.show_info_snackbar(f"Đã load đối thủ: {self.session_manager.arena.bot.name}")
+                code_input.text = ""
+            else:
+                self.PopupManager.show_info_snackbar("Không thể load đối thủ từ mã này!")
+        except Exception as e:
+            self.PopupManager.show_info_snackbar(f"Lỗi: {str(e)}")
+    
+    def load_demo_opponent(self):
+        """Load đối thủ demo ngẫu nhiên"""
+        demo_code = self.session_manager.arena.generate_demo_opponent()
+        success = self.session_manager.arena.load_opponent(demo_code)
+        if success:
+            self.update_arena_display()
+            self.PopupManager.show_info_snackbar(f"Đã load đối thủ demo: {self.session_manager.arena.bot.name}")
+    
+    def start_arena_battle(self):
+        """Bắt đầu trận đấu"""
+        if not self.session_manager.arena.bot:
+            self.PopupManager.show_info_snackbar("Vui lòng load đối thủ trước!")
+            return
+        
+        success = self.session_manager.arena.start_battle()
+        if success:
+            self.update_arena_display()
+            self.update_arena_ui_state(True)
+            self.PopupManager.show_battle_message("⚔️ Trận đấu bắt đầu! Chọn skill để chiến đấu!")
+            Clock.schedule_once(lambda dt: self.PopupManager.show_info_snackbar("Trận đấu đã bắt đầu! Chọn skill để tấn công!"), 0.5)
+    
+    def reset_arena_battle(self):
+        """Reset trận đấu"""
+        self.session_manager.arena.battle_active = False
+        self.session_manager.arena.battle_log = []
+        self.session_manager.arena.turn_count = 0
+        self.update_arena_display()
+        self.update_arena_ui_state(False)
+        self.PopupManager.show_info_snackbar("Đã reset trận đấu!")
+    
+    def on_arena_skill_selected(self, skill_type):
+        """Xử lý khi người chơi chọn skill"""
+        if not self.session_manager.arena.battle_active:
+            self.PopupManager.show_info_snackbar("Trận đấu chưa bắt đầu!")
+            return
+        
+        # Import enum
+        from Backend.Code import SkillType
+        skill_map = {
+            "attack": SkillType.ATTACK,
+            "defend": SkillType.DEFEND, 
+            "magic": SkillType.MAGIC
+        }
+        
+        if skill_type not in skill_map:
+            return
+        
+        # Hiệu ứng rung cho player khi thực hiện skill tấn công hoặc phép
+        if skill_type in ["attack", "magic"]:
+            self.shake_character(is_player=True)
+        
+        # Thực hiện lượt đấu
+        result = self.session_manager.arena.execute_turn(skill_map[skill_type])
+        
+        # Hiển thị kết quả bằng popup messages với delay
+        messages = result.get("messages", [])
+        for i, message in enumerate(messages):
+            Clock.schedule_once(
+                lambda dt, msg=message: self.PopupManager.show_battle_message(msg), 
+                i * 0.8  # Delay 0.8s giữa các message
+            )
+            
+            # Hiệu ứng rung cho bot khi bot tấn công
+            if "dùng phép" in message or "đánh thường" in message:
+                if self.session_manager.arena.bot and self.session_manager.arena.bot.name in message:
+                    Clock.schedule_once(lambda dt: self.shake_character(is_player=False), i * 0.8 + 0.3)
+        
+        # Cập nhật hiển thị
+        self.update_arena_display()
+        
+        # Kiểm tra kết thúc trận đấu
+        if result.get("battle_ended", False):
+            winner = result.get("winner")
+            delay_time = len(messages) * 0.8 + 1.0  # Đợi tất cả messages hiển thị xong
+            
+            # Luôn dùng thưởng min(10, 1+level bot)
+            arena_xp = min(10, 1 + self.session_manager.arena.bot.level)
+            arena_gold = min(10, 1 + self.session_manager.arena.bot.level)
+            
+            if winner == "player":
+                Clock.schedule_once(
+                    lambda dt: self.PopupManager.show_battle_result_dialog("player", result.get("messages", []), arena_xp, arena_gold), 
+                    delay_time
+                )
+                self.character.xp += arena_xp
+                self.character.gold += arena_gold
+                self.character.check_level_up()
+                Clock.schedule_once(lambda dt: self.on_reward(arena_xp, arena_gold), delay_time + 1.5)
+            else:
+                Clock.schedule_once(
+                    lambda dt: self.PopupManager.show_battle_result_dialog("bot", result.get("messages", [])), 
+                    delay_time
+                )
+            
+            Clock.schedule_once(lambda dt: self.update_arena_ui_state(False), delay_time + 1.0)
+    
+    def show_character_stats_dialog(self):
+        """Show player character stats in a snackbar popup"""
+        stats_text = (f"{self.character.name} (Lv.{self.character.level})\n"
+                     f"HP: {self.character.hp}/{self.character.max_hp}\n"
+                     f"DEX: {self.character.dex} | INT: {self.character.int} | LUK: {self.character.luk}")
+        
+        self.PopupManager.show_info_snackbar(stats_text)
+    
+    def show_bot_stats_dialog(self):
+        """Show bot character stats in a snackbar popup"""
+        if not self.session_manager.arena.bot:
+            self.PopupManager.show_info_snackbar("Chưa có đối thủ!")
+            return
+        
+        bot = self.session_manager.arena.bot
+        stats_text = (f"{bot.name} (Lv.{bot.level})\n"
+                     f"HP: {bot.hp}/{bot.max_hp}\n"
+                     f"DEX: {bot.dex} | INT: {bot.int_stat} | LUK: {bot.luk}")
+        
+        self.PopupManager.show_info_snackbar(stats_text)
+    
+    def update_arena_ui_state(self, battle_active):
+        """Update arena UI buttons based on battle state"""
+        try:
+            start_btn = self.root.ids.start_battle_btn
+            reset_btn = self.root.ids.reset_battle_btn
+            
+            if battle_active:
+                start_btn.disabled = True
+                start_btn.text = "Trận đấu đang diễn ra..."
+                reset_btn.disabled = False
+            else:
+                start_btn.disabled = False
+                start_btn.text = "Bắt Đầu Trận Đấu"
+                reset_btn.disabled = False
+        except Exception as e:
+            print(f"Error updating arena UI state: {e}")
+    
+    def shake_character(self, is_player=True):
+        """Add shake animation effect to character cards"""
+        try:
+            from kivy.animation import Animation
+            
+            if is_player:
+                card = self.root.ids.player_character_card
+            else:
+                card = self.root.ids.bot_character_card
+            
+            # Create shake animation
+            shake_anim = (Animation(x=card.x + 5, duration=0.05) + 
+                         Animation(x=card.x - 5, duration=0.05) +
+                         Animation(x=card.x + 3, duration=0.05) +
+                         Animation(x=card.x, duration=0.05))
+            
+            shake_anim.start(card)
+        except Exception as e:
+            # Create shake animation
+            shake_anim = (Animation(x=card.x + 5, duration=0.05) + 
+                         Animation(x=card.x - 5, duration=0.05) +
+                         Animation(x=card.x + 3, duration=0.05) +
+                         Animation(x=card.x, duration=0.05))
+            
+            shake_anim.start(card)
+        except Exception as e:
+            print(f"Error creating shake animation: {e}")
+    
+    def update_arena_display_from_demo(self):
+        """Load a random demo bot from Code.generate_demo_base64_codes and update arena display."""
+        try:
+            from Backend.Code import generate_demo_base64_codes
+            demo_codes = generate_demo_base64_codes()
+            if not demo_codes:
+                self.PopupManager.show_info_snackbar("Không có dữ liệu demo!")
+                return
+            import random
+            demo_code = random.choice(demo_codes)
+            success = self.session_manager.arena.load_opponent(demo_code)
+            if success:
+                self.update_arena_display()
+                bot = self.session_manager.arena.bot
+                self.PopupManager.show_info_snackbar(f"Đã load demo bot: {bot.name}")
+            else:
+                self.PopupManager.show_info_snackbar("Không thể load bot demo!")
+        except Exception as e:
+            self.PopupManager.show_info_snackbar(f"Lỗi demo: {e}")
+    
+    def update_arena_display(self):
+        """Cập nhật hiển thị thông tin nhân vật trong arena với stats thật"""
+        try:
+            AppDict = self.root.ids
+            # Player - cập nhật với stats thật từ character
+            AppDict.player_name_label.text = f"{self.character.name} - Lv.{self.character.level}"
+            AppDict.player_hp_label.text = f"{self.character.hp}/{self.character.max_hp}"
+            
+            # Cập nhật avatar player với avatar thật
+            if hasattr(self, 'avatar_path'):
+                AppDict.player_avatar.source = self.avatar_path
+            
+            # Bot - cập nhật khi có dữ liệu, giữ nguyên default nếu chưa load
+            if self.session_manager.arena.bot:
+                bot = self.session_manager.arena.bot
+                AppDict.bot_name_label.text = f"{bot.name} - Lv.{bot.level}"
+                AppDict.bot_hp_label.text = f"{bot.hp}/{bot.max_hp}"
+            else:
+                # Hiển thị default khi chưa có bot
+                AppDict.bot_name_label.text = "??? - Lv.?"
+                AppDict.bot_hp_label.text = "?/?"
+        except Exception as e:
+            print(f"Error updating arena display: {e}")
+
+    def check_background_exists(self):
+        import os
+        return os.path.exists("Art/Backgrounds/arena_bg.jpg")
 
 GSS().run()

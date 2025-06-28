@@ -1,0 +1,75 @@
+<ArenaCharacterDisplay@MDBoxLayout>:
+    orientation: "horizontal"
+    size_hint_y: None
+    height: "120dp"
+    spacing: "8dp"
+    padding: "8dp"
+    
+    # Avatar
+    FitImage:
+        source: root.avatar_path
+        size_hint: None, None
+        size: "100dp", "100dp"
+        radius: [8]
+    
+    # Stats layout
+    MDBoxLayout:
+        orientation: "vertical" 
+        spacing: "4dp"
+        
+        MDLabel:
+            text: f"{root.character_name} - Lv.{root.level}"
+            font_style: "Title"
+            role: "medium"
+            adaptive_height: True
+            
+        # HP Bar
+        MDBoxLayout:
+            size_hint_y: None
+            height: "20dp"
+            orientation: "horizontal"
+            spacing: "8dp"
+            
+            MDLabel:
+                text: "HP:"
+                size_hint_x: None
+                width: "30dp"
+                font_style: "Body"
+                role: "small"
+                
+            BarWide:
+                current: root.hp_current
+                max: root.hp_max
+                size_hint_y: None
+                height: "12dp"
+                
+            MDLabel:
+                text: f"{root.hp_current}/{root.hp_max}"
+                size_hint_x: None
+                width: "60dp"
+                font_style: "Body"
+                role: "small"
+        
+        # Stats
+        MDGridLayout:
+            cols: 3
+            spacing: "4dp"
+            adaptive_height: True
+            
+            MDLabel:
+                text: f"DEX: {root.dex}"
+                font_style: "Body"
+                role: "small"
+                adaptive_height: True
+                
+            MDLabel:
+                text: f"INT: {root.int_stat}"
+                font_style: "Body"
+                role: "small"
+                adaptive_height: True
+                
+            MDLabel:
+                text: f"LUK: {root.luk_stat}"
+                font_style: "Body"
+                role: "small"
+                adaptive_height: True

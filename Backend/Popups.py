@@ -465,6 +465,104 @@ class Popup:
     def file_manager_exit(self, *args):
         self.file_manager.close()
 
+    def show_info_snackbar(self, message: str):
+        """Hiển thị thông báo snackbar đơn giản"""
+        MDSnackbar(
+            MDSnackbarText(text=message),
+            duration=2, 
+            y=dp(90), 
+            orientation="horizontal", 
+            pos_hint={"center_x": 0.5}, 
+            size_hint_x=0.8,
+            background_color=self.app.theme_cls.primaryColor,
+        ).open()
+
+    def show_battle_message(self, message: str, message_type: str = "info"):
+        """Hiển thị thông báo battle dạng popup với hiệu ứng"""
+        from kivymd.uix.snackbar import MDSnackbar, MDSnackbarText
+        
+        # Chọn màu dựa trên loại thông báo
+        if "thắng" in message.lower() or "chiến thắng" in message.lower():
+            bg_color = [0.2, 0.7, 0.2, 1]  # Xanh lá
+        elif "thua" in message.lower() or "thất bại" in message.lower():
+            bg_color = [0.7, 0.2, 0.2, 1]  # Đỏ
+        elif "sát thương" in message.lower():
+            bg_color = [0.9, 0.5, 0.1, 1]  # Cam
+        elif "thủ" in message.lower():
+            bg_color = [0.2, 0.5, 0.9, 1]  # Xanh dương
+        else:
+            bg_color = self.app.theme_cls.primaryColor
+        
+        snackbar = MDSnackbar(
+            MDSnackbarText(text=message),
+            duration=2,
+            y="200dp",
+            orientation="horizontal",
+            pos_hint={"center_x": 0.5},
+            size_hint_x=0.8,
+            background_color=bg_color,
+        )
+        snackbar.open()
+    
+    def show_battle_result_dialog(self, winner: str, messages: list, xp_reward: int = None, gold_reward: int = None):
+        """Hiển thị dialog kết quả trận đấu, chỉ hiện thưởng đúng công thức min(10, 1+level bot) nếu thắng"""
+        import os
+        from kivymd.uix.dialog import MDDialog, MDDialogIcon, MDDialogHeadlineText, MDDialogSupportingText, MDDialogContentContainer, MDDialogButtonContainer
+        from kivymd.uix.button import MDButton, MDButtonText
+        from kivymd.uix.boxlayout import MDBoxLayout
+        from kivymd.uix.label import MDLabel
+        from kivy.uix.widget import Widget
+        
+        # Tạo nội dung dialog
+        content_box = MDBoxLayout(orientation="vertical", spacing="8dp", adaptive_height=True)
+        for msg in messages[-5:]:  # Chỉ hiện 5 message cuối, bỏ qua các dòng thưởng backend
+            if not (msg.startswith("Thưởng:") and winner == "player"):  # Bỏ dòng thưởng backend nếu là người chơi thắng
+                label = MDLabel(
+                    text=msg,
+                    font_style="Body",
+                    role="small",
+                    adaptive_height=True,
+                    theme_text_color="Secondary"
+                )
+                content_box.add_widget(label)
+        
+        # Nếu thắng, luôn hiện thưởng đúng công thức
+        if winner == "player" and xp_reward is not None and gold_reward is not None:
+            reward_label = MDLabel(
+                text=f"[b]Thưởng:[/b] +{xp_reward} XP, +{gold_reward} Vàng!",
+                font_style="Body",
+                role="medium",
+                adaptive_height=True,
+                theme_text_color="Custom",
+                text_color=(0.2, 0.6, 0.2, 1),
+                markup=True
+            )
+            content_box.add_widget(reward_label)
+        
+        icon = "trophy" if winner == "player" else "emoticon-sad"
+        title = "🎉 Chiến Thắng!" if winner == "player" else "😔 Thất Bại"
+        
+        dialog = MDDialog(
+            MDDialogIcon(icon=icon),
+            MDDialogHeadlineText(text=title),
+            MDDialogSupportingText(text="Kết quả trận đấu:"),
+            MDDialogContentContainer(
+                content_box,
+                orientation="vertical",
+            ),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(
+                    MDButtonText(text="Đóng"),
+                    style="outlined",
+                    on_release=lambda x: dialog.dismiss(),
+                ),
+                Widget(),
+            ),
+        )
+        dialog.open()
+
+        
 class ConfettiParticle(Widget):
     def __init__(self, pos, **kwargs):
         super().__init__(**kwargs)
