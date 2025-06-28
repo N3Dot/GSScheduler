@@ -1,28 +1,44 @@
 {
   "character": {
-    "name": "m",
+    "name": "k",
     "level": 1,
     "xp": 0,
     "xp_to_next_level": 100,
-    "hp": 39,
+    "hp": 50,
     "max_hp": 50,
     "gold": 10,
     "dex": 1,
     "int": 1,
     "luk": 1,
     "available_points": 0,
-    "unlocked_achievements": [
-      "BuocDiDauTien"
-    ],
+    "unlocked_achievements": [],
     "inventory": [],
     "equipment": []
   },
   "analytics": {
-    "session_history": [
-      {
-        "session_id": "8ffd3ea4-f47f-4991-af4c-70dff083d84a",
-        "goal": "",
-        "status": "Finished",
-        "start_time": "1900-01-01T17:50:00",
-        "end_time": "1900-01-01T19:01:00",
-        "actual_start_time": 
+    "session_history": [],
+    "aggregated_stats": {
+      "total_study_seconds": 0,
+      "total_study_hours": 0,
+      "total_sessions": 0,
+      "rank_counts": {
+        "S": 0,
+        "A": 0,
+        "B": 0,
+        "C": 0,
+        "F": 0
+      },
+      "average_session_duration_minutes": 0,
+      "average_rank_score": 0,
+      "quests_completed": 0,
+      "quest_completion_rate": 0
+    },
+    "focus_streak": 0
+  },
+  "sessions": [],
+  "quest_system": {
+    "active_quests": []
+  },
+  "save_timestamp": "2025-06-28T21:37:27.675739",
+  "version": "1.0"
+}

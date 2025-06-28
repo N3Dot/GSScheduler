@@ -34,7 +34,10 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.segmentedbutton import MDSegmentedButton, MDSegmentedButtonItem, MDSegmentButtonLabel
 from kivymd.uix.textfield import MDTextField, MDTextFieldHintText
 from kivymd.uix.pickers import MDTimePickerDialVertical
-
+from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogButtonContainer, MDDialogContentContainer
+from kivymd.uix.textfield import MDTextField, MDTextFieldHintText
+from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.boxlayout import MDBoxLayout
 KV = '''
 <MenuButton@MDFabButton>:
     pos_hint: {"x": 0.02, "top": 0.99}
@@ -1485,12 +1488,8 @@ class GSS(MDApp):
         self.PopupManager.show_analytics_dialog(ReportString)
 
     def show_analytics_from_code_dialog(self):
-        from kivymd.uix.dialog import MDDialog, MDDialogHeadlineText, MDDialogButtonContainer, MDDialogContentContainer
-        from kivymd.uix.textfield import MDTextField, MDTextFieldHintText
-        from kivymd.uix.button import MDButton, MDButtonText
-        from kivymd.uix.boxlayout import MDBoxLayout
+       
 
-        # Tạo textfield đúng chuẩn KivyMD 2.0.0
         text_field = MDTextField(
             MDTextFieldHintText(text="Mã QR hoặc mã base64...", font_style="Label"),
             id="analytics_code_field",
@@ -1506,37 +1505,47 @@ class GSS(MDApp):
                 self.PopupManager.show_warning_dialog("Vui lòng nhập mã QR/Base64!")
                 return
             try:
-                # Thử load toàn bộ dữ liệu save game từ QR code
-                success = self.session_manager.import_from_qr_data(code)
-                if success:
-                    # Reload UI với dữ liệu mới
-                    self.update_inventories()
-                    self.update_achievements()
-                    self.reload_avatar()
-                    
-                    # Clear và reload sessions
-                    self.root.ids.schedule_grid.clear_widgets()
-                    for session in self.session_manager.sessions:
-                        self.root.ids.schedule_grid.add_widget(UI.ScheduleCard(session=session))
-                    
-                    # Hiển thị analytics report của dữ liệu vừa load
-                    report = self.analytics.generate_report()
-                    self.PopupManager.show_analytics_dialog(report)
-                    self.analytics_code_dialog.dismiss()
-                    
-                    # Thông báo thành công
-                    character_name = self.character.name
-                    self.PopupManager.show_info_snackbar(f"Đã load dữ liệu từ mã QR: {character_name}")
-                else:
+                # Tạo session manager tạm để import dữ liệu QR, KHÔNG ghi đè dữ liệu hiện tại
+                temp_session_manager = Code.SessionManager(
+                    character=Code.Character("Temp"),
+                    reward_system=Code.RewardSystem(),
+                    analytics=Code.StudyAnalytics(Code.QuestSystem())
+                )
+                success = temp_session_manager.import_from_qr_data(code)
+                if not success:
                     self.PopupManager.show_warning_dialog("Mã QR không hợp lệ hoặc không đúng định dạng!")
-            except Exception as e:
-                self.PopupManager.show_warning_dialog(f"Lỗi: {e}")
+                    return
 
-        # Layout cho textfield và nút load
+                imported_character = temp_session_manager.character
+                imported_analytics = temp_session_manager.analytics
+
+                # Tạo report từ dữ liệu đã import
+                report = imported_analytics.generate_report()
+                character_info = f"""
+=== THÔNG TIN NHÂN VẬT ĐÃ IMPORT ===
+Tên: {imported_character.name}
+Level: {imported_character.level}
+HP: {imported_character.hp}/{imported_character.max_hp}
+Stats: DEX:{imported_character.dex} | INT:{imported_character.int} | LUK:{imported_character.luk}
+Vàng: {imported_character.gold}
+Thành tích: {len(imported_character.unlocked_achievements)}
+Trang bị: {len(imported_character.equipment)}
+Kho đồ: {len(imported_character.inventory)}
+
+"""
+                full_report = character_info + report
+
+                self.PopupManager.show_analytics_dialog(full_report)
+                self.analytics_code_dialog.dismiss()
+                self.PopupManager.show_info_snackbar(f"Đã xem dữ liệu của: {imported_character.name}")
+
+            except Exception as e:
+                self.PopupManager.show_warning_dialog(f"Lỗi khi đọc mã: {e}")
+
         content = MDBoxLayout(
             text_field,
             MDButton(
-                MDButtonText(text="Load"),
+                MDButtonText(text="Xem"),
                 style="filled",
                 size_hint_x=0.15,
                 size_hint_y=None,
@@ -1549,7 +1558,7 @@ class GSS(MDApp):
         )
 
         self.analytics_code_dialog = MDDialog(
-            MDDialogHeadlineText(text="Load Dữ Liệu Từ Mã QR"),
+            MDDialogHeadlineText(text="Xem Dữ Liệu Từ Mã QR"),
             MDDialogContentContainer(content),
             MDDialogButtonContainer(
                 MDButton(MDButtonText(text="Đóng"), style="outlined", on_release=lambda x: self.analytics_code_dialog.dismiss()),
@@ -1565,7 +1574,7 @@ class GSS(MDApp):
             return
         self.Sound_Pop.play()
         for _ in range(amount):
-            particle = Popups.ConfettiParticle(pos=(Window.width/2, 0))
+            particle = UI.ConfettiParticle(pos=(Window.width/2, 0))  # Đổi từ Popups.ConfettiParticle
             self.root.ids.effect_layer.add_widget(particle)
 
     def on_toggle_theme(self): # Switch to theme_cls.primary_palette
@@ -1606,7 +1615,7 @@ class GSS(MDApp):
             self.PopupManager.show_info_snackbar("Vui lòng load đối thủ trước!")
             return
         
-        success = self.session_manager.arena.start_battle()
+        success = self.session_manager.arena.start_battle(self.character)
         if success:
             self.update_arena_display()
             self.update_arena_ui_state(True)
@@ -1673,7 +1682,7 @@ class GSS(MDApp):
             
             if winner == "player":
                 Clock.schedule_once(
-                    lambda dt: self.PopupManager.show_battle_result_dialog("player", result.get("messages", []), arena_xp, arena_gold), 
+                    lambda dt: self.PopupManager.show_battle_result_dialog("player", result.get("messages", []), arena_xp, arena_gold),
                     delay_time
                 )
                 self.character.xp += arena_xp
@@ -1682,11 +1691,12 @@ class GSS(MDApp):
                 Clock.schedule_once(lambda dt: self.PopupManager.show_reward(arena_xp, arena_gold), delay_time + 1.5)
             else:
                 Clock.schedule_once(
-                    lambda dt: self.PopupManager.show_battle_result_dialog("bot", result.get("messages", [])), 
+                    lambda dt: self.PopupManager.show_battle_result_dialog("bot", result.get("messages", [])),
                     delay_time
                 )
             
             Clock.schedule_once(lambda dt: self.update_arena_ui_state(False), delay_time + 1.0)
+            self.session_manager.arena.end_battle(winner)  # Kết thúc trận đấu và có thể khôi phục chỉ số
     
     def show_character_stats_dialog(self):
         """Show player character stats in a snackbar popup"""
