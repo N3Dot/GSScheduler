@@ -1,20 +1,21 @@
 {
   "character": {
     "name": "Anh Khôi",
-    "level": 15,
-    "xp": 523,
-    "xp_to_next_level": 800,
-    "hp": 150,
+    "level": 16,
+    "xp": 281,
+    "xp_to_next_level": 1000,
+    "hp": 96,
     "max_hp": 150,
-    "gold": 388,
+    "gold": 694,
     "dex": 25,
     "int": 18,
     "luk": 22,
-    "available_points": 3,
+    "available_points": 4,
     "unlocked_achievements": [
-      "HocVienXuatSac",
+      "BuocDiDauTien",
       "ChamChiCanCu",
-      "BuocDiDauTien"
+      "BacThayNhiemVu",
+      "HocVienXuatSac"
     ],
     "inventory": [
       {
@@ -378,8 +379,8 @@
       },
       "average_session_duration_minutes": 153.8,
       "average_rank_score": 3.4,
-      "quests_completed": 6,
-      "quest_completion_rate": 75.0
+      "quests_completed": 7,
+      "quest_completion_rate": 77.77777777777779
     },
     "focus_streak": 5
   },
@@ -433,9 +434,15 @@
         "description": "Demo Quest 8: Study Session Task",
         "difficulty": 5,
         "is_completed": false
+      },
+      {
+        "quest_id": "quest_bcb229b8-6b9d-4db2-8504-22ded52a877f",
+        "description": "Hoàn thành... ",
+        "difficulty": 3,
+        "is_completed": true
       }
     ]
   },
-  "save_timestamp": "2025-06-28T01:22:21.221147",
+  "save_timestamp": "2025-06-28T12:21:43.233842",
   "version": "1.0"
 }

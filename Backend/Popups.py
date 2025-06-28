@@ -37,6 +37,14 @@ class Popup:
             duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.72}, size_hint_x=0.5,
             background_color=self.app.theme_cls.onPrimaryContainerColor,
         ).open()
+    
+    def show_reward(self, xp, gold):
+        MDSnackbar(
+            MDSnackbarText(text="Bạn đã được thưởng!"),
+            MDSnackbarSupportingText(text=f"[b]XP:[/b] +{xp}\n[b]Vàng:[/b] +{gold}", markup=True),
+            duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
+            background_color=self.app.theme_cls.onPrimaryContainerColor,
+        ).open()
         
     def show_session_finish_dialog(self, rank: str, xp=0, gold=0):
         if rank == "F":

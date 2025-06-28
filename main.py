@@ -396,9 +396,10 @@ MDScreenManager:
                                 font_style: "Headline"
                                 role: "large"
                                 halign: "center"
+                                bold: True
                                 pos_hint: {"center_x": 0.5, "center_y": 0.5}
                                 theme_text_color: "Custom"
-                                text_color: [0, 0, 0, 1]
+                                text_color: [1, 1, 1, 1]
                         BoxLayout:
                             size_hint_y: None
                             height: "60dp"
@@ -410,6 +411,7 @@ MDScreenManager:
                                 color: 0, 0, 0, 1
                                 font_size: "18sp"
                                 bold: True
+                                italic: True
                                 on_release: app.on_arena_skill_selected("attack")
                             Button:
                                 text: "Defend"
@@ -418,6 +420,7 @@ MDScreenManager:
                                 color: 0, 0, 0, 1
                                 font_size: "18sp"
                                 bold: True
+                                italic: True
                                 on_release: app.on_arena_skill_selected("defend")
                             Button:
                                 text: "Magic"
@@ -426,6 +429,7 @@ MDScreenManager:
                                 color: 0, 0, 0, 1
                                 font_size: "18sp"
                                 bold: True
+                                italic: True
                                 on_release: app.on_arena_skill_selected("magic")
                         BoxLayout:
                             size_hint_y: None
@@ -1577,7 +1581,7 @@ class GSS(MDApp):
                 self.character.xp += arena_xp
                 self.character.gold += arena_gold
                 self.character.check_level_up()
-                Clock.schedule_once(lambda dt: self.on_reward(arena_xp, arena_gold), delay_time + 1.5)
+                Clock.schedule_once(lambda dt: self.PopupManager.show_reward(arena_xp, arena_gold), delay_time + 1.5)
             else:
                 Clock.schedule_once(
                     lambda dt: self.PopupManager.show_battle_result_dialog("bot", result.get("messages", [])), 
