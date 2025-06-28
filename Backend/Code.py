@@ -390,12 +390,18 @@ class StudySession:
         time_planned_seconds = (self.end_time - self.start_time).total_seconds()
         # Tính tỷ lệ thời gian thực tế so với dự kiến
         time_ratio = time_spent_seconds / time_planned_seconds if time_planned_seconds > 0 else 1.0
-        # Tính điểm thưởng hiệu quả thời gian (càng học ít thời gian càng được thưởng)
-        time_efficiency_bonus = max(0, 1 - time_ratio)
-
+        
+        # THAY ĐỔI: Tính điểm hiệu quả thời gian - thưởng cho việc hoàn thành đủ thời gian dự kiến
+        if time_ratio >= 1.0:
+            # Nếu học đủ hoặc hơn thời gian dự kiến, điểm tối đa
+            time_efficiency_bonus = 1.0
+        else:
+            # Nếu học ít hơn thời gian dự kiến, điểm giảm tuyến tính
+            time_efficiency_bonus = time_ratio
+        
         # Đặt trọng số cho hai yếu tố chấm điểm
-        quest_weight = 0.5  # Hoàn thành nhiệm vụ chiếm 50%
-        time_weight = 0.5   # Hiệu quả thời gian chiếm 50%
+        quest_weight = 0.2  # Hoàn thành nhiệm vụ chiếm 20%
+        time_weight = 0.8   # Hiệu quả thời gian chiếm 80%
         # Tính điểm tổng kết dựa trên trọng số
         final_performance_score = (quest_completion_score * quest_weight) + (time_efficiency_bonus * time_weight)
         
@@ -410,7 +416,11 @@ class StudySession:
         progress_percent = f"{int(quest_completion_score * 100)}%"
         # In thông báo kết quả phiên học
         actual_duration = f"{time_spent_seconds/60:.1f} phút"
-        print(f"Phiên học '{self.goal_description}' đã kết thúc với Hạng: {self.rank} (Hoàn thành {progress_percent} nhiệm vụ, thời gian thực: {actual_duration}).")
+        planned_duration = f"{time_planned_seconds/60:.1f} phút"
+        print(f"Phiên học '{self.goal_description}' đã kết thúc với Hạng: {self.rank}")
+        print(f"  • Hoàn thành {progress_percent} nhiệm vụ")
+        print(f"  • Thời gian: {actual_duration} / {planned_duration} dự kiến")
+        print(f"  • Tỷ lệ thời gian: {time_ratio:.1%}")
 
     def start_session(self, actual_start_time: Optional[datetime] = None):
         """Bắt đầu phiên học và ghi lại thời gian bắt đầu thực tế."""
@@ -564,23 +574,79 @@ class StudyAnalytics:
                 character.add_achievement(ach_id)
                 
     def generate_report(self) -> str:
-        """Tạo báo cáo chi tiết, không có phần 'Time Breakdown by Tag'."""
+        """Tạo báo cáo chi tiết từ dữ liệu analytics."""
         stats = self.aggregated_stats
         report_lines = [
             "==========================================",
-            # ... các dòng báo cáo khác giữ nguyên ...
+            "📊 BÁO CÁO THỐNG KÊ HỌC TẬP",
+            "==========================================",
+            "",
+            "--- Tổng Quan ---",
+            f"Tổng Phiên Học: {stats.get('total_sessions', 0)}",
+            f"Tổng Thời Gian Học: {stats.get('total_study_hours', 0):.1f} giờ",
+            f"Thời Gian TB/Phiên: {stats.get('average_session_duration_minutes', 0):.1f} phút",
+            "",
             "--- Đánh Giá ---",
             f"S: {stats['rank_counts']['S']} | A: {stats['rank_counts']['A']} | B: {stats['rank_counts']['B']} | C: {stats['rank_counts']['C']} | F: {stats['rank_counts']['F']}",
+            f"Điểm TB: {stats.get('average_rank_score', 0):.1f}/5.0",
             "",
             "--- Ngày Học Liên Tiếp ---",
-            f"{self.focus_streak}",
+            f"Chuỗi hiện tại: {self.focus_streak} ngày",
             "",
             "--- Nhiệm Vụ ---",
-            f"Nhiệm Vụ Hoàn Thành: {stats['quests_completed']} / {len(self.quest_system.active_quests)}",
-            f"Tỷ Lệ Hoàn Thành: {stats['quest_completion_rate']:.1f}%",
+            f"Nhiệm Vụ Hoàn Thành: {stats.get('quests_completed', 0)}",
+            f"Tỷ Lệ Hoàn Thành: {stats.get('quest_completion_rate', 0):.1f}%",
             "=========================================="
         ]
         return "\n".join(report_lines)
+
+    @staticmethod
+    def from_base64_data(base64_data: str, quest_system):
+        """Tạo StudyAnalytics từ dữ liệu base64 (hỗ trợ cả rút gọn và đầy đủ)"""
+        import base64, json
+        from datetime import datetime
+        try:
+            json_data = base64.b64decode(base64_data).decode('utf-8')
+            data = json.loads(json_data)
+            analytics = StudyAnalytics(quest_system)
+            if 'a' in data:  # Format rút gọn
+                analytics_data = data['a']
+                if 's' in analytics_data:
+                    stats_data = analytics_data['s']
+                    analytics.aggregated_stats = {
+                        'total_study_seconds': stats_data.get('ts', 0),
+                        'total_study_hours': stats_data.get('th', 0),
+                        'total_sessions': stats_data.get('tse', 0),
+                        'rank_counts': {
+                            'S': stats_data.get('rS', 0),
+                            'A': stats_data.get('rA', 0),
+                            'B': stats_data.get('rB', 0),
+                            'C': stats_data.get('rC', 0),
+                            'F': stats_data.get('rF', 0)
+                        },
+                        'average_session_duration_minutes': stats_data.get('asd', 0),
+                        'average_rank_score': stats_data.get('ars', 0),
+                        'quests_completed': stats_data.get('qc', 0),
+                        'quest_completion_rate': stats_data.get('qcr', 0)
+                    }
+                analytics.focus_streak = analytics_data.get('fs', 0)
+                if 'h' in analytics_data:
+                    for session_data in analytics_data['h']:
+                        session = {
+                            'duration_seconds': session_data.get('d', 0),
+                            'rank': session_data.get('r', 'F'),
+                            'end_time': datetime.now()
+                        }
+                        analytics.session_history.append(session)
+            else:  # Format đầy đủ
+                analytics_data = data.get('analytics', {})
+                analytics.aggregated_stats = analytics_data.get('aggregated_stats', analytics.aggregated_stats)
+                analytics.focus_streak = analytics_data.get('focus_streak', 0)
+                analytics.session_history = analytics_data.get('session_history', [])
+            return analytics
+        except Exception as e:
+            print(f"Error creating analytics from base64: {e}")
+            return None
 
 
 class SessionManager:
@@ -1097,7 +1163,7 @@ class SessionManager:
     def _check_time_conflict(self, new_start: datetime, new_end: datetime) -> Optional[StudySession]:
         """
         Kiểm tra xem thời gian mới có xung đột với session nào đã có không.
-        Chỉ so sánh giờ:phút, bỏ qua ngày (theo comment trong main.py).
+        Chỉ so sánh giờ:phút, bỏ qua ngày.
         
         Returns:
             StudySession bị xung đột nếu có, None nếu không có xung đột.
