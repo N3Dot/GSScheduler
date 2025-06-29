@@ -1,5 +1,6 @@
 import os
 import shutil
+import random
 
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.snackbar import MDSnackbar, MDSnackbarButtonContainer, MDSnackbarCloseButton, MDSnackbarText, MDSnackbarSupportingText
@@ -12,7 +13,10 @@ from kivymd.uix.fitimage import FitImage
 from kivymd.uix.filemanager import MDFileManager
 from kivy.uix.widget import Widget
 from kivy.metrics import dp
+from kivy.clock import Clock
 from kivy.utils import platform
+from kivy.graphics import Color, Rectangle
+
 
 class Popup:
     """
@@ -34,15 +38,15 @@ class Popup:
             background_color=self.app.theme_cls.onPrimaryContainerColor,
         ).open()
     
-    def show_reward_snackbar(self, XP=0, Gold=0):
+    def show_reward(self, xp, gold):
         MDSnackbar(
             MDSnackbarText(text="Bạn đã được thưởng!"),
-            MDSnackbarSupportingText(text=f"[b]XP:[/b] +{XP}\n[b]Vàng:[/b] +{Gold}", markup=True),
+            MDSnackbarSupportingText(text=f"[b]XP:[/b] +{xp}\n[b]Vàng:[/b] +{gold}", markup=True),
             duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
             background_color=self.app.theme_cls.onPrimaryContainerColor,
-            ).open()
+        ).open()
         
-    def show_session_finish_dialog(self, rank: str):
+    def show_session_finish_dialog(self, rank: str, xp=0, gold=0):
         if rank == "F":
             PerfIcon = "emoticon-cry-outline"
             PerfHeadline = "Chưa Phải Là Ngày Của Bạn?"
@@ -73,12 +77,32 @@ class Popup:
             MDDialogButtonContainer(
                 Widget(),
                 MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
-                    on_release=lambda x: FinishDialog.dismiss(),
+                    on_release=lambda x: self.session_finish_follow_up(FinishDialog, rank, xp, gold),
                 ),
                 Widget(),
             ),
         )
         FinishDialog.open()
+        if rank != "F":
+            self.app.trigger_confetti()
+    
+    def session_finish_follow_up(self, FinishDialog, rank, xp=0, gold=0):
+        FinishDialog.dismiss()
+        if rank != "F":
+            if xp != 0 or gold != 0:
+                MDSnackbar(
+                    MDSnackbarText(text="Bạn đã được thưởng!"),
+                    MDSnackbarSupportingText(text=f"[b]XP:[/b] +{xp}\n[b]Vàng:[/b] +{gold}", markup=True),
+                    duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
+                    background_color=self.app.theme_cls.onPrimaryContainerColor,
+                ).open()
+        else:
+            MDSnackbar(
+                MDSnackbarText(text="Bạn đã mất máu..."),
+                MDSnackbarSupportingText(text="Máu có thể mất, nhưng ý chí vẫn còn nguyên vẹn. Hãy tiếp tục, chiến binh dũng cảm!"),
+                duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
+                background_color=self.app.theme_cls.onPrimaryContainerColor,
+            ).open()
 
     def show_level_up_dialog(self):
         LevelUpDialog = MDDialog(
@@ -94,6 +118,7 @@ class Popup:
             ),
         )
         LevelUpDialog.open()
+        self.app.trigger_confetti()
 
     def show_item_dialog(self, item):
         rarity_types = [None, "Thường", "Nâng Cao", "Hiếm", "Sử Thi", "Huyền Thoại"]
@@ -302,7 +327,7 @@ class Popup:
         WelcomeDialog = MDDialog(
             MDDialogIcon(icon="gamepad-up"),
             MDDialogHeadlineText(text=f"Chào Mừng Đến Với Học Tập Kiểu RPG!"),
-            MDDialogSupportingText(text="Bắt đầu bằng cách tạo một phiên học, đặt thời gian bắt đầu và kết thúc. Tạo các nhiệm vụ với độ khó tùy chọn - chúng chính là “quái vật” bạn cần tiêu diệt để nhận XP!\n\nKhi đến giờ, ứng dụng sẽ tự động kích hoạt phiên học và đếm giờ. Trong suốt thời gian đó, hãy tập trung hoàn thành nhiệm vụ, đánh dấu tiến độ và đạt hạng cao nhất.\n\nKết thúc phiên học, hệ thống sẽ trao thưởng nếu bạn làm tốt... hoặc trừ HP nếu bạn lười biếng!\n\nĐừng quên ghé qua Shop để tiêu vàng, nâng cấp nhân vật và chuẩn bị cho những phiên học tiếp theo!"),
+            MDDialogSupportingText(text="Bắt đầu bằng cách tạo một phiên học, đặt thời gian bắt đầu và kết thúc. Tạo các nhiệm vụ với độ khó tùy chọn - chúng chính là “quái vật” bạn cần tiêu diệt!\n\nKhi đến giờ, ứng dụng sẽ tự động kích hoạt phiên học và đếm giờ. Trong suốt thời gian đó, hãy tập trung hoàn thành nhiệm vụ, đánh dấu tiến độ và đạt hạng cao nhất.\n\nKết thúc phiên học, hệ thống sẽ trao thưởng nếu bạn làm tốt... hoặc trừ HP nếu bạn lười biếng!\n\nĐừng quên ghé qua Shop để tiêu vàng, thử sức trên chiến trường, nâng cấp nhân vật và chuẩn bị cho những phiên học tiếp theo!"),
             MDDialogButtonContainer(
                 Widget(),
                 MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
@@ -447,3 +472,230 @@ class Popup:
     
     def file_manager_exit(self, *args):
         self.file_manager.close()
+
+    def show_info_snackbar(self, message: str):
+        """Hiển thị thông báo snackbar đơn giản"""
+        MDSnackbar(
+            MDSnackbarText(text=message),
+            duration=2, 
+            y=dp(90), 
+            orientation="horizontal", 
+            pos_hint={"center_x": 0.5}, 
+            size_hint_x=0.8,
+            background_color=self.app.theme_cls.primaryColor,
+        ).open()
+
+    def show_battle_message(self, message: str, message_type: str = "info"):
+        """Hiển thị thông báo battle dạng popup với hiệu ứng"""
+        from kivymd.uix.snackbar import MDSnackbar, MDSnackbarText
+        
+        # Chọn màu dựa trên loại thông báo
+        if "thắng" in message.lower() or "chiến thắng" in message.lower():
+            bg_color = [0.2, 0.7, 0.2, 1]  # Xanh lá
+        elif "thua" in message.lower() or "thất bại" in message.lower():
+            bg_color = [0.7, 0.2, 0.2, 1]  # Đỏ
+        elif "sát thương" in message.lower():
+            bg_color = [0.9, 0.5, 0.1, 1]  # Cam
+        elif "thủ" in message.lower():
+            bg_color = [0.2, 0.5, 0.9, 1]  # Xanh dương
+        else:
+            bg_color = self.app.theme_cls.primaryColor
+        
+        snackbar = MDSnackbar(
+            MDSnackbarText(text=message),
+            duration=2,
+            y="200dp",
+            orientation="horizontal",
+            pos_hint={"center_x": 0.5},
+            size_hint_x=0.8,
+            background_color=bg_color,
+        )
+        snackbar.open()
+    
+    def show_battle_result_dialog(self, winner: str, messages: list, xp_reward: int = None, gold_reward: int = None):
+        """Hiển thị dialog kết quả trận đấu với battle log đầy đủ"""
+        from kivymd.uix.dialog import MDDialog, MDDialogIcon, MDDialogHeadlineText, MDDialogSupportingText, MDDialogContentContainer, MDDialogButtonContainer
+        from kivymd.uix.button import MDButton, MDButtonText
+        from kivymd.uix.boxlayout import MDBoxLayout
+        from kivymd.uix.label import MDLabel
+        from kivy.uix.widget import Widget
+        
+        # Tạo nội dung dialog
+        content_box = MDBoxLayout(orientation="vertical", spacing="8dp", adaptive_height=True)
+        
+        # Hiển thị battle log đầy đủ từ arena
+        if hasattr(self.app.session_manager, 'arena') and self.app.session_manager.arena.battle_log:
+            battle_log = self.app.session_manager.arena.battle_log
+            
+            # Title cho battle log
+            log_title = MDLabel(
+                text="[b]Diễn biến trận đấu:[/b]",
+                font_style="Title",
+                role="small",
+                adaptive_height=True,
+                theme_text_color="Primary",
+                markup=True
+            )
+            content_box.add_widget(log_title)
+            
+            # Hiển thị các lượt đánh (tối đa 8 lượt cuối)
+            for log_entry in battle_log[-8:]:
+                # Loại bỏ các icon và clean text
+                clean_text = log_entry.replace("⚔️", "").replace("🛡️", "").replace("✨", "").strip()
+                
+                label = MDLabel(
+                    text=clean_text,
+                    font_style="Body",
+                    role="small",
+                    adaptive_height=True,
+                    theme_text_color="Secondary"
+                )
+                content_box.add_widget(label)
+        else:
+            # Fallback: hiển thị messages nếu không có battle log
+            for msg in messages[-5:]:
+                # Clean text loại bỏ icons
+                clean_text = msg.replace("⚔️", "").replace("🛡️", "").replace("✨", "").strip()
+                
+                label = MDLabel(
+                    text=clean_text,
+                    font_style="Body",
+                    role="small",
+                    adaptive_height=True,
+                    theme_text_color="Secondary"
+                )
+                content_box.add_widget(label)
+        
+        # Hiển thị thưởng chính xác nếu thắng
+        if winner == "player" and xp_reward is not None and gold_reward is not None:
+            reward_label = MDLabel(
+                text=f"[b]Thưởng:[/b] +{xp_reward} XP, +{gold_reward} Vàng!",
+                font_style="Body",
+                role="medium",
+                adaptive_height=True,
+                theme_text_color="Custom",
+                text_color=(0.2, 0.6, 0.2, 1),
+                markup=True
+            )
+            content_box.add_widget(reward_label)
+        
+        icon = "trophy" if winner == "player" else "emoticon-sad"
+        title = "Chiến Thắng!" if winner == "player" else "Thất Bại"
+        
+        dialog = MDDialog(
+            MDDialogIcon(icon=icon),
+            MDDialogHeadlineText(text=title),
+            MDDialogSupportingText(text="Kết quả trận đấu:"),
+            MDDialogContentContainer(
+                content_box,
+                orientation="vertical",
+            ),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(
+                    MDButtonText(text="Đóng"),
+                    style="outlined",
+                    on_release=lambda x: dialog.dismiss(),
+                ),
+                Widget(),
+            ),
+        )
+        dialog.open()
+
+    def show_arena_input_dialog(self, arena):
+        """Hiển thị dialog nhập dữ liệu đối thủ với hint text"""
+        from kivymd.uix.textfield import MDTextField
+        from kivymd.uix.dialog import MDDialog, MDDialogIcon, MDDialogHeadlineText, MDDialogSupportingText, MDDialogContentContainer, MDDialogButtonContainer
+        from kivymd.uix.button import MDButton, MDButtonText
+        from kivymd.uix.boxlayout import MDBoxLayout
+        from kivy.uix.widget import Widget
+        
+        # Textfield với hint từ arena
+        text_input = MDTextField(
+            hint_text=arena.get_opponent_input_hint() if hasattr(arena, 'get_opponent_input_hint') else "Nhập mã QR hoặc base64 của đối thủ...",
+            multiline=True,
+            size_hint_y=None,
+            height="100dp"
+        )
+        
+        def validate_and_load():
+            input_data = text_input.text.strip()
+            if input_data:
+                # Sử dụng validation từ arena nếu có
+                if hasattr(arena, 'validate_opponent_data'):
+                    validation = arena.validate_opponent_data(input_data)
+                    if validation["valid"]:
+                        arena.load_opponent(input_data)
+                        self.show_info_snackbar(f"Đã load đối thủ: {validation['preview']['name']}")
+                        dialog.dismiss()
+                    else:
+                        self.show_info_snackbar(validation["error"])
+                else:
+                    # Fallback nếu không có validation method
+                    success = arena.load_opponent(input_data)
+                    if success:
+                        self.show_info_snackbar("Đã load đối thủ thành công!")
+                        dialog.dismiss()
+                    else:
+                        self.show_info_snackbar("Không thể load đối thủ!")
+            else:
+                self.show_info_snackbar("Vui lòng nhập dữ liệu đối thủ")
+        
+        dialog = MDDialog(
+            MDDialogIcon(icon="sword-cross"),
+            MDDialogHeadlineText(text="Nhập Đối Thủ"),
+            MDDialogSupportingText(text="Nhập mã QR hoặc dữ liệu base64 của đối thủ để bắt đầu trận đấu"),
+            MDDialogContentContainer(
+                text_input,
+                orientation="vertical",
+            ),
+            MDDialogButtonContainer(
+                MDButton(
+                    MDButtonText(text="Load"),
+                    style="filled",
+                    on_release=lambda x: validate_and_load(),
+                ),
+                MDButton(
+                    MDButtonText(text="Hủy"),
+                    style="outlined",
+                    on_release=lambda x: dialog.dismiss(),
+                ),
+                spacing="20dp",
+            ),
+        )
+        dialog.open()
+        
+class ConfettiParticle(Widget):
+    def __init__(self, pos, **kwargs):
+        super().__init__(**kwargs)
+        self.size = (10, 10)
+        self.x, self.y = pos
+        self.velocity = [
+            random.uniform(-250, 250),
+            random.uniform(450, 650)
+        ]
+        self.gravity = -300
+        self.lifetime = 8
+        self.age = 0
+
+        r, g, b = random.random(), random.random(), random.random()
+        with self.canvas:
+            Color(r, g, b)
+            self.rect = Rectangle(pos=self.pos, size=self.size)
+
+        self.bind(pos=self.update_graphics)
+        Clock.schedule_interval(self.update, 1 / 60)
+
+    def update_graphics(self, *args):
+        self.rect.pos = self.pos
+
+    def update(self, dt):
+        self.age += dt
+        if self.age > self.lifetime:
+            if self.parent:
+                self.parent.remove_widget(self)
+            return False
+        self.velocity[1] += self.gravity * dt
+        self.x += self.velocity[0] * dt
+        self.y += self.velocity[1] * dt
+        return True

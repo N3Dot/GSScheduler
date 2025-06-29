@@ -19,6 +19,22 @@ if __name__ == "__main__":
 else:
     from Backend.Database import Item, Rarity, Items, Achievements
 
+# Định nghĩa BASE_DATE và hàm tiện ích
+BASE_DATE = datetime(1900, 1, 1)
+
+def to_basedate_time(dt: datetime) -> datetime:
+    """Chuyển mọi datetime về BASE_DATE, chỉ giữ lại giờ và phút."""
+    return BASE_DATE.replace(hour=dt.hour, minute=dt.minute, second=0, microsecond=0)
+
+def safe_json_serializer(obj):
+    """Custom JSON serializer để handle datetime objects"""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    elif hasattr(obj, '__dict__'):
+        return obj.__dict__
+    else:
+        return str(obj)
+
 class Character(EventDispatcher):
     """
     Đại diện cho người dùng trong ứng dụng.
@@ -59,6 +75,26 @@ class Character(EventDispatcher):
         # Tài sản
         self.gold: int = 10
         print(f"Nhân vật '{self.name}' đã được tạo với {self.xp} XP và {self.gold} Vàng.")
+
+    def copy(self):
+        new_character = Character(self.name)
+        new_character.level = self.level
+        new_character.xp = self.xp
+        new_character.xp_to_next_level = self.xp_to_next_level
+        new_character.hp = self.hp
+        new_character.max_hp = self.max_hp
+        new_character.dex = self.dex
+        new_character.int = self.int  # Đảm bảo tên thuộc tính đúng
+        new_character.luk = self.luk
+        new_character.available_points = self.available_points
+        new_character.gold = self.gold
+        new_character.inventory = self.inventory[:]  # Sao chép danh sách
+        new_character.equipment = self.equipment[:]  # Sao chép danh sách
+        new_character.unlocked_achievements = self.unlocked_achievements.copy()  # Sao chép set
+        return new_character
+
+
+
 
     def check_negative_stats(self):
         """
@@ -331,8 +367,9 @@ class StudySession:
         self.session_id: str = str(uuid.uuid4())
         self.goal_description: str = goal_description
         self.linked_quests: List[Quest] = linked_quests
-        self.start_time: datetime = start_time  # Thời gian dự kiến bắt đầu
-        self.end_time: datetime = end_time      # Thời gian dự kiến kết thúc
+        # Chỉ giữ giờ và phút, bỏ ngày
+        self.start_time: datetime = to_basedate_time(start_time)
+        self.end_time: datetime = to_basedate_time(end_time)      # Thời gian dự kiến kết thúc
         
         # Thời gian thực tế
         self.actual_start_time: Optional[datetime] = None  # Thời gian bắt đầu thực tế
@@ -382,12 +419,18 @@ class StudySession:
         time_planned_seconds = (self.end_time - self.start_time).total_seconds()
         # Tính tỷ lệ thời gian thực tế so với dự kiến
         time_ratio = time_spent_seconds / time_planned_seconds if time_planned_seconds > 0 else 1.0
-        # Tính điểm thưởng hiệu quả thời gian (càng học ít thời gian càng được thưởng)
-        time_efficiency_bonus = max(0, 1 - time_ratio)
-
+        
+        # THAY ĐỔI: Tính điểm hiệu quả thời gian - thưởng cho việc hoàn thành đủ thời gian dự kiến
+        if time_ratio >= 1.0:
+            # Nếu học đủ hoặc hơn thời gian dự kiến, điểm tối đa
+            time_efficiency_bonus = 1.0
+        else:
+            # Nếu học ít hơn thời gian dự kiến, điểm giảm tuyến tính
+            time_efficiency_bonus = time_ratio
+        
         # Đặt trọng số cho hai yếu tố chấm điểm
-        quest_weight = 0.5  # Hoàn thành nhiệm vụ chiếm 50%
-        time_weight = 0.5   # Hiệu quả thời gian chiếm 50%
+        quest_weight = 0.2  # Hoàn thành nhiệm vụ chiếm 20%
+        time_weight = 0.8   # Hiệu quả thời gian chiếm 80%
         # Tính điểm tổng kết dựa trên trọng số
         final_performance_score = (quest_completion_score * quest_weight) + (time_efficiency_bonus * time_weight)
         
@@ -402,7 +445,11 @@ class StudySession:
         progress_percent = f"{int(quest_completion_score * 100)}%"
         # In thông báo kết quả phiên học
         actual_duration = f"{time_spent_seconds/60:.1f} phút"
-        print(f"Phiên học '{self.goal_description}' đã kết thúc với Hạng: {self.rank} (Hoàn thành {progress_percent} nhiệm vụ, thời gian thực: {actual_duration}).")
+        planned_duration = f"{time_planned_seconds/60:.1f} phút"
+        print(f"Phiên học '{self.goal_description}' đã kết thúc với Hạng: {self.rank}")
+        print(f"  • Hoàn thành {progress_percent} nhiệm vụ")
+        print(f"  • Thời gian: {actual_duration} / {planned_duration} dự kiến")
+        print(f"  • Tỷ lệ thời gian: {time_ratio:.1%}")
 
     def start_session(self, actual_start_time: Optional[datetime] = None):
         """Bắt đầu phiên học và ghi lại thời gian bắt đầu thực tế."""
@@ -524,7 +571,25 @@ class StudyAnalytics:
         if not self.session_history: return 0
         
         # Lấy danh sách các ngày học duy nhất và sắp xếp chúng
-        study_dates = sorted(list(set(s['end_time'].date() for s in self.session_history)))
+        study_dates = []
+        for s in self.session_history:
+            end_time = s.get('end_time')
+            if end_time:
+                # Xử lý cả datetime object và string
+                if isinstance(end_time, str):
+                    try:
+                        # Thử parse string thành datetime
+                        from datetime import datetime
+                        end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+                    except (ValueError, AttributeError):
+                        try:
+                            # Thử format khác
+                            end_time = datetime.strptime(end_time, '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            continue  # Bỏ qua nếu không parse được
+                study_dates.append(end_time.date())
+        
+        study_dates = sorted(list(set(study_dates)))
         if not study_dates: return 0
         
         streak = 0
@@ -556,23 +621,79 @@ class StudyAnalytics:
                 character.add_achievement(ach_id)
                 
     def generate_report(self) -> str:
-        """Tạo báo cáo chi tiết, không có phần 'Time Breakdown by Tag'."""
+        """Tạo báo cáo chi tiết từ dữ liệu analytics."""
         stats = self.aggregated_stats
         report_lines = [
             "==========================================",
-            # ... các dòng báo cáo khác giữ nguyên ...
+            "BÁO CÁO THỐNG KÊ HỌC TẬP",
+            "==========================================",
+            "",
+            "--- Tổng Quan ---",
+            f"Tổng Phiên Học: {stats.get('total_sessions', 0)}",
+            f"Tổng Thời Gian Học: {stats.get('total_study_hours', 0):.1f} giờ",
+            f"Thời Gian TB/Phiên: {stats.get('average_session_duration_minutes', 0):.1f} phút",
+            "",
             "--- Đánh Giá ---",
             f"S: {stats['rank_counts']['S']} | A: {stats['rank_counts']['A']} | B: {stats['rank_counts']['B']} | C: {stats['rank_counts']['C']} | F: {stats['rank_counts']['F']}",
+            f"Điểm TB: {stats.get('average_rank_score', 0):.1f}/5.0",
             "",
             "--- Ngày Học Liên Tiếp ---",
-            f"{self.focus_streak}",
+            f"Chuỗi hiện tại: {self.focus_streak} ngày",
             "",
             "--- Nhiệm Vụ ---",
-            f"Nhiệm Vụ Hoàn Thành: {stats['quests_completed']} / {len(self.quest_system.active_quests)}",
-            f"Tỷ Lệ Hoàn Thành: {stats['quest_completion_rate']:.1f}%",
+            f"Nhiệm Vụ Hoàn Thành: {stats.get('quests_completed', 0)}",
+            f"Tỷ Lệ Hoàn Thành: {stats.get('quest_completion_rate', 0):.1f}%",
             "=========================================="
         ]
         return "\n".join(report_lines)
+
+    @staticmethod
+    def from_base64_data(base64_data: str, quest_system):
+        """Tạo StudyAnalytics từ dữ liệu base64 (hỗ trợ cả rút gọn và đầy đủ)"""
+        import base64, json
+        from datetime import datetime
+        try:
+            json_data = base64.b64decode(base64_data).decode('utf-8')
+            data = json.loads(json_data)
+            analytics = StudyAnalytics(quest_system)
+            if 'a' in data:  # Format rút gọn
+                analytics_data = data['a']
+                if 's' in analytics_data:
+                    stats_data = analytics_data['s']
+                    analytics.aggregated_stats = {
+                        'total_study_seconds': stats_data.get('ts', 0),
+                        'total_study_hours': stats_data.get('th', 0),
+                        'total_sessions': stats_data.get('tse', 0),
+                        'rank_counts': {
+                            'S': stats_data.get('rS', 0),
+                            'A': stats_data.get('rA', 0),
+                            'B': stats_data.get('rB', 0),
+                            'C': stats_data.get('rC', 0),
+                            'F': stats_data.get('rF', 0)
+                        },
+                        'average_session_duration_minutes': stats_data.get('asd', 0),
+                        'average_rank_score': stats_data.get('ars', 0),
+                        'quests_completed': stats_data.get('qc', 0),
+                        'quest_completion_rate': stats_data.get('qcr', 0)
+                    }
+                analytics.focus_streak = analytics_data.get('fs', 0)
+                if 'h' in analytics_data:
+                    for session_data in analytics_data['h']:
+                        session = {
+                            'duration_seconds': session_data.get('d', 0),
+                            'rank': session_data.get('r', 'F'),
+                            'end_time': datetime.now()
+                        }
+                        analytics.session_history.append(session)
+            else:  # Format đầy đủ
+                analytics_data = data.get('analytics', {})
+                analytics.aggregated_stats = analytics_data.get('aggregated_stats', analytics.aggregated_stats)
+                analytics.focus_streak = analytics_data.get('focus_streak', 0)
+                analytics.session_history = analytics_data.get('session_history', [])
+            return analytics
+        except Exception as e:
+            print(f"Error creating analytics from base64: {e}")
+            return None
 
 
 class SessionManager:
@@ -587,6 +708,7 @@ class SessionManager:
         self.character = character
         self.reward_system = reward_system
         self.analytics = analytics
+        self.arena = Arena()  # Thêm hệ thống đấu trường
         self.save_file_path = self._get_save_path()
         self.qr_image_path = self._get_qr_path()
     
@@ -696,16 +818,29 @@ class SessionManager:
         Lưu chỉ số nhân vật, thành tích, sessions
         """
         try:
+            print(f"Generated comprehensive save data for character: {self.character.name}")
             save_data = self._get_save_data()
             
+            # Test JSON serialization trước khi lưu
+            try:
+                json_test = json.dumps(save_data, ensure_ascii=False, indent=2, default=safe_json_serializer)
+                print("JSON serialization test passed")
+            except TypeError as json_error:
+                print(f"JSON serialization error: {json_error}")
+                # Thử lưu dữ liệu tối thiểu thay thế
+                save_data = self._get_minimal_save_data()
+                print("Using minimal save data as fallback")
+            
             with open(self.save_file_path, 'w', encoding='utf-8') as f:
-                json.dump(save_data, f, indent=2, ensure_ascii=False)
+                json.dump(save_data, f, indent=2, ensure_ascii=False, default=safe_json_serializer)
             
             print(f"Dữ liệu đã được lưu thành công vào {self.save_file_path}")
             return True
             
         except Exception as e:
             print(f"Lỗi khi lưu dữ liệu: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def ImportSave(self):
@@ -828,6 +963,43 @@ class SessionManager:
             return save_data
         except Exception as e:
             print(f"Error generating optimized data: {e}")
+
+    def _get_minimal_qr_data(self):
+        """Tạo dữ liệu tối thiểu cho QR code khi dữ liệu optimized vẫn quá lớn"""
+        try:
+            # Chỉ lấy thông tin cơ bản nhất
+            save_data = {
+                "c": {  # character (viết tắt)
+                    "n": self.character.name,
+                    "l": self.character.level,
+                    "x": self.character.xp,
+                    "h": self.character.hp,
+                    "m": self.character.max_hp,
+                    "g": self.character.gold,
+                    "d": self.character.dex,
+                    "i": self.character.int,
+                    "k": self.character.luk,
+                    "p": self.character.available_points,
+                    "a": list(self.character.unlocked_achievements)[:3],  # Chỉ lấy 3 achievement
+                },
+                "s": {  # stats tối thiểu
+                    "ts": self.analytics.aggregated_stats.get('total_sessions', 0),
+                    "th": round(self.analytics.aggregated_stats.get('total_study_hours', 0), 1),  # Làm tròn 1 chữ số
+                    "fs": self.analytics.focus_streak,
+                },
+                "t": datetime.now().strftime("%Y%m%d"),  # timestamp ngắn hơn (chỉ ngày)
+                "v": "2.0"
+            }
+            
+            print(f"Minimal save data for character: {self.character.name}")
+            return save_data
+        except Exception as e:
+            print(f"Error generating minimal data: {e}")
+            # Fallback với dữ liệu cơ bản nhất
+            return {
+                "c": {"n": self.character.name, "l": self.character.level, "g": self.character.gold},
+                "v": "2.0"
+            }
     
     def _get_save_data(self):
         """Lấy dữ liệu save game đầy đủ cho file JSON"""
@@ -874,9 +1046,7 @@ class SessionManager:
                 "analytics": {
                     "session_history": [
                         {
-                            **session,
-                            "start_time": session["start_time"].isoformat() if isinstance(session["start_time"], datetime) else session["start_time"],
-                            "end_time": session["end_time"].isoformat() if isinstance(session["end_time"], datetime) else session["end_time"]
+                            **{k: (v.isoformat() if isinstance(v, datetime) else v) for k, v in session.items()},
                         } for session in self.analytics.session_history
                     ],
                     "aggregated_stats": self.analytics.aggregated_stats,
@@ -923,113 +1093,151 @@ class SessionManager:
             return {"error": "failed_to_generate", "timestamp": datetime.now().isoformat()}
 
     def _load_save_data(self, save_data):
-        """Load dữ liệu save game - sửa lại cho phù hợp với structure thực tế"""
+        """Load dữ liệu save game - hỗ trợ cả format đầy đủ và format QR rút gọn"""
         try:
-            # Khôi phục character data
-            char_data = save_data.get("character", {})
-            self.character.name = char_data.get("name", "Hero")
-            self.character.level = char_data.get("level", 1)
-            self.character.xp = char_data.get("xp", 0)
-            self.character.xp_to_next_level = char_data.get("xp_to_next_level", 100)
-            self.character.hp = char_data.get("hp", 50)
-            self.character.max_hp = char_data.get("max_hp", 50)
-            self.character.gold = char_data.get("gold", 10)
-            self.character.dex = char_data.get("dex", 1)
-            self.character.int = char_data.get("int", 1)
-            self.character.luk = char_data.get("luk", 1)
-            self.character.available_points = char_data.get("available_points", 0)
-            self.character.unlocked_achievements = set(char_data.get("unlocked_achievements", []))
+            # Detect format: kiểm tra xem có phải format QR rút gọn không
+            is_qr_format = "c" in save_data and "v" in save_data
             
-            # Khôi phục inventory
-            self.character.inventory = []
-            for item_data in char_data.get("inventory", []):
-                try:
-                    rarity_enum = Rarity[item_data.get("rarity", "COMMON")]
-                    item = Item(
-                        name=item_data.get("name", "Unknown Item"),
-                        description=item_data.get("description", ""),
-                        category=item_data.get("category", "misc"),
-                        rarity=rarity_enum,                        price=item_data.get("price", 0),
-                        icon_path=item_data.get("icon", ""),
-                        consumable=item_data.get("consumable", False),
-                        passive=item_data.get("passive", False),
-                        on_use_effect=item_data.get("on_use_effect", {})  # THAY ĐỔI: đổi tên từ stat_bonuses
-                    )
-                    self.character.inventory.append(item)
-                except (KeyError, ValueError) as e:
-                    print(f"Error loading inventory item: {e}")
+            if is_qr_format:
+                # Xử lý format QR rút gọn
+                print("Detected QR compressed format, loading...")
+                char_data = save_data.get("c", {})
+                self.character.name = char_data.get("n", "Hero")
+                self.character.level = char_data.get("l", 1)
+                self.character.xp = char_data.get("x", 0)
+                # Tính lại xp_to_next_level dựa trên level
+                self.character.xp_to_next_level = self.character.level * 100
+                self.character.hp = char_data.get("h", 50)
+                self.character.max_hp = char_data.get("m", 50)
+                self.character.gold = char_data.get("g", 10)
+                self.character.dex = char_data.get("d", 1)
+                self.character.int = char_data.get("i", 1)
+                self.character.luk = char_data.get("k", 1)
+                self.character.available_points = char_data.get("p", 0)
+                self.character.unlocked_achievements = set(char_data.get("a", []))
+                
+                # Khôi phục analytics từ format rút gọn
+                stats_data = save_data.get("s", {})
+                if stats_data:
+                    self.analytics.aggregated_stats.update({
+                        'total_sessions': stats_data.get('ts', 0),
+                        'total_study_hours': stats_data.get('th', 0),
+                        'quests_completed': stats_data.get('qc', 0),
+                        'rank_counts': stats_data.get('rc', {'S': 0, 'A': 0, 'B': 0, 'C': 0, 'F': 0})
+                    })
+                    self.analytics.focus_streak = stats_data.get('fs', 0)
+                
+                # Format QR không chứa inventory/equipment chi tiết, reset về empty
+                self.character.inventory = []
+                self.character.equipment = []
+            else:
+                # Xử lý format đầy đủ (file save)
+                print("Detected full save format, loading...")
+                char_data = save_data.get("character", {})
+                self.character.name = char_data.get("name", "Hero")
+                self.character.level = char_data.get("level", 1)
+                self.character.xp = char_data.get("xp", 0)
+                self.character.xp_to_next_level = char_data.get("xp_to_next_level", 100)
+                self.character.hp = char_data.get("hp", 50)
+                self.character.max_hp = char_data.get("max_hp", 50)
+                self.character.gold = char_data.get("gold", 10)
+                self.character.dex = char_data.get("dex", 1)
+                self.character.int = char_data.get("int", 1)
+                self.character.luk = char_data.get("luk", 1)
+                self.character.available_points = char_data.get("available_points", 0)
+                self.character.unlocked_achievements = set(char_data.get("unlocked_achievements", []))
             
-            # Khôi phục equipment
-            self.character.equipment = []
-            for item_data in char_data.get("equipment", []):
-                try:
-                    rarity_enum = Rarity[item_data.get("rarity", "COMMON")]
-                    item = Item(
-                        name=item_data.get("name", "Unknown Equipment"),
-                        description=item_data.get("description", ""),
-                        category=item_data.get("category", "equipment"),
-                        rarity=rarity_enum,                        price=item_data.get("price", 0),
-                        icon_path=item_data.get("icon", ""),
-                        consumable=item_data.get("consumable", False),
-                        passive=item_data.get("passive", True),
-                        on_use_effect=item_data.get("on_use_effect", {})  # THAY ĐỔI: đổi tên từ stat_bonuses
-                    )
-                    self.character.equipment.append(item)
-                except (KeyError, ValueError) as e:
-                    print(f"Error loading equipment item: {e}")
-            
-            # Khôi phục analytics
-            analytics_data = save_data.get("analytics", {})
-            self.analytics.session_history = analytics_data.get("session_history", [])
-            self.analytics.aggregated_stats = analytics_data.get("aggregated_stats", self.analytics._get_initial_stats())
-            self.analytics.focus_streak = analytics_data.get("focus_streak", 0)
-            
-            # Khôi phục quest system
-            quest_data = save_data.get("quest_system", {})
-            self.analytics.quest_system.active_quests = {}
-            for quest_info in quest_data.get("active_quests", []):
-                quest = Quest(
-                    description=quest_info.get("description", "Unknown Quest"),
-                    difficulty=quest_info.get("difficulty", 1)
-                )
-                quest.quest_id = quest_info.get("quest_id", quest.quest_id)
-                quest.is_completed = quest_info.get("is_completed", False)
-                self.analytics.quest_system.active_quests[quest.quest_id] = quest
-            
-            # Khôi phục sessions
-            self.sessions = []
-            for session_data in save_data.get("sessions", []):
-                try:
-                    # Tái tạo quests cho session
-                    linked_quests = []
-                    for quest_info in session_data.get("linked_quests", []):
-                        quest = Quest(
-                            description=quest_info.get("description", "Unknown Quest"),
-                            difficulty=quest_info.get("difficulty", 1)
+                # Khôi phục inventory chỉ cho format đầy đủ
+                self.character.inventory = []
+                for item_data in char_data.get("inventory", []):
+                    try:
+                        rarity_enum = Rarity[item_data.get("rarity", "COMMON")]
+                        item = Item(
+                            name=item_data.get("name", "Unknown Item"),
+                            description=item_data.get("description", ""),
+                            category=item_data.get("category", "misc"),
+                            rarity=rarity_enum,                            price=item_data.get("price", 0),
+                            icon_path=item_data.get("icon", ""),
+                            consumable=item_data.get("consumable", False),
+                            passive=item_data.get("passive", False),
+                            on_use_effect=item_data.get("on_use_effect", {})
                         )
-                        quest.quest_id = quest_info.get("quest_id", quest.quest_id)
-                        quest.is_completed = quest_info.get("is_completed", False)
-                        linked_quests.append(quest)
-                    
-                    # Tái tạo session
-                    session = StudySession(
-                        goal_description=session_data.get("goal_description", "Unknown Session"),
-                        start_time=datetime.fromisoformat(session_data["start_time"]),
-                        end_time=datetime.fromisoformat(session_data["end_time"]),
-                        linked_quests=linked_quests
+                        self.character.inventory.append(item)
+                    except (KeyError, ValueError) as e:
+                        print(f"Error loading inventory item: {e}")
+                
+                # Khôi phục equipment chỉ cho format đầy đủ
+                self.character.equipment = []
+                for item_data in char_data.get("equipment", []):
+                    try:
+                        rarity_enum = Rarity[item_data.get("rarity", "COMMON")]
+                        item = Item(
+                            name=item_data.get("name", "Unknown Equipment"),
+                            description=item_data.get("description", ""),
+                            category=item_data.get("category", "equipment"),
+                            rarity=rarity_enum,                            price=item_data.get("price", 0),
+                            icon_path=item_data.get("icon", ""),
+                            consumable=item_data.get("consumable", False),
+                            passive=item_data.get("passive", True),
+                            on_use_effect=item_data.get("on_use_effect", {})
+                        )
+                        self.character.equipment.append(item)
+                    except (KeyError, ValueError) as e:
+                        print(f"Error loading equipment item: {e}")
+                
+                # Khôi phục analytics chỉ cho format đầy đủ
+                analytics_data = save_data.get("analytics", {})
+                self.analytics.session_history = analytics_data.get("session_history", [])
+                self.analytics.aggregated_stats = analytics_data.get("aggregated_stats", self.analytics._get_initial_stats())
+                self.analytics.focus_streak = analytics_data.get("focus_streak", 0)
+                
+                # Khôi phục quest system chỉ cho format đầy đủ
+                quest_data = save_data.get("quest_system", {})
+                self.analytics.quest_system.active_quests = {}
+                for quest_info in quest_data.get("active_quests", []):
+                    quest = Quest(
+                        description=quest_info.get("description", "Unknown Quest"),
+                        difficulty=quest_info.get("difficulty", 1)
                     )
-                    session.session_id = session_data.get("session_id", session.session_id)
-                    session.status = session_data.get("status", "Scheduled")
-                    session.rank = session_data.get("rank", "N/A")
-                    if session_data.get("actual_end_time"):
-                        session.actual_end_time = datetime.fromisoformat(session_data["actual_end_time"])
-                    
-                    self.sessions.append(session)
-                except (KeyError, ValueError) as e:
-                    print(f"Error loading session: {e}")
+                    quest.quest_id = quest_info.get("quest_id", quest.quest_id)
+                    quest.is_completed = quest_info.get("is_completed", False)
+                    self.analytics.quest_system.active_quests[quest.quest_id] = quest
+                
+                # Khôi phục sessions chỉ cho format đầy đủ
+                self.sessions = []
+                for session_data in save_data.get("sessions", []):
+                    try:
+                        # Tái tạo quests cho session
+                        linked_quests = []
+                        for quest_info in session_data.get("linked_quests", []):
+                            quest = Quest(
+                                description=quest_info.get("description", "Unknown Quest"),
+                                difficulty=quest_info.get("difficulty", 1)
+                            )
+                            quest.quest_id = quest_info.get("quest_id", quest.quest_id)
+                            quest.is_completed = quest_info.get("is_completed", False)
+                            linked_quests.append(quest)
+                        
+                        # Tái tạo session
+                        session = StudySession(
+                            goal_description=session_data.get("goal_description", "Unknown Session"),
+                            start_time=datetime.fromisoformat(session_data["start_time"]),
+                            end_time=datetime.fromisoformat(session_data["end_time"]),
+                            linked_quests=linked_quests
+                        )
+                        session.session_id = session_data.get("session_id", session.session_id)
+                        session.status = session_data.get("status", "Scheduled")
+                        session.rank = session_data.get("rank", "N/A")
+                        if session_data.get("actual_end_time"):
+                            session.actual_end_time = datetime.fromisoformat(session_data["actual_end_time"])
+                        
+                        self.sessions.append(session)
+                    except (KeyError, ValueError) as e:
+                        print(f"Error loading session: {e}")
             
-            save_timestamp = save_data.get("save_timestamp", "Unknown")
-            print(f"Dữ liệu đã được load thành công - Time: {save_timestamp}")
+            format_type = "QR compressed" if is_qr_format else "full save"
+            save_timestamp = save_data.get("save_timestamp", save_data.get("t", "Unknown"))
+            print(f"Dữ liệu {format_type} đã được load thành công - Time: {save_timestamp}")
             print(f"Character: {self.character.name} (Level {self.character.level})")
             return True
             
@@ -1060,20 +1268,62 @@ class SessionManager:
     ) -> Optional[StudySession]:
         """
         Xác thực và lên lịch một phiên học mới.
-        Thuộc tính 'tags' đã được loại bỏ khỏi phương thức này.
+        Kiểm tra trùng lặp thời gian với các session đã có.
 
         Returns:
             Đối tượng StudySession vừa được tạo nếu thành công, ngược lại là None.
         """
         try:
-            # (Có thể thêm logic kiểm tra trùng lặp thời gian ở đây nếu cần)
+            # Chỉ giữ giờ và phút
+            start_time = to_basedate_time(start_time)
+            end_time = to_basedate_time(end_time)
+
+            # Kiểm tra trùng lặp thời gian với các session đã có
             session = StudySession(goal_description, start_time, end_time, linked_quests)
+            conflicting_session = self._check_time_conflict(start_time, end_time)
+            if conflicting_session:
+                print(f"Xung đột thời gian: Phiên học mới trùng với '{conflicting_session.goal_description}'")
+                return [conflicting_session, session]
+            
             self.sessions.append(session)
             print(f"🗓️  ĐÃ LÊN LỊCH: '{session.goal_description}' lúc {session.start_time.strftime('%H:%M:%S')}")
             return session
         except (ValueError, KeyError) as e:
             print(f"❌ LÊN LỊCH THẤT BẠI: {e}")
             return None
+    def _check_time_conflict(self, new_start: datetime, new_end: datetime) -> Optional[StudySession]:
+        """
+        Kiểm tra xem thời gian mới có xung đột với session nào đã có không.
+        Chỉ so sánh giờ:phút, bỏ qua ngày (theo comment trong main.py).
+        
+        Returns:
+            StudySession bị xung đột nếu có, None nếu không có xung đột.
+        """
+        # Chuyển đổi về cùng ngày để so sánh chỉ thời gian
+        base_date = datetime(1900, 1, 1)  # Sử dụng ngày cơ sở như trong main.py
+        
+        new_start_time_only = to_basedate_time(new_start)
+        new_end_time_only = to_basedate_time(new_end)
+        
+        # Xử lý trường hợp qua ngày (ví dụ: 23:00 - 01:00)
+        if new_end_time_only <= new_start_time_only:
+            new_end_time_only += timedelta(days=1)
+        
+        for existing_session in self.sessions:
+            # if existing_session.status == 'Finished': Không bỏ qua các session đã kết thúc. Đây là trạng thái bật tắt.
+            
+            # Chuyển session hiện có về cùng định dạng
+            existing_start = to_basedate_time(existing_session.start_time)
+            existing_end = to_basedate_time(existing_session.end_time)
+            
+            # Xử lý trường hợp session hiện có qua ngày
+            if existing_end <= existing_start:
+                existing_end += timedelta(days=1)
+            
+            # Kiểm tra xung đột: hai khoảng thời gian overlap
+            if (new_start_time_only <= existing_end and new_end_time_only >= existing_start):
+                return existing_session
+        return None
 
     def mark_quest_as_complete(self, session_id: str, quest_id: str):
         """
@@ -1164,98 +1414,353 @@ class SessionManager:
                 print(f"Phiên học kết thúc với hạng F, áp dụng hình phạt.")
                 self.reward_system.punish(self.character, {'type': 'hp', 'amount': total_difficulty_failed * 4})
 
-# --- VÍ DỤ MÔ PHỎNG ---
-# =============================================================================
-if __name__ == "__main__":
-    char = Character(name="Nhật Nam")
-    rewards = RewardSystem()
-    
-    # SỬA ĐỔI Ở ĐÂY:
-    # 1. Tạo một đối tượng QuestSystem.
-    quests = QuestSystem() 
-    # 2. Truyền đối tượng quests vào StudyAnalytics, không phải None.
-    analytics = StudyAnalytics(quest_system=quests) 
-    
-    # 3. SessionManager không cần quest_system nữa, vì nó không tạo quest.
-    # Nó chỉ nhận quest từ bên ngoài khi lên lịch.
-    manager = SessionManager(character=char, reward_system=rewards, analytics=analytics)
-    
-    # --- Demo Trang bị và Chỉ số ---
-    print("\n--- Demo Trang bị và Cập nhật Chỉ số ---")
-    
-    # 1. Thêm vật phẩm vào kho đồ
-    char.inventory.append(Items['Khien_Doi_Truong_Meo'])
-    char.inventory.append(Items['Gay_Phap_Su'])
-    
-    # 2. Hiển thị chỉ số ban đầu
-    print("\n>> Chỉ số TRƯỚC KHI trang bị:")
-    char.show_stats()
-    
-    # 3. Trang bị vật phẩm
-    print("\n>> Trang bị Khien_Doi_Truong_Meo...")
-    char.equip(Items['Khien_Doi_Truong_Meo'])
-    char.show_stats()
-    
-    print("\n>> Trang bị thêm Gay_Phap_Su...")
-    char.equip(Items['Gay_Phap_Su'])
-    char.show_stats()
-    
-    print("--- Kết thúc Demo Trang bị ---\n")
-    
-    # --- Bắt đầu Mô phỏng Phiên học ---
-    print("\n--- Bắt đầu Mô phỏng Phiên học ---")
-    
-    # 2. Tạo các đối tượng Quest riêng lẻ thông qua QuestSystem
-    # Cách tạo quest không thay đổi, chỉ là giờ chúng được quản lý bởi `quests`.
-    quest1 = quests.create_quest(description="Viết phần Mở đầu báo cáo", difficulty=2)
-    quest2 = quests.create_quest(description="Thiết kế Class Diagram", difficulty=4)
-    quest3 = quests.create_quest(description="Viết code cho 3 Class", difficulty=5)
 
-    # 3. Lên lịch một phiên học và liên kết với các Quest đã tạo
-    simulated_now = datetime.now()
-    session1 = manager.schedule_session(
-        goal_description="Làm báo cáo OOP - Giai đoạn 1",
-        start_time=simulated_now + timedelta(seconds=2),
-        end_time=simulated_now + timedelta(seconds=25), # Thời gian dự kiến là 23 giây
-        linked_quests=[quest1, quest2, quest3] # Truyền danh sách các đối tượng Quest
-    )
+class SkillType(Enum):
+    """Các loại skill trong đấu trường"""
+    ATTACK = "attack"  # Đánh thường
+    DEFEND = "defend"  # Thủ
+    MAGIC = "magic"    # Dùng phép
 
-    # ... phần còn lại của vòng lặp mô phỏng giữ nguyên ...
-    print("\n--- Bắt đầu Vòng lặp Mô phỏng ---")
-    end_of_simulation = simulated_now + timedelta(seconds=30)
-    current_sim_time = simulated_now
+
+class ArenaBot:
+    """Bot đấu trường được tạo từ dữ liệu base64 của người chơi khác"""
+    def __init__(self, name: str = "Bot", level: int = 1, hp: int = 50, 
+                 max_hp: int = 50, dex: int = 1, int_stat: int = 1, luk: int = 1):
+        self.name = name
+        self.level = level
+        self.hp = hp
+        self.max_hp = max_hp
+        self.dex = dex
+        self.int_stat = int_stat  # Tránh conflict với keyword 'int'
+        self.luk = luk
+        self.is_alive = True
     
-    session_has_started = False
+    @classmethod
+    def from_base64(cls, base64_data: str):
+        """Tạo bot từ dữ liệu base64 - hỗ trợ cả format đầy đủ và rút gọn"""
+        try:
+            # Xử lý nếu có prefix GSS: (gzip compressed)
+            if base64_data.startswith("GSS:"):
+                import gzip
+                compressed_data = base64_data[4:]  # Bỏ prefix "GSS:"
+                compressed_bytes = base64.b64decode(compressed_data.encode('ascii'))
+                json_string = gzip.decompress(compressed_bytes).decode('utf-8')
+                data = json.loads(json_string)
+            else:
+                # Regular base64
+                json_data = base64.b64decode(base64_data).decode('utf-8')
+                data = json.loads(json_data)
+            
+            # Lấy thông tin từ dữ liệu (có thể là format rút gọn hoặc đầy đủ)
+            if 'c' in data:  # Format rút gọn
+                char_data = data['c']
+                return cls(
+                    name=char_data.get('n', 'Unknown Player'),
+                    level=char_data.get('l', 1),
+                    hp=char_data.get('h', 50),
+                    max_hp=char_data.get('m', 50),
+                    dex=char_data.get('d', 1),
+                    int_stat=char_data.get('i', 1),
+                    luk=char_data.get('k', 1)
+                )
+            else:  # Format đầy đủ
+                char_data = data.get('character', {})
+                return cls(
+                    name=char_data.get('name', 'Unknown Player'),
+                    level=char_data.get('level', 1),
+                    hp=char_data.get('hp', 50),
+                    max_hp=char_data.get('max_hp', 50),
+                    dex=char_data.get('dex', 1),
+                    int_stat=char_data.get('int', 1),
+                    luk=char_data.get('luk', 1)
+                )
+        except Exception as e:
+            print(f"Lỗi khi parse dữ liệu base64: {e}")
+            # Trả về bot mặc định nếu lỗi
+            return cls(name="Error Bot")
     
-    while current_sim_time < end_of_simulation:
-        print(f"\n--- Tick lúc {current_sim_time.strftime('%H:%M:%S')} ---")
-        manager.update(current_time=current_sim_time)
+    def choose_skill(self) -> SkillType:
+        """Bot chọn skill ngẫu nhiên với tỷ lệ"""
+        choices = [SkillType.ATTACK, SkillType.DEFEND, SkillType.MAGIC]
+        weights = [0.5, 0.3, 0.2]  # 50% attack, 30% defend, 20% magic
+        return random.choices(choices, weights=weights)[0]
+
+
+class Arena:
+    """Hệ thống đấu trường"""
+    def __init__(self):
+        self.player = None
+        self.player_copy = None
+        self.bot: Optional[ArenaBot] = None
+        self.battle_log: List[str] = []
+        self.turn_count = 0
+        self.player_defended = False
+        self.bot_defended = False
+        self.battle_active: bool = False
+        # Lưu trạng thái HP gốc của player để khôi phục
+        self.player_original_hp = None
+    
+    def load_opponent(self, base64_data: str) -> bool:
+        """Load đối thủ từ dữ liệu base64 - hỗ trợ cả format đầy đủ và rút gọn"""
+        try:
+            self.bot = ArenaBot.from_base64(base64_data)
+            print(f"Đã load đối thủ: {self.bot.name} (Level {self.bot.level})")
+            return True
+        except Exception as e:
+            print(f"Lỗi khi load đối thủ: {e}")
+            return False
+    
+    def get_opponent_input_hint(self) -> str:
+        """Trả về text hint cho việc nhập dữ liệu đối thủ"""
+        return "Nhập mã QR hoặc base64 của đối thủ\nVí dụ: GSS:H4sIAAAAA... hoặc eyJjIjp7Im4iOi..."
+    
+    def validate_opponent_data(self, input_data: str) -> Dict[str, Any]:
+        """Validate và preview dữ liệu đối thủ trước khi load"""
+        try:
+            test_bot = ArenaBot.from_base64(input_data.strip())
+            return {
+                "valid": True,
+                "preview": {
+                    "name": test_bot.name,
+                    "level": test_bot.level,
+                    "hp": f"{test_bot.hp}/{test_bot.max_hp}",
+                    "stats": f"DEX:{test_bot.dex} INT:{test_bot.int_stat} LUK:{test_bot.luk}"
+                }
+            }
+        except Exception as e:
+            return {
+                "valid": False,
+                "error": f"Dữ liệu không hợp lệ: {str(e)}"
+            }
+    
+    def generate_demo_opponent(self) -> str:
+        """Tạo đối thủ demo và trả về mã base64"""
+        demo_names = ["Mom", "Nhật Nam", "Natsu", "Luffy", "Goku", "Vegeta", "Saitama"]
+        demo_data = {
+            "c": {
+                "n": random.choice(demo_names),
+                "l": random.randint(1, 10),
+                "h": random.randint(40, 100),
+                "m": random.randint(50, 120),
+                "d": random.randint(1, 15),
+                "i": random.randint(1, 15),
+                "k": random.randint(1, 15)
+            }
+        }
         
-        # Mô phỏng người dùng hoàn thành các quest trong lúc học
-        if session1 and session1.status == 'Running':
-            if not session_has_started:
-                session_has_started = True
-                print(">>> Phiên học đang chạy. Người dùng bắt đầu làm việc...")
-
-            time_in_session = (current_sim_time - session1.start_time).total_seconds()
-            
-            # Sau 5 giây, người dùng làm xong quest đầu tiên
-            if 5 <= time_in_session < 6 and not quest1.is_completed:
-                manager.mark_quest_as_complete(session1.session_id, quest1.quest_id)
-            
-            # Sau 12 giây, làm xong quest thứ hai
-            if 12 <= time_in_session < 13 and not quest2.is_completed:
-                manager.mark_quest_as_complete(session1.session_id, quest2.quest_id)
-            
-            # Người dùng quyết định kết thúc sớm sau 18 giây
-            if 18 <= time_in_session < 19:
-                manager.end_session_manually(session1.session_id)
-                break
-
-        time.sleep(1)
-        current_sim_time += timedelta(seconds=1)
+        json_str = json.dumps(demo_data)
+        base64_data = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
+        return base64_data
+    
+    def start_battle(self, player: Character) -> bool:
+        """Bắt đầu trận đấu - chỉ backup HP của player"""
+        if not self.bot:
+            return False
         
-    print("\n\n--- MÔ PHỎNG KẾT THÚC ---")
-    # In ra báo cáo cuối cùng nếu cần
-    print(analytics.generate_report())
-    char.show_stats()
+        # Lưu reference và HP gốc của player
+        self.player = player
+        self.player_original_hp = player.hp
+        
+        # Tạo bản sao để battle
+        self.player_copy = player.copy()
+        
+        self.battle_active = True
+        self.turn_count = 0
+        self.battle_log = []
+        self.player_defended = False
+        self.bot_defended = False
+        
+        # Reset HP về max CHỈ cho bot, player giữ nguyên HP hiện tại
+        # self.player_copy.hp = self.player_copy.max_hp  # REMOVED: Không reset HP của player
+        self.bot.hp = self.bot.max_hp
+        self.bot.is_alive = True
+        
+        self.battle_log.append(f"Trận đấu bắt đầu! {self.player.name} vs {self.bot.name}")
+        return True
+    
+    def reset_battle(self):
+        """Reset trận đấu - KHÔNG ảnh hưởng đến chỉ số gốc của player"""
+        if self.battle_active and self.player and self.player_original_hp is not None:
+            # Khôi phục HP gốc của player
+            self.player.hp = self.player_original_hp
+        
+        self.battle_active = False
+        self.bot = None
+        self.player = None
+        self.player_copy = None
+        self.battle_log = []
+        self.turn_count = 0
+        self.player_defended = False
+        self.bot_defended = False
+        self.player_original_hp = None
+        
+        print("Đã reset trận đấu. Chỉ số nhân vật được khôi phục.")
+    
+    def end_battle(self, winner: str = None):
+        """Kết thúc trận đấu và khôi phục HP gốc của player"""
+        self.battle_active = False
+        
+        if self.player and self.player_original_hp is not None:
+            # Luôn khôi phục HP gốc của player sau trận đấu
+            self.player.hp = self.player_original_hp
+            print(f"HP của {self.player.name} đã được khôi phục về {self.player_original_hp}")
+        
+        # Không reset các biến khác để có thể xem lại kết quả
+        print(f"Trận đấu kết thúc. Người thắng: {winner if winner else 'Không rõ'}")
+    
+    def calculate_damage(self, attacker_stats: Dict[str, int], defender_stats: Dict[str, int], 
+                        skill_type: SkillType, defender_defended: bool = False) -> int:
+        """Tính toán sát thương dựa trên chỉ số và loại skill"""
+        base_damage = 0
+        
+        if skill_type == SkillType.ATTACK:
+            # Đánh thường: phụ thuộc vào DEX và LUK
+            base_damage = 10 + (attacker_stats['dex'] * 2) + (attacker_stats['luk'] * 1.5)
+        elif skill_type == SkillType.MAGIC:
+            # Phép thuật: phụ thuộc vào INT và LUK
+            base_damage = 15 + (attacker_stats['int'] * 3) + (attacker_stats['luk'] * 1)
+        elif skill_type == SkillType.DEFEND:
+            # Thủ không gây sát thương
+            return 0
+        
+        # Thêm yếu tố ngẫu nhiên
+        damage_variance = random.uniform(0.8, 1.2)
+        base_damage *= damage_variance
+        
+        # Giảm sát thương nếu đối thủ đang thủ
+        if defender_defended:
+            defense_reduction = 0.3 + (defender_stats['dex'] * 0.02)  # 30% + 2% per DEX
+            base_damage *= (1 - min(defense_reduction, 0.8))  # Tối đa giảm 80%
+        
+        return max(1, int(base_damage))  # Tối thiểu 1 damage
+    
+    def execute_turn(self, player_skill: SkillType) -> Dict[str, Any]:
+        """Thực hiện một lượt đấu"""
+        if not self.battle_active or not self.bot or not self.player_copy:
+            return {"error": "Battle not active"}
+        
+        self.turn_count += 1
+        bot_skill = self.bot.choose_skill()
+        
+        turn_result = {
+            "turn": self.turn_count,
+            "player_skill": player_skill.value,
+            "bot_skill": bot_skill.value,
+            "player_damage": 0,
+            "bot_damage": 0,
+            "messages": [],
+            "battle_ended": False,
+            "winner": None
+        }
+        
+        # Chuẩn bị stats
+        player_stats = {
+            'dex': self.player_copy.dex,
+            'int': self.player_copy.int,
+            'luk': self.player_copy.luk
+        }
+        bot_stats = {
+            'dex': self.bot.dex,
+            'int': self.bot.int_stat,
+            'luk': self.bot.luk
+        }
+        
+        # Xử lý skill của người chơi
+        if player_skill == SkillType.DEFEND:
+            self.player_defended = True
+            turn_result["messages"].append(f"{self.player_copy.name} đang thủ!")
+        else:
+            self.player_defended = False
+            damage = self.calculate_damage(player_stats, bot_stats, player_skill, self.bot_defended)
+            self.bot.hp -= damage
+            turn_result["player_damage"] = damage
+            
+            skill_name = "đánh thường" if player_skill == SkillType.ATTACK else "dùng phép"
+            turn_result["messages"].append(f"{self.player_copy.name} {skill_name} gây {damage} sát thương!")
+        
+        # Xử lý skill của bot
+        if bot_skill == SkillType.DEFEND:
+            self.bot_defended = True
+            turn_result["messages"].append(f"{self.bot.name} đang thủ!")
+        else:
+            self.bot_defended = False
+            damage = self.calculate_damage(bot_stats, player_stats, bot_skill, self.player_defended)
+            self.player_copy.hp -= damage
+            turn_result["bot_damage"] = damage
+            
+            skill_name = "đánh thường" if bot_skill == SkillType.ATTACK else "dùng phép"
+            turn_result["messages"].append(f"{self.bot.name} {skill_name} gây {damage} sát thương!")
+        
+        # Kiểm tra kết thúc trận đấu
+        if self.player_copy.hp <= 0:
+            self.battle_active = False
+            turn_result["battle_ended"] = True
+            turn_result["winner"] = "bot"
+            turn_result["messages"].append(f"{self.bot.name} thắng!")
+        elif self.bot.hp <= 0:
+            self.battle_active = False
+            turn_result["battle_ended"] = True
+            turn_result["winner"] = "player"
+            turn_result["messages"].append(f"{self.player_copy.name} thắng!")
+            
+            # Tính thưởng cho người chơi khi thắng (tối đa 10 XP và 10 Gold)
+            xp_reward = min(1 + self.bot.level, 10)  # 1 + level bot, tối đa 10 XP
+            gold_reward = min(1 + self.bot.level, 10)  # 1 + level bot, tối đa 10 Gold
+            
+            if self.player:  # Cập nhật player gốc, không phải copy
+                self.player.xp += xp_reward
+                self.player.gold += gold_reward
+                turn_result["xp_reward"] = xp_reward
+                turn_result["gold_reward"] = gold_reward
+                self.player.check_level_up()
+                print(f"Arena reward: +{xp_reward} XP, +{gold_reward} Gold")
+                self.player.check_level_up()
+        
+        # Lưu vào battle log với thông tin chi tiết
+        turn_log = f"Lượt {self.turn_count}: "
+        if player_skill == SkillType.DEFEND:
+            turn_log += f"{self.player_copy.name} thủ. "
+        else:
+            skill_name = "tấn công" if player_skill == SkillType.ATTACK else "phép thuật"
+            turn_log += f"{self.player_copy.name} {skill_name} ({turn_result['player_damage']} sát thương). "
+        
+        if bot_skill == SkillType.DEFEND:
+            turn_log += f"{self.bot.name} thủ."
+        else:
+            skill_name = "tấn công" if bot_skill == SkillType.ATTACK else "phép thuật"
+            turn_log += f"{self.bot.name} {skill_name} ({turn_result['bot_damage']} sát thương)."
+        
+        self.battle_log.append(turn_log)
+        
+        # Lưu từng message riêng lẻ
+        for message in turn_result["messages"]:
+            self.battle_log.append(message)
+        
+        return turn_result
+    
+    def get_battle_state(self) -> Dict[str, Any]:
+        """Lấy trạng thái hiện tại của trận đấu"""
+        return {
+            "battle_active": self.battle_active,
+            "turn_count": self.turn_count,
+            "player": {
+                "name": self.player_copy.name if self.player_copy else "No Player",
+                "hp": self.player_copy.hp if self.player_copy else 0,
+                "max_hp": self.player_copy.max_hp if self.player_copy else 0,
+                "level": self.player_copy.level if self.player_copy else 0,
+                "dex": self.player_copy.dex if self.player_copy else 0,
+                "int": self.player_copy.int if self.player_copy else 0,
+                "luk": self.player_copy.luk if self.player_copy else 0,
+                "original_hp": self.player_original_hp if self.player_original_hp is not None else 0
+            },
+            "bot": {
+                "name": self.bot.name if self.bot else "No Bot",
+                "hp": self.bot.hp if self.bot else 0,
+                "max_hp": self.bot.max_hp if self.bot else 0,
+                "level": self.bot.level if self.bot else 0,
+                "dex": self.bot.dex if self.bot else 0,
+                "int": self.bot.int_stat if self.bot else 0,
+                "luk": self.bot.luk if self.bot else 0
+            } if self.bot else None,
+            "battle_log": self.battle_log
+        }
