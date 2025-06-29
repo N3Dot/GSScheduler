@@ -26,6 +26,15 @@ def to_basedate_time(dt: datetime) -> datetime:
     """Chuyển mọi datetime về BASE_DATE, chỉ giữ lại giờ và phút."""
     return BASE_DATE.replace(hour=dt.hour, minute=dt.minute, second=0, microsecond=0)
 
+def safe_json_serializer(obj):
+    """Custom JSON serializer để handle datetime objects"""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    elif hasattr(obj, '__dict__'):
+        return obj.__dict__
+    else:
+        return str(obj)
+
 class Character(EventDispatcher):
     """
     Đại diện cho người dùng trong ứng dụng.
@@ -791,16 +800,29 @@ class SessionManager:
         Lưu chỉ số nhân vật, thành tích, sessions
         """
         try:
+            print(f"Generated comprehensive save data for character: {self.character.name}")
             save_data = self._get_save_data()
             
+            # Test JSON serialization trước khi lưu
+            try:
+                json_test = json.dumps(save_data, ensure_ascii=False, indent=2, default=safe_json_serializer)
+                print("JSON serialization test passed")
+            except TypeError as json_error:
+                print(f"JSON serialization error: {json_error}")
+                # Thử lưu dữ liệu tối thiểu thay thế
+                save_data = self._get_minimal_save_data()
+                print("Using minimal save data as fallback")
+            
             with open(self.save_file_path, 'w', encoding='utf-8') as f:
-                json.dump(save_data, f, indent=2, ensure_ascii=False)
+                json.dump(save_data, f, indent=2, ensure_ascii=False, default=safe_json_serializer)
             
             print(f"Dữ liệu đã được lưu thành công vào {self.save_file_path}")
             return True
             
         except Exception as e:
             print(f"Lỗi khi lưu dữ liệu: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def ImportSave(self):
@@ -1006,9 +1028,7 @@ class SessionManager:
                 "analytics": {
                     "session_history": [
                         {
-                            **session,
-                            "start_time": session["start_time"].isoformat() if isinstance(session["start_time"], datetime) else session["start_time"],
-                            "end_time": session["end_time"].isoformat() if isinstance(session["end_time"], datetime) else session["end_time"]
+                            **{k: (v.isoformat() if isinstance(v, datetime) else v) for k, v in session.items()},
                         } for session in self.analytics.session_history
                     ],
                     "aggregated_stats": self.analytics.aggregated_stats,
@@ -1241,24 +1261,22 @@ class SessionManager:
             end_time = to_basedate_time(end_time)
 
             # Kiểm tra trùng lặp thời gian với các session đã có
+            session = StudySession(goal_description, start_time, end_time, linked_quests)
             conflicting_session = self._check_time_conflict(start_time, end_time)
             if conflicting_session:
-                print(f"❌ XUNG ĐỘT THỜI GIAN: Phiên học mới trùng với '{conflicting_session.goal_description}'")
-                print(f"   Thời gian bị trùng: {conflicting_session.start_time.strftime('%H:%M')} - {conflicting_session.end_time.strftime('%H:%M')}")
-                return None
+                print(f"Xung đột thời gian: Phiên học mới trùng với '{conflicting_session.goal_description}'")
+                return [conflicting_session, session]
             
-            session = StudySession(goal_description, start_time, end_time, linked_quests)
             self.sessions.append(session)
             print(f"🗓️  ĐÃ LÊN LỊCH: '{session.goal_description}' lúc {session.start_time.strftime('%H:%M:%S')}")
             return session
         except (ValueError, KeyError) as e:
             print(f"❌ LÊN LỊCH THẤT BẠI: {e}")
             return None
-
     def _check_time_conflict(self, new_start: datetime, new_end: datetime) -> Optional[StudySession]:
         """
         Kiểm tra xem thời gian mới có xung đột với session nào đã có không.
-        Chỉ so sánh giờ:phút, bỏ qua ngày.
+        Chỉ so sánh giờ:phút, bỏ qua ngày (theo comment trong main.py).
         
         Returns:
             StudySession bị xung đột nếu có, None nếu không có xung đột.
@@ -1274,8 +1292,7 @@ class SessionManager:
             new_end_time_only += timedelta(days=1)
         
         for existing_session in self.sessions:
-            if existing_session.status == 'Finished':
-                continue  # Bỏ qua các session đã kết thúc
+            # if existing_session.status == 'Finished': Không bỏ qua các session đã kết thúc. Đây là trạng thái bật tắt.
             
             # Chuyển session hiện có về cùng định dạng
             existing_start = to_basedate_time(existing_session.start_time)
@@ -1286,10 +1303,10 @@ class SessionManager:
                 existing_end += timedelta(days=1)
             
             # Kiểm tra xung đột: hai khoảng thời gian overlap
-            if (new_start_time_only < existing_end and new_end_time_only > existing_start):
+            if (new_start_time_only <= existing_end and new_end_time_only >= existing_start):
                 return existing_session
-        
         return None
+
     def mark_quest_as_complete(self, session_id: str, quest_id: str):
         """
         Đánh dấu một nhiệm vụ là đã hoàn thành trong một phiên học đang chạy.        Đây là "cầu nối" giữa giao diện người dùng và logic của StudySession.
@@ -1378,14 +1395,6 @@ class SessionManager:
             if total_difficulty_failed > 0:
                 print(f"Phiên học kết thúc với hạng F, áp dụng hình phạt.")
                 self.reward_system.punish(self.character, {'type': 'hp', 'amount': total_difficulty_failed * 4})
-
-
-
-import base64
-import json
-import random
-from enum import Enum
-from typing import Dict, Any, List, Tuple, Optional
 
 
 class SkillType(Enum):
@@ -1543,8 +1552,8 @@ class Arena:
         self.player_defended = False
         self.bot_defended = False
         
-        # Reset HP về max CHỈ trong battle cho cả hai
-        self.player_copy.hp = self.player_copy.max_hp
+        # Reset HP về max CHỈ cho bot, player giữ nguyên HP hiện tại
+        # self.player_copy.hp = self.player_copy.max_hp  # REMOVED: Không reset HP của player
         self.bot.hp = self.bot.max_hp
         self.bot.is_alive = True
         
@@ -1569,14 +1578,17 @@ class Arena:
         
         print("Đã reset trận đấu. Chỉ số nhân vật được khôi phục.")
     
-    def end_battle(self, restore_hp: bool = True):
-        """Kết thúc trận đấu với tùy chọn khôi phục HP"""
+    def end_battle(self, winner: str = None):
+        """Kết thúc trận đấu và khôi phục HP gốc của player"""
         self.battle_active = False
         
-        if restore_hp and self.player and self.player_original_hp is not None:
-            # Khôi phục HP gốc của player
+        if self.player and self.player_original_hp is not None:
+            # Luôn khôi phục HP gốc của player sau trận đấu
             self.player.hp = self.player_original_hp
-            print("HP đã được khôi phục về trạng thái ban đầu.")
+            print(f"HP của {self.player.name} đã được khôi phục về {self.player_original_hp}")
+        
+        # Không reset các biến khác để có thể xem lại kết quả
+        print(f"Trận đấu kết thúc. Người thắng: {winner if winner else 'Không rõ'}")
     
     def calculate_damage(self, attacker_stats: Dict[str, int], defender_stats: Dict[str, int], 
                         skill_type: SkillType, defender_defended: bool = False) -> int:
@@ -1673,17 +1685,36 @@ class Arena:
             turn_result["winner"] = "player"
             turn_result["messages"].append(f"{self.player_copy.name} thắng!")
             
-            # Thưởng cho người chơi khi thắng - cập nhật player gốc
-            xp_reward = 50 + (self.bot.level * 10)
-            gold_reward = 25 + (self.bot.level * 5)
+            # Tính thưởng cho người chơi khi thắng (tối đa 10 XP và 10 Gold)
+            xp_reward = min(1 + self.bot.level, 10)  # 1 + level bot, tối đa 10 XP
+            gold_reward = min(1 + self.bot.level, 10)  # 1 + level bot, tối đa 10 Gold
+            
             if self.player:  # Cập nhật player gốc, không phải copy
                 self.player.xp += xp_reward
                 self.player.gold += gold_reward
                 turn_result["xp_reward"] = xp_reward
                 turn_result["gold_reward"] = gold_reward
                 self.player.check_level_up()
+                print(f"Arena reward: +{xp_reward} XP, +{gold_reward} Gold")
+                self.player.check_level_up()
         
-        # Lưu vào battle log
+        # Lưu vào battle log với thông tin chi tiết
+        turn_log = f"Lượt {self.turn_count}: "
+        if player_skill == SkillType.DEFEND:
+            turn_log += f"{self.player_copy.name} thủ. "
+        else:
+            skill_name = "tấn công" if player_skill == SkillType.ATTACK else "phép thuật"
+            turn_log += f"{self.player_copy.name} {skill_name} ({turn_result['player_damage']} sát thương). "
+        
+        if bot_skill == SkillType.DEFEND:
+            turn_log += f"{self.bot.name} thủ."
+        else:
+            skill_name = "tấn công" if bot_skill == SkillType.ATTACK else "phép thuật"
+            turn_log += f"{self.bot.name} {skill_name} ({turn_result['bot_damage']} sát thương)."
+        
+        self.battle_log.append(turn_log)
+        
+        # Lưu từng message riêng lẻ
         for message in turn_result["messages"]:
             self.battle_log.append(message)
         

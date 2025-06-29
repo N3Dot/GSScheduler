@@ -268,25 +268,22 @@ MDScreenManager:
                             height: "50dp"
                             padding: "50dp", "8dp", "8dp", "8dp"  # Thêm padding left 50dp để tránh nút menu
                             spacing: "8dp"
-                            MDTextField:
-                                id: opponent_code_input
-                                hint_text: "Nhập mã đối thủ (Base64)"
+                            MDButton:
+                                style: "elevated"
                                 size_hint_x: 0.7
                                 size_hint_y: None
                                 height: "36dp"
-                                mode: "outlined"
-                            Button:
-                                text: "Load"
-                                size_hint_x: 0.15
-                                size_hint_y: None
-                                height: "36dp"
                                 on_press: app.load_arena_opponent()
-                            MDIconButton:
-                                icon: "dice-6"
-                                size_hint_x: 0.15
+                                MDButtonText:
+                                    text: "Nhập Mã Đối Thủ"
+                            MDButton:
+                                style: "filled"
+                                size_hint_x: 0.3
                                 size_hint_y: None
                                 height: "36dp"
                                 on_press: app.load_demo_opponent()
+                                MDButtonText:
+                                    text: "Demo"
                         FloatLayout:
                             # Modern background image approach: Image widget as first child
                             Image:
@@ -1582,24 +1579,57 @@ Kho đồ: {len(imported_character.inventory)}
     
     # Arena Methods
     def load_arena_opponent(self):
-        """Load đối thủ từ mã base64"""
-        code_input = self.root.ids.opponent_code_input
-        base64_code = code_input.text.strip()
+        """Mở dialog để nhập mã QR hoặc base64 của đối thủ"""
+        def on_confirm_opponent_code(text_input):
+            base64_code = text_input.text.strip()
+            if not base64_code:
+                self.PopupManager.show_info_snackbar("Vui lòng nhập mã đối thủ!")
+                return
+            
+            try:
+                success = self.session_manager.arena.load_opponent(base64_code)
+                if success:
+                    self.update_arena_display()
+                    self.PopupManager.show_info_snackbar(f"Đã load đối thủ: {self.session_manager.arena.bot.name}")
+                    dialog.dismiss()
+                else:
+                    self.PopupManager.show_info_snackbar("Không thể load đối thủ từ mã này!")
+            except Exception as e:
+                self.PopupManager.show_info_snackbar(f"Lỗi: {str(e)}")
         
-        if not base64_code:
-            self.PopupManager.show_info_snackbar("Vui lòng nhập mã đối thủ!")
-            return
+        # Tạo text input cho mã QR/base64
+        text_input = MDTextField(
+            mode="outlined",
+            size_hint_y=None,
+            height="56dp"
+        )
+        text_input.add_widget(MDTextFieldHintText(text="Mã QR hoặc mã base64"))
         
-        try:
-            success = self.session_manager.arena.load_opponent(base64_code)
-            if success:
-                self.update_arena_display()
-                self.PopupManager.show_info_snackbar(f"Đã load đối thủ: {self.session_manager.arena.bot.name}")
-                code_input.text = ""
-            else:
-                self.PopupManager.show_info_snackbar("Không thể load đối thủ từ mã này!")
-        except Exception as e:
-            self.PopupManager.show_info_snackbar(f"Lỗi: {str(e)}")
+        # Tạo dialog
+        dialog = MDDialog(
+            MDDialogHeadlineText(text="Nhập Mã Đối Thủ"),
+            MDDialogContentContainer(
+                text_input,
+                orientation="vertical",
+                spacing="16dp",
+                size_hint_y=None,
+                height="100dp"
+            ),
+            MDDialogButtonContainer(
+                MDButton(
+                    MDButtonText(text="Hủy"),
+                    style="text",
+                    on_release=lambda x: dialog.dismiss()
+                ),
+                MDButton(
+                    MDButtonText(text="Xác Nhận"),
+                    style="elevated",
+                    on_release=lambda x: on_confirm_opponent_code(text_input)
+                ),
+                spacing="8dp"
+            )
+        )
+        dialog.open()
     
     def load_demo_opponent(self):
         """Load đối thủ demo ngẫu nhiên"""
@@ -1615,21 +1645,36 @@ Kho đồ: {len(imported_character.inventory)}
             self.PopupManager.show_info_snackbar("Vui lòng load đối thủ trước!")
             return
         
+        # Lưu HP ban đầu trước khi bắt đầu trận đấu
+        self.session_manager.arena.original_player_hp = self.character.hp
+        self.session_manager.arena.original_bot_hp = self.session_manager.arena.bot.hp
+        
         success = self.session_manager.arena.start_battle(self.character)
         if success:
             self.update_arena_display()
             self.update_arena_ui_state(True)
-            self.PopupManager.show_battle_message("⚔️ Trận đấu bắt đầu! Chọn skill để chiến đấu!")
+            self.PopupManager.show_battle_message("Trận đấu bắt đầu! Chọn skill để chiến đấu!")
             Clock.schedule_once(lambda dt: self.PopupManager.show_info_snackbar("Trận đấu đã bắt đầu! Chọn skill để tấn công!"), 0.5)
     
     def reset_arena_battle(self):
-        """Reset trận đấu"""
+        """Reset trận đấu và khôi phục HP về trạng thái ban đầu"""
+        # Khôi phục HP của character từ original_hp nếu có
+        if hasattr(self.session_manager.arena, 'original_player_hp'):
+            self.character.hp = self.session_manager.arena.original_player_hp
+        
+        # Reset arena state
         self.session_manager.arena.battle_active = False
         self.session_manager.arena.battle_log = []
         self.session_manager.arena.turn_count = 0
+        self.session_manager.arena.player_copy = None
+        
+        # Reset bot HP nếu có
+        if self.session_manager.arena.bot and hasattr(self.session_manager.arena, 'original_bot_hp'):
+            self.session_manager.arena.bot.hp = self.session_manager.arena.original_bot_hp
+        
         self.update_arena_display()
         self.update_arena_ui_state(False)
-        self.PopupManager.show_info_snackbar("Đã reset trận đấu!")
+        self.PopupManager.show_info_snackbar("Đã reset trận đấu và khôi phục HP!")
     
     def on_arena_skill_selected(self, skill_type):
         """Xử lý khi người chơi chọn skill"""
@@ -1663,10 +1708,14 @@ Kho đồ: {len(imported_character.inventory)}
                 i * 0.8  # Delay 0.8s giữa các message
             )
             
-            # Hiệu ứng rung cho bot khi bot tấn công
-            if "dùng phép" in message or "đánh thường" in message:
+            # Hiệu ứng rung cho bot khi bot tấn công/phép thuật (tìm trong message)
+            if "đánh thường" in message or "dùng phép" in message:
+                # Kiểm tra nếu là bot tấn công (tên bot xuất hiện trước "đánh thường" hoặc "dùng phép")
                 if self.session_manager.arena.bot and self.session_manager.arena.bot.name in message:
-                    Clock.schedule_once(lambda dt: self.shake_character(is_player=False), i * 0.8 + 0.3)
+                    Clock.schedule_once(lambda dt: self.shake_character(is_player=False), i * 0.8 + 0.2)
+                # Nếu là player tấn công (tên player xuất hiện trước)
+                elif self.session_manager.arena.player_copy and self.session_manager.arena.player_copy.name in message:
+                    Clock.schedule_once(lambda dt: self.shake_character(is_player=True), i * 0.8 + 0.2)
         
         # Cập nhật hiển thị
         self.update_arena_display()
@@ -1676,18 +1725,16 @@ Kho đồ: {len(imported_character.inventory)}
             winner = result.get("winner")
             delay_time = len(messages) * 0.8 + 1.0  # Đợi tất cả messages hiển thị xong
             
-            # Luôn dùng thưởng min(10, 1+level bot)
-            arena_xp = min(10, 1 + self.session_manager.arena.bot.level)
-            arena_gold = min(10, 1 + self.session_manager.arena.bot.level)
-            
             if winner == "player":
+                # Lấy thưởng từ result (đã được tính trong backend)
+                arena_xp = result.get("xp_reward", 0)
+                arena_gold = result.get("gold_reward", 0)
+                
                 Clock.schedule_once(
                     lambda dt: self.PopupManager.show_battle_result_dialog("player", result.get("messages", []), arena_xp, arena_gold),
                     delay_time
                 )
-                self.character.xp += arena_xp
-                self.character.gold += arena_gold
-                self.character.check_level_up()
+                # Không cộng thêm XP/Gold ở đây vì backend đã cộng rồi
                 Clock.schedule_once(lambda dt: self.PopupManager.show_reward(arena_xp, arena_gold), delay_time + 1.5)
             else:
                 Clock.schedule_once(
@@ -1695,8 +1742,9 @@ Kho đồ: {len(imported_character.inventory)}
                     delay_time
                 )
             
+            # Chỉ cập nhật UI state, KHÔNG reset HP
             Clock.schedule_once(lambda dt: self.update_arena_ui_state(False), delay_time + 1.0)
-            self.session_manager.arena.end_battle(winner)  # Kết thúc trận đấu và có thể khôi phục chỉ số
+            # Không gọi end_battle để không reset HP về trạng thái ban đầu
     
     def show_character_stats_dialog(self):
         """Show player character stats in a snackbar popup"""
@@ -1746,19 +1794,19 @@ Kho đồ: {len(imported_character.inventory)}
             else:
                 card = self.root.ids.bot_character_card
             
-            # Create shake animation
-            shake_anim = (Animation(x=card.x + 5, duration=0.05) + 
-                         Animation(x=card.x - 5, duration=0.05) +
-                         Animation(x=card.x + 3, duration=0.05) +
-                         Animation(x=card.x, duration=0.05))
+            # Lưu vị trí gốc
+            original_x = card.x
+            original_y = card.y
             
-            shake_anim.start(card)
-        except Exception as e:
-            # Create shake animation
-            shake_anim = (Animation(x=card.x + 5, duration=0.05) + 
-                         Animation(x=card.x - 5, duration=0.05) +
-                         Animation(x=card.x + 3, duration=0.05) +
-                         Animation(x=card.x, duration=0.05))
+            # Tạo chuỗi animation lắc mạnh hơn với cả x và y
+            shake_anim = (
+                Animation(x=original_x + 15, y=original_y + 5, duration=0.08) + 
+                Animation(x=original_x - 15, y=original_y - 5, duration=0.08) +
+                Animation(x=original_x + 10, y=original_y + 3, duration=0.08) +
+                Animation(x=original_x - 10, y=original_y - 3, duration=0.08) +
+                Animation(x=original_x + 5, y=original_y + 2, duration=0.08) +
+                Animation(x=original_x, y=original_y, duration=0.08)
+            )
             
             shake_anim.start(card)
         except Exception as e:
@@ -1785,12 +1833,33 @@ Kho đồ: {len(imported_character.inventory)}
             self.PopupManager.show_info_snackbar(f"Lỗi demo: {e}")
     
     def update_arena_display(self):
-        """Cập nhật hiển thị thông tin nhân vật trong arena với stats thật"""
+        """Cập nhật hiển thị thông tin nhân vật trong arena với stats battle"""
         try:
             AppDict = self.root.ids
-            # Player - cập nhật với stats thật từ character
-            AppDict.player_name_label.text = f"{self.character.name} - Lv.{self.character.level}"
-            AppDict.player_hp_label.text = f"{self.character.hp}/{self.character.max_hp}"
+            
+            # Player - ưu tiên hiển thị HP từ battle copy nếu có
+            if (self.session_manager.arena.player_copy):
+                # Có battle copy: hiển thị HP từ copy (trong và sau trận đấu)
+                player_name = f"{self.session_manager.arena.player_copy.name} - Lv.{self.session_manager.arena.player_copy.level}"
+                player_hp = f"{self.session_manager.arena.player_copy.hp}/{self.session_manager.arena.player_copy.max_hp}"
+                AppDict.player_name_label.text = player_name
+                AppDict.player_hp_label.text = player_hp
+                
+                # Đổi màu HP thành đỏ nếu HP <= 0
+                if self.session_manager.arena.player_copy.hp <= 0:
+                    AppDict.player_hp_label.text_color = [1, 0, 0, 1]  # Đỏ
+                else:
+                    AppDict.player_hp_label.text_color = [0, 0.7, 0, 1]  # Xanh lá
+            else:
+                # Chưa có battle copy: hiển thị HP thật của character
+                AppDict.player_name_label.text = f"{self.character.name} - Lv.{self.character.level}"
+                AppDict.player_hp_label.text = f"{self.character.hp}/{self.character.max_hp}"
+                
+                # Đổi màu HP thành đỏ nếu HP <= 0
+                if self.character.hp <= 0:
+                    AppDict.player_hp_label.text_color = [1, 0, 0, 1]  # Đỏ
+                else:
+                    AppDict.player_hp_label.text_color = [0, 0.7, 0, 1]  # Xanh lá
             
             # Cập nhật avatar player với avatar thật
             if hasattr(self, 'avatar_path'):
@@ -1801,10 +1870,17 @@ Kho đồ: {len(imported_character.inventory)}
                 bot = self.session_manager.arena.bot
                 AppDict.bot_name_label.text = f"{bot.name} - Lv.{bot.level}"
                 AppDict.bot_hp_label.text = f"{bot.hp}/{bot.max_hp}"
+                
+                # Đổi màu HP thành đỏ nếu HP <= 0
+                if bot.hp <= 0:
+                    AppDict.bot_hp_label.text_color = [1, 0, 0, 1]  # Đỏ
+                else:
+                    AppDict.bot_hp_label.text_color = [0, 0.7, 0, 1]  # Xanh lá
             else:
                 # Hiển thị default khi chưa có bot
                 AppDict.bot_name_label.text = "??? - Lv.?"
                 AppDict.bot_hp_label.text = "?/?"
+                AppDict.bot_hp_label.text_color = [0, 0, 0, 1]  # Đen
         except Exception as e:
             print(f"Error updating arena display: {e}")
 

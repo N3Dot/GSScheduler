@@ -513,7 +513,7 @@ class Popup:
         snackbar.open()
     
     def show_battle_result_dialog(self, winner: str, messages: list, xp_reward: int = None, gold_reward: int = None):
-        """Hiển thị dialog kết quả trận đấu với thưởng chính xác"""
+        """Hiển thị dialog kết quả trận đấu với battle log đầy đủ"""
         from kivymd.uix.dialog import MDDialog, MDDialogIcon, MDDialogHeadlineText, MDDialogSupportingText, MDDialogContentContainer, MDDialogButtonContainer
         from kivymd.uix.button import MDButton, MDButtonText
         from kivymd.uix.boxlayout import MDBoxLayout
@@ -523,11 +523,42 @@ class Popup:
         # Tạo nội dung dialog
         content_box = MDBoxLayout(orientation="vertical", spacing="8dp", adaptive_height=True)
         
-        # Hiển thị messages (bỏ qua dòng thưởng backend)
-        for msg in messages[-5:]:  # Chỉ hiện 5 message cuối
-            if not msg.startswith("Thưởng:"):  # Bỏ dòng thưởng backend cũ
+        # Hiển thị battle log đầy đủ từ arena
+        if hasattr(self.app.session_manager, 'arena') and self.app.session_manager.arena.battle_log:
+            battle_log = self.app.session_manager.arena.battle_log
+            
+            # Title cho battle log
+            log_title = MDLabel(
+                text="[b]Diễn biến trận đấu:[/b]",
+                font_style="Title",
+                role="small",
+                adaptive_height=True,
+                theme_text_color="Primary",
+                markup=True
+            )
+            content_box.add_widget(log_title)
+            
+            # Hiển thị các lượt đánh (tối đa 8 lượt cuối)
+            for log_entry in battle_log[-8:]:
+                # Loại bỏ các icon và clean text
+                clean_text = log_entry.replace("⚔️", "").replace("🛡️", "").replace("✨", "").strip()
+                
                 label = MDLabel(
-                    text=msg,
+                    text=clean_text,
+                    font_style="Body",
+                    role="small",
+                    adaptive_height=True,
+                    theme_text_color="Secondary"
+                )
+                content_box.add_widget(label)
+        else:
+            # Fallback: hiển thị messages nếu không có battle log
+            for msg in messages[-5:]:
+                # Clean text loại bỏ icons
+                clean_text = msg.replace("⚔️", "").replace("🛡️", "").replace("✨", "").strip()
+                
+                label = MDLabel(
+                    text=clean_text,
                     font_style="Body",
                     role="small",
                     adaptive_height=True,
