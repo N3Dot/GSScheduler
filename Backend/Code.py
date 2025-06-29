@@ -406,14 +406,22 @@ class StudySession:
         # Đánh dấu phiên học đã kết thúc
         self.status = 'Finished'
         # Ghi lại thời gian kết thúc thực tế (dùng thời gian được truyền vào hoặc thời gian hiện tại)
-        self.actual_end_time = end_time_override if end_time_override else datetime.now()
+        raw_end_time = end_time_override if end_time_override else datetime.now()
+        # FIX: Chuyển về base date để tránh bug tính toán thời gian
+        self.actual_end_time = to_basedate_time(raw_end_time)
         
         # Tính điểm hoàn thành nhiệm vụ (tỷ lệ từ 0.0 đến 1.0)
         quest_completion_score = self.quest_progress
         
         # Tính thời gian thực tế đã học - sử dụng actual_start_time nếu có
         start_time_for_calc = self.actual_start_time if self.actual_start_time else self.start_time
-        time_spent_seconds = (self.actual_end_time - start_time_for_calc).total_seconds()
+        
+        # FIX: Đảm bảo cả start và end time đều dùng cùng base date
+        start_time_for_calc = to_basedate_time(start_time_for_calc)
+        end_time_for_calc = to_basedate_time(self.actual_end_time)
+        
+        # Tính thời gian với xử lý đặc biệt cho cross-midnight sessions
+        time_spent_seconds = self._calculate_session_duration(start_time_for_calc, end_time_for_calc)
         
         # Tính thời gian dự kiến ban đầu (đơn vị: giây)
         time_planned_seconds = (self.end_time - self.start_time).total_seconds()
@@ -457,7 +465,11 @@ class StudySession:
             print(f"Không thể bắt đầu phiên học '{self.goal_description}' - trạng thái hiện tại: {self.status}")
             return False        
         self.status = 'Running'
-        self.actual_start_time = actual_start_time if actual_start_time else datetime.now()
+        
+        # FIX: Chuyển về base date để tránh bug tính toán thời gian
+        raw_start_time = actual_start_time if actual_start_time else datetime.now()
+        self.actual_start_time = to_basedate_time(raw_start_time)
+        
         print(f"▶️  BẮT ĐẦU THỰC TẾ: '{self.goal_description}' lúc {self.actual_start_time.strftime('%H:%M:%S')}")
         return True
 
@@ -466,10 +478,14 @@ class StudySession:
         # Tính thời lượng thực tế của phiên học
         if self.actual_end_time and self.actual_start_time:
             # Nếu có cả thời gian bắt đầu và kết thúc thực tế
-            duration = self.actual_end_time - self.actual_start_time
+            # FIX: Sử dụng helper method để tính đúng thời gian
+            duration_seconds = self._calculate_session_duration(self.actual_start_time, self.actual_end_time)
+            duration = timedelta(seconds=duration_seconds)
         elif self.actual_end_time:
             # Nếu chỉ có thời gian kết thúc thực tế, dùng thời gian bắt đầu dự kiến
-            duration = self.actual_end_time - self.start_time
+            # FIX: Sử dụng helper method để tính đúng thời gian
+            duration_seconds = self._calculate_session_duration(self.start_time, self.actual_end_time)
+            duration = timedelta(seconds=duration_seconds)
         else:
             # Nếu chưa kết thúc hoặc chưa có thời gian thực tế
             duration = timedelta(0)
@@ -488,6 +504,28 @@ class StudySession:
             "linked_quests_data": [q.to_dict() for q in self.linked_quests]  # Danh sách dữ liệu các nhiệm vụ liên kết
         }
 
+    def _calculate_session_duration(self, start_time, end_time):
+        """
+        Tính thời gian session với xử lý đúng cho cross-midnight sessions.
+        
+        Args:
+            start_time: datetime với base date (1900-01-01)
+            end_time: datetime với base date (1900-01-01)
+            
+        Returns:
+            float: Thời gian tính bằng giây
+        """
+        # Case 1: Normal session (end_time >= start_time)
+        if end_time >= start_time:
+            return (end_time - start_time).total_seconds()
+        
+        # Case 2: Cross-midnight session (end_time < start_time)
+        # Ví dụ: start 23:00, end 01:00
+        # Thời gian = (24:00 - 23:00) + (01:00 - 00:00) = 1 + 1 = 2 giờ
+        seconds_until_midnight = (datetime(1900, 1, 2, 0, 0, 0) - start_time).total_seconds()
+        seconds_after_midnight = (end_time - datetime(1900, 1, 1, 0, 0, 0)).total_seconds()
+        
+        return seconds_until_midnight + seconds_after_midnight
 
 class QuestSystem:
     """Quản lý tất cả các đối tượng Quest."""
