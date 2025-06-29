@@ -1199,6 +1199,10 @@ class GSS(MDApp):
             self.PopupManager.show_warning_dialog("Nhanh quá! Hãy dành ít nhất 1 phút cho phiên học của mình nha!")
             return
         
+        if (end_date - start_date).total_seconds() < 0:
+            self.PopupManager.show_warning_dialog("Thời gian kết thúc không được trước thời gian bắt đầu!")
+            return
+        
         session = self.session_manager.schedule_session(goal_description=description_text, start_time=start_date, end_time=end_date, linked_quests=quests)
         if isinstance(session, list):
             if self.active_card is None: # Handle time conflicts when there is no sessions being edited.
@@ -1381,6 +1385,7 @@ class GSS(MDApp):
         ItemDialog.dismiss()
         self.character.check_level_up()
         self.character.validate_health()
+        self.character.check_negative_stats()
 
     def on_unequip_item(self, item, ItemDialog):
         Flag = self.character.unequip(item)

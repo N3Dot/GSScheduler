@@ -327,7 +327,7 @@ class Popup:
         WelcomeDialog = MDDialog(
             MDDialogIcon(icon="gamepad-up"),
             MDDialogHeadlineText(text=f"Chào Mừng Đến Với Học Tập Kiểu RPG!"),
-            MDDialogSupportingText(text="Bắt đầu bằng cách tạo một phiên học, đặt thời gian bắt đầu và kết thúc. Tạo các nhiệm vụ với độ khó tùy chọn - chúng chính là “quái vật” bạn cần tiêu diệt để nhận XP!\n\nKhi đến giờ, ứng dụng sẽ tự động kích hoạt phiên học và đếm giờ. Trong suốt thời gian đó, hãy tập trung hoàn thành nhiệm vụ, đánh dấu tiến độ và đạt hạng cao nhất.\n\nKết thúc phiên học, hệ thống sẽ trao thưởng nếu bạn làm tốt... hoặc trừ HP nếu bạn lười biếng!\n\nĐừng quên ghé qua Shop để tiêu vàng, nâng cấp nhân vật và chuẩn bị cho những phiên học tiếp theo!"),
+            MDDialogSupportingText(text="Bắt đầu bằng cách tạo một phiên học, đặt thời gian bắt đầu và kết thúc. Tạo các nhiệm vụ với độ khó tùy chọn - chúng chính là “quái vật” bạn cần tiêu diệt!\n\nKhi đến giờ, ứng dụng sẽ tự động kích hoạt phiên học và đếm giờ. Trong suốt thời gian đó, hãy tập trung hoàn thành nhiệm vụ, đánh dấu tiến độ và đạt hạng cao nhất.\n\nKết thúc phiên học, hệ thống sẽ trao thưởng nếu bạn làm tốt... hoặc trừ HP nếu bạn lười biếng!\n\nĐừng quên ghé qua Shop để tiêu vàng, thử sức trên chiến trường, nâng cấp nhân vật và chuẩn bị cho những phiên học tiếp theo!"),
             MDDialogButtonContainer(
                 Widget(),
                 MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
@@ -580,7 +580,7 @@ class Popup:
             content_box.add_widget(reward_label)
         
         icon = "trophy" if winner == "player" else "emoticon-sad"
-        title = "🎉 Chiến Thắng!" if winner == "player" else "😔 Thất Bại"
+        title = "Chiến Thắng!" if winner == "player" else "Thất Bại"
         
         dialog = MDDialog(
             MDDialogIcon(icon=icon),

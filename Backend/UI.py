@@ -52,10 +52,11 @@ class ItemCard(MDCard):
     textColor = ListProperty([0.3, 0.3, 0.3, 1])
 
     def on_touch_down(self, touch):
-        for child in self.children[::-1]:
-            if child.collide_point(*touch.pos) and child.__class__.__name__ == "MDBoxLayout":
-                MDApp.get_running_app().on_click_owned_item(self)
-                return super().on_touch_down(touch)
+        if self.item:
+            for child in self.children[::-1]:
+                if child.collide_point(*touch.pos) and child.__class__.__name__ == "MDBoxLayout":
+                    MDApp.get_running_app().on_click_owned_item(self)
+                    return super().on_touch_down(touch)
         return super().on_touch_down(touch)
 
     def on_item(self, instance, value):

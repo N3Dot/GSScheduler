@@ -625,7 +625,7 @@ class StudyAnalytics:
         stats = self.aggregated_stats
         report_lines = [
             "==========================================",
-            "📊 BÁO CÁO THỐNG KÊ HỌC TẬP",
+            "BÁO CÁO THỐNG KÊ HỌC TẬP",
             "==========================================",
             "",
             "--- Tổng Quan ---",
