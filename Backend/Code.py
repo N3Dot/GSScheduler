@@ -571,7 +571,25 @@ class StudyAnalytics:
         if not self.session_history: return 0
         
         # Lấy danh sách các ngày học duy nhất và sắp xếp chúng
-        study_dates = sorted(list(set(s['end_time'].date() for s in self.session_history)))
+        study_dates = []
+        for s in self.session_history:
+            end_time = s.get('end_time')
+            if end_time:
+                # Xử lý cả datetime object và string
+                if isinstance(end_time, str):
+                    try:
+                        # Thử parse string thành datetime
+                        from datetime import datetime
+                        end_time = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+                    except (ValueError, AttributeError):
+                        try:
+                            # Thử format khác
+                            end_time = datetime.strptime(end_time, '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            continue  # Bỏ qua nếu không parse được
+                study_dates.append(end_time.date())
+        
+        study_dates = sorted(list(set(study_dates)))
         if not study_dates: return 0
         
         streak = 0
