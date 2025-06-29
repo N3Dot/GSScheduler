@@ -513,8 +513,7 @@ class Popup:
         snackbar.open()
     
     def show_battle_result_dialog(self, winner: str, messages: list, xp_reward: int = None, gold_reward: int = None):
-        """Hiển thị dialog kết quả trận đấu, chỉ hiện thưởng đúng công thức min(10, 1+level bot) nếu thắng"""
-        import os
+        """Hiển thị dialog kết quả trận đấu với battle log đầy đủ"""
         from kivymd.uix.dialog import MDDialog, MDDialogIcon, MDDialogHeadlineText, MDDialogSupportingText, MDDialogContentContainer, MDDialogButtonContainer
         from kivymd.uix.button import MDButton, MDButtonText
         from kivymd.uix.boxlayout import MDBoxLayout
@@ -523,10 +522,43 @@ class Popup:
         
         # Tạo nội dung dialog
         content_box = MDBoxLayout(orientation="vertical", spacing="8dp", adaptive_height=True)
-        for msg in messages[-5:]:  # Chỉ hiện 5 message cuối, bỏ qua các dòng thưởng backend
-            if not (msg.startswith("Thưởng:") and winner == "player"):  # Bỏ dòng thưởng backend nếu là người chơi thắng
+        
+        # Hiển thị battle log đầy đủ từ arena
+        if hasattr(self.app.session_manager, 'arena') and self.app.session_manager.arena.battle_log:
+            battle_log = self.app.session_manager.arena.battle_log
+            
+            # Title cho battle log
+            log_title = MDLabel(
+                text="[b]Diễn biến trận đấu:[/b]",
+                font_style="Title",
+                role="small",
+                adaptive_height=True,
+                theme_text_color="Primary",
+                markup=True
+            )
+            content_box.add_widget(log_title)
+            
+            # Hiển thị các lượt đánh (tối đa 8 lượt cuối)
+            for log_entry in battle_log[-8:]:
+                # Loại bỏ các icon và clean text
+                clean_text = log_entry.replace("⚔️", "").replace("🛡️", "").replace("✨", "").strip()
+                
                 label = MDLabel(
-                    text=msg,
+                    text=clean_text,
+                    font_style="Body",
+                    role="small",
+                    adaptive_height=True,
+                    theme_text_color="Secondary"
+                )
+                content_box.add_widget(label)
+        else:
+            # Fallback: hiển thị messages nếu không có battle log
+            for msg in messages[-5:]:
+                # Clean text loại bỏ icons
+                clean_text = msg.replace("⚔️", "").replace("🛡️", "").replace("✨", "").strip()
+                
+                label = MDLabel(
+                    text=clean_text,
                     font_style="Body",
                     role="small",
                     adaptive_height=True,
@@ -534,7 +566,7 @@ class Popup:
                 )
                 content_box.add_widget(label)
         
-        # Nếu thắng, luôn hiện thưởng đúng công thức
+        # Hiển thị thưởng chính xác nếu thắng
         if winner == "player" and xp_reward is not None and gold_reward is not None:
             reward_label = MDLabel(
                 text=f"[b]Thưởng:[/b] +{xp_reward} XP, +{gold_reward} Vàng!",
@@ -570,6 +602,68 @@ class Popup:
         )
         dialog.open()
 
+    def show_arena_input_dialog(self, arena):
+        """Hiển thị dialog nhập dữ liệu đối thủ với hint text"""
+        from kivymd.uix.textfield import MDTextField
+        from kivymd.uix.dialog import MDDialog, MDDialogIcon, MDDialogHeadlineText, MDDialogSupportingText, MDDialogContentContainer, MDDialogButtonContainer
+        from kivymd.uix.button import MDButton, MDButtonText
+        from kivymd.uix.boxlayout import MDBoxLayout
+        from kivy.uix.widget import Widget
+        
+        # Textfield với hint từ arena
+        text_input = MDTextField(
+            hint_text=arena.get_opponent_input_hint() if hasattr(arena, 'get_opponent_input_hint') else "Nhập mã QR hoặc base64 của đối thủ...",
+            multiline=True,
+            size_hint_y=None,
+            height="100dp"
+        )
+        
+        def validate_and_load():
+            input_data = text_input.text.strip()
+            if input_data:
+                # Sử dụng validation từ arena nếu có
+                if hasattr(arena, 'validate_opponent_data'):
+                    validation = arena.validate_opponent_data(input_data)
+                    if validation["valid"]:
+                        arena.load_opponent(input_data)
+                        self.show_info_snackbar(f"Đã load đối thủ: {validation['preview']['name']}")
+                        dialog.dismiss()
+                    else:
+                        self.show_info_snackbar(validation["error"])
+                else:
+                    # Fallback nếu không có validation method
+                    success = arena.load_opponent(input_data)
+                    if success:
+                        self.show_info_snackbar("Đã load đối thủ thành công!")
+                        dialog.dismiss()
+                    else:
+                        self.show_info_snackbar("Không thể load đối thủ!")
+            else:
+                self.show_info_snackbar("Vui lòng nhập dữ liệu đối thủ")
+        
+        dialog = MDDialog(
+            MDDialogIcon(icon="sword-cross"),
+            MDDialogHeadlineText(text="Nhập Đối Thủ"),
+            MDDialogSupportingText(text="Nhập mã QR hoặc dữ liệu base64 của đối thủ để bắt đầu trận đấu"),
+            MDDialogContentContainer(
+                text_input,
+                orientation="vertical",
+            ),
+            MDDialogButtonContainer(
+                MDButton(
+                    MDButtonText(text="Load"),
+                    style="filled",
+                    on_release=lambda x: validate_and_load(),
+                ),
+                MDButton(
+                    MDButtonText(text="Hủy"),
+                    style="outlined",
+                    on_release=lambda x: dialog.dismiss(),
+                ),
+                spacing="20dp",
+            ),
+        )
+        dialog.open()
         
 class ConfettiParticle(Widget):
     def __init__(self, pos, **kwargs):

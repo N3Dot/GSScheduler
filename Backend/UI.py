@@ -8,6 +8,11 @@ from kivymd.uix.button import MDIconButton
 from kivymd.uix.fitimage import FitImage
 from kivy.graphics import Color, RoundedRectangle
 
+from kivy.clock import Clock
+from kivy.graphics import Color, Rectangle
+from kivy.uix.widget import Widget
+import random
+
 RARITY_COLORS = {
     "Common": {
         "border": (0.65, 0.65, 0.65, 1),
@@ -233,7 +238,6 @@ Builder.load_file("Backend/KV/GoldCounterCard.kv")
 class GoldCounterCard(MDCard):
     goldAmount = NumericProperty(0)
 
-
 # Arena UI Components
 class ArenaSkillButton(MDCard):
     skill_name = StringProperty()
@@ -273,3 +277,56 @@ class ArenaCharacterDisplay(MDBoxLayout):
         self.height = "120dp"
         self.spacing = "8dp"
         self.padding = "8dp"
+
+class ArenaOpponentInput(MDBoxLayout):
+    """Component cho việc nhập dữ liệu đối thủ với hint text"""
+    hint_text = StringProperty("Nhập mã QR hoặc base64 của đối thủ...")
+    input_text = StringProperty("")
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = "vertical"
+        self.spacing = "8dp"
+        self.adaptive_height = True
+    
+    def on_input_validate(self):
+        """Callback khi người dùng nhập xong dữ liệu"""
+        app = MDApp.get_running_app()
+        if hasattr(app, 'on_arena_opponent_input'):
+            app.on_arena_opponent_input(self.input_text)
+
+# Effects và Animation Components
+class ConfettiParticle(Widget):
+    def __init__(self, pos, **kwargs):
+        super().__init__(**kwargs)
+        self.size = (10, 10)
+        self.x, self.y = pos
+        self.velocity = [
+            random.uniform(-250, 250),
+            random.uniform(450, 650)
+        ]
+        self.gravity = -300
+        self.lifetime = 8
+        self.age = 0
+
+        r, g, b = random.random(), random.random(), random.random()
+        with self.canvas:
+            Color(r, g, b)
+            self.rect = Rectangle(pos=self.pos, size=self.size)
+
+        self.bind(pos=self.update_graphics)
+        Clock.schedule_interval(self.update, 1 / 60)
+
+    def update_graphics(self, *args):
+        self.rect.pos = self.pos
+
+    def update(self, dt):
+        self.age += dt
+        if self.age > self.lifetime:
+            if self.parent:
+                self.parent.remove_widget(self)
+            return False
+        self.velocity[1] += self.gravity * dt
+        self.x += self.velocity[0] * dt
+        self.y += self.velocity[1] * dt
+        return True
