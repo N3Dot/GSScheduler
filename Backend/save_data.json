@@ -1,71 +1,94 @@
 {
   "character": {
     "name": "khoi",
-    "level": 1,
-    "xp": 0,
-    "xp_to_next_level": 100,
+    "level": 3,
+    "xp": 1,
+    "xp_to_next_level": 225,
     "hp": 50,
     "max_hp": 50,
-    "gold": 10,
-    "dex": 1,
-    "int": 1,
-    "luk": 1,
+    "gold": 79,
+    "dex": 5,
+    "int": 2,
+    "luk": 0,
     "available_points": 0,
-    "unlocked_achievements": [],
+    "unlocked_achievements": [
+      "BuocDiDauTien"
+    ],
     "inventory": [],
     "equipment": []
   },
   "analytics": {
-    "session_history": [],
+    "session_history": [
+      {
+        "session_id": "818eb6f3-ea08-4a04-a2b5-f0e30c2e49f0",
+        "goal": "",
+        "status": "Finished",
+        "start_time": "1900-01-01T13:51:00",
+        "end_time": "1900-01-01T14:00:00",
+        "actual_start_time": "2025-06-29T13:54:06.032400",
+        "actual_end_time": "2025-06-29T13:56:58.494718",
+        "rank": "C",
+        "duration_seconds": 172.462318,
+        "linked_quests_data": [
+          {
+            "quest_id": "quest_34a89266-87a5-4b62-82cd-88b9ba564a2d",
+            "description": " ",
+            "difficulty": 3,
+            "is_completed": true
+          },
+          {
+            "quest_id": "quest_6a6fce00-01b6-4df9-99f2-875c346ba34b",
+            "description": "Hoàn thành... ",
+            "difficulty": 3,
+            "is_completed": true
+          },
+          {
+            "quest_id": "quest_6868cc20-6726-4284-ad0e-37d344f9506b",
+            "description": "Hoàn thành... ",
+            "difficulty": 3,
+            "is_completed": true
+          }
+        ]
+      },
+      {
+        "session_id": "fc865bd7-3bba-486d-8419-4ff7fcec1991",
+        "goal": "",
+        "status": "Finished",
+        "start_time": "1900-01-01T13:00:00",
+        "end_time": "1900-01-01T15:09:00",
+        "actual_start_time": "2025-06-29T13:59:41.179731",
+        "actual_end_time": "2025-06-29T13:59:48.359746",
+        "rank": "F",
+        "duration_seconds": 7.180015,
+        "linked_quests_data": [
+          {
+            "quest_id": "quest_d2ecca46-d1a6-4afb-9836-fa3affadef3e",
+            "description": "Hoàn thành... ",
+            "difficulty": 3,
+            "is_completed": true
+          }
+        ]
+      }
+    ],
     "aggregated_stats": {
-      "total_study_seconds": 0,
-      "total_study_hours": 0,
-      "total_sessions": 0,
+      "total_study_seconds": 179.642333,
+      "total_study_hours": 0.04990064805555556,
+      "total_sessions": 2,
       "rank_counts": {
         "S": 0,
         "A": 0,
         "B": 0,
-        "C": 0,
-        "F": 0
+        "C": 1,
+        "F": 1
       },
-      "average_session_duration_minutes": 0,
-      "average_rank_score": 0,
-      "quests_completed": 0,
-      "quest_completion_rate": 0
+      "average_session_duration_minutes": 1.4970194416666667,
+      "average_rank_score": 1.0,
+      "quests_completed": 1,
+      "quest_completion_rate": 16.666666666666664
     },
     "focus_streak": 0
   },
-  "sessions": [
-    {
-      "session_id": "818eb6f3-ea08-4a04-a2b5-f0e30c2e49f0",
-      "goal_description": "",
-      "start_time": "1900-01-01T13:51:00",
-      "end_time": "1900-01-01T14:00:00",
-      "actual_end_time": null,
-      "status": "Scheduled",
-      "rank": "N/A",
-      "linked_quests": [
-        {
-          "quest_id": "quest_34a89266-87a5-4b62-82cd-88b9ba564a2d",
-          "description": " ",
-          "difficulty": 3,
-          "is_completed": false
-        },
-        {
-          "quest_id": "quest_6a6fce00-01b6-4df9-99f2-875c346ba34b",
-          "description": "Hoàn thành... ",
-          "difficulty": 3,
-          "is_completed": false
-        },
-        {
-          "quest_id": "quest_6868cc20-6726-4284-ad0e-37d344f9506b",
-          "description": "Hoàn thành... ",
-          "difficulty": 3,
-          "is_completed": false
-        }
-      ]
-    }
-  ],
+  "sessions": [],
   "quest_system": {
     "active_quests": [
       {
@@ -85,9 +108,27 @@
         "description": "Hoàn thành... ",
         "difficulty": 3,
         "is_completed": false
+      },
+      {
+        "quest_id": "quest_3f01f827-5946-4d29-a479-2a47a99dfdcd",
+        "description": "Hoàn thành... ",
+        "difficulty": 3,
+        "is_completed": false
+      },
+      {
+        "quest_id": "quest_5630e1b2-3a02-4458-8069-afbf50e707ca",
+        "description": "Hoàn thành... ",
+        "difficulty": 3,
+        "is_completed": false
+      },
+      {
+        "quest_id": "quest_d2ecca46-d1a6-4afb-9836-fa3affadef3e",
+        "description": "Hoàn thành... ",
+        "difficulty": 3,
+        "is_completed": true
       }
     ]
   },
-  "save_timestamp": "2025-06-29T13:47:25.370711",
+  "save_timestamp": "2025-06-29T14:02:51.483605",
   "version": "1.0"
 }
