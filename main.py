@@ -528,7 +528,7 @@ MDScreenManager:
                             font_style: "Display"
                             role: "small"
                         MDLabel:
-                            text: "Version: 06-25"
+                            text: "Version: 07-25"
                             padding: "20dp", "0dp"
                             adaptive_height: True
                             font_style: "Title"
