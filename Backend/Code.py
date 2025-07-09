@@ -229,8 +229,6 @@ class Shop:
             item_to_add = Items[key]
             if (item_to_add.category == "Tiêu Hao") or (item_to_add not in Character.inventory and item_to_add not in Character.equipment):
                 self.current_stock.append(Items[key])
-            else:
-                print(f"Item not added: {item_to_add}")
         self.current_stock.sort(key=lambda x: x.rarity.value, reverse=True)
 
 class RewardSystem:
@@ -361,7 +359,7 @@ class StudySession:
         linked_quests: List[Quest]
     ):
         if start_time >= end_time: print("Thời gian kết thúc phải sau thời gian bắt đầu.")
-        if not goal_description: print("Mô tả phiên học không được để trống.")
+        if not goal_description: print("Mô tả phiên học bị để trống.")
         if not linked_quests: print("Phiên học phải có ít nhất một nhiệm vụ liên kết.")
 
         self.session_id: str = str(uuid.uuid4())
@@ -1320,7 +1318,6 @@ class SessionManager:
             session = StudySession(goal_description, start_time, end_time, linked_quests)
             conflicting_session = self._check_time_conflict(start_time, end_time)
             if conflicting_session:
-                print(f"Xung đột thời gian: Phiên học mới trùng với '{conflicting_session.goal_description}'")
                 return [conflicting_session, session]
             
             self.sessions.append(session)

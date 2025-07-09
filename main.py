@@ -488,6 +488,12 @@ MDScreenManager:
                                 MDListItemSupportingText:
                                     text: "Đổi Ảnh Nhân Vật"
                             MDListItem:
+                                on_release: app.show_welcome_dialog()
+                                MDListItemLeadingIcon:
+                                    icon: "message-processing"
+                                MDListItemSupportingText:
+                                    text: "Lời Giới Thiệu"
+                            MDListItem:
                                 on_release: app.PopupManager.show_erase_dialog()
                                 MDListItemLeadingIcon:
                                     id: trash_can_icon
@@ -553,6 +559,14 @@ MDScreenManager:
                             icon: "cog"
                         MDNavigationDrawerItemText:
                             text: "Cài Đặt"
+                    MDNavigationDrawerItem:
+                        on_release:
+                            app.root.ids.navigation_drawer.set_state("toggle")
+                            app.on_show_instructions()
+                        MDNavigationDrawerItemLeadingIcon:
+                            icon: "crosshairs-question"
+                        MDNavigationDrawerItemText:
+                            text: "Hướng Dẫn Khúc Này"
                     MDNavigationDrawerItem:
                         on_release: app.get_running_app().stop() # Does not stop background services started by pyjnius or android.service
                         MDNavigationDrawerItemLeadingIcon:
@@ -1018,11 +1032,10 @@ class GSS(MDApp):
         self.Sound_Ding = SoundLoader.load('Sounds/Ding.wav')
         self.Sound_LevelUp = SoundLoader.load('Sounds/Level_Up.wav')
 
-        SavePresent = self.session_manager.ImportSave()
-
-        self.character.show_stats()
         self.shop = Code.Shop(self.character)
-        self.load_tabs(SavePresent)
+        self.load_tabs(self.session_manager.ImportSave())
+        self.reload_character()
+        self.character.show_stats()
         self.updater = Clock.schedule_interval(self.update, 1)
         self.FullyLoaded = True
         if platform == "android":
@@ -1332,7 +1345,7 @@ class GSS(MDApp):
         self.PopupManager.instance.open()
 
     def show_time_picker(self, picker_type):
-        time_picker = MDTimePickerDialVertical()
+        time_picker = MDTimePickerDialVertical(hour=datetime.now().strftime('%H'), minute=datetime.now().strftime('%M'))
         time_picker.bind(on_ok=lambda instance, *args: self.on_time_picker_ok(instance, picker_type))
         time_picker.bind(on_cancel=lambda x: time_picker.dismiss())
         time_picker.open()
@@ -1370,6 +1383,7 @@ class GSS(MDApp):
     def on_click_item(self, ItemCard):
         if ItemCard.item:
             self.PopupManager.show_item_dialog(ItemCard.item)
+            self.PopupManager.show_start_section_dialog("aaa", ["abc", "bcd"])
     
     def on_click_owned_item(self, ItemCard):
         if ItemCard.item:
@@ -1459,8 +1473,17 @@ class GSS(MDApp):
     def confirm_login(self):
         self.character.name = self.root.ids.login_name_field.text
         self.switch_main()
-        self.PopupManager.show_welcome_dialog()
+        self.show_welcome_dialog()
     
+    def on_show_instructions(self):
+        self.show_welcome_dialog()
+    
+    def show_welcome_dialog(self):
+        self.PopupManager.show_long_dialog(["Chào Mừng Đến Với Học Tập Kiểu RPG!", "Về Phiên Học", "Lời Cuối"], 
+                                           ["Hãy bắt đầu bằng cách tạo một phiên học, đặt thời gian bắt đầu và kết thúc.\n\nTạo các nhiệm vụ với độ khó tùy chọn - chúng chính là “quái vật” bạn cần tiêu diệt!", 
+                                            "Khi đến giờ, ứng dụng sẽ tự động kích hoạt phiên học và đếm giờ.\n\nTrong suốt thời gian đó, hãy tập trung hoàn thành nhiệm vụ, đánh dấu tiến độ và đạt hạng cao nhất.\n\nKết thúc phiên học, hệ thống sẽ trao thưởng nếu bạn làm tốt... hoặc trừ HP nếu bạn lười biếng!", 
+                                            "Cuối cùng, bạn đừng quên ghé Shop để tiêu vàng, thử sức trên Chiến Trường, nâng cấp nhân vật và chuẩn bị cho những phiên học tiếp theo!"])
+
     def revive_character(self):
         self.character.equipment = []
         self.character.inventory = []
@@ -1490,8 +1513,6 @@ class GSS(MDApp):
         self.PopupManager.show_analytics_dialog(ReportString)
 
     def show_analytics_from_code_dialog(self):
-       
-
         text_field = MDTextField(
             MDTextFieldHintText(text="Mã QR hoặc mã base64...", font_style="Label"),
             id="analytics_code_field",
@@ -1533,7 +1554,6 @@ Vàng: {imported_character.gold}
 Thành tích: {len(imported_character.unlocked_achievements)}
 Trang bị: {len(imported_character.equipment)}
 Kho đồ: {len(imported_character.inventory)}
-
 """
                 full_report = character_info + report
 
@@ -1568,6 +1588,18 @@ Kho đồ: {len(imported_character.inventory)}
         )
         self.analytics_code_dialog.open()
 
+    def reload_character(self):
+        self.character.hp += 1
+        self.character.hp -= 1
+        self.character.max_hp += 1
+        self.character.max_hp -= 1
+        self.character.xp_to_next_level += 1
+        self.character.xp_to_next_level -= 1
+        self.character.xp += 1
+        self.character.xp -= 1
+        self.character.gold += 1
+        self.character.gold -= 1
+
     def on_home_switch_tab(self, bar: MDNavigationBar, item: MDNavigationItem, item_icon: str, item_text: str):
         self.root.ids.screen_manager_home.current = item_text
     
@@ -1578,9 +1610,6 @@ Kho đồ: {len(imported_character.inventory)}
         for _ in range(amount):
             particle = UI.ConfettiParticle(pos=(Window.width/2, 0))  # Đổi từ Popups.ConfettiParticle
             self.root.ids.effect_layer.add_widget(particle)
-
-    def on_toggle_theme(self): # Switch to theme_cls.primary_palette
-        self.theme_cls.theme_style = "Dark" if self.theme_cls.theme_style == "Light" else "Light"
     
     # Arena Methods
     def load_arena_opponent(self):
