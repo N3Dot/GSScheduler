@@ -397,66 +397,80 @@ class StudySession:
         return [q for q in self.linked_quests if q.is_completed]
 
     def finish(self, end_time_override: Optional[datetime] = None):
-        """Hoàn tất phiên học. Hạng được quyết định bởi điểm số kết hợp."""
-        # Kiểm tra xem phiên học có đang chạy không, nếu không thì thoát
+        """
+        Hoàn tất phiên học. Hạng được quyết định bởi điểm số kết hợp,
+        với "Hệ số Thời lượng" được tăng cường để phạt nặng các phiên quá ngắn,
+        giới hạn hạng tối đa là C.
+        """
         if self.status != 'Running': return
         
-        # Đánh dấu phiên học đã kết thúc
+        # Đánh dấu phiên học đã kết thúc và ghi lại thời gian
         self.status = 'Finished'
-        # Ghi lại thời gian kết thúc thực tế (dùng thời gian được truyền vào hoặc thời gian hiện tại)
         raw_end_time = end_time_override if end_time_override else datetime.now()
-        # FIX: Chuyển về base date để tránh bug tính toán thời gian
         self.actual_end_time = to_basedate_time(raw_end_time)
         
-        # Tính điểm hoàn thành nhiệm vụ (tỷ lệ từ 0.0 đến 1.0)
-        quest_completion_score = self.quest_progress
+        # --- BƯỚC 1: TÍNH TOÁN CÁC ĐIỂM THÀNH PHẦN ---
+        # 1.1. Điểm Hoàn thành Nhiệm vụ (Quest Score)
+        quest_score = self.quest_progress
         
-        # Tính thời gian thực tế đã học - sử dụng actual_start_time nếu có
+        # 1.2. Điểm Hoàn thành Thời gian (Time Score)
         start_time_for_calc = self.actual_start_time if self.actual_start_time else self.start_time
-        
-        # FIX: Đảm bảo cả start và end time đều dùng cùng base date
         start_time_for_calc = to_basedate_time(start_time_for_calc)
         end_time_for_calc = to_basedate_time(self.actual_end_time)
-        
-        # Tính thời gian với xử lý đặc biệt cho cross-midnight sessions
+       
         time_spent_seconds = self._calculate_session_duration(start_time_for_calc, end_time_for_calc)
-        
-        # Tính thời gian dự kiến ban đầu (đơn vị: giây)
         time_planned_seconds = (self.end_time - self.start_time).total_seconds()
-        # Tính tỷ lệ thời gian thực tế so với dự kiến
+        
         time_ratio = time_spent_seconds / time_planned_seconds if time_planned_seconds > 0 else 1.0
-        
-        # THAY ĐỔI: Tính điểm hiệu quả thời gian - thưởng cho việc hoàn thành đủ thời gian dự kiến
-        if time_ratio >= 1.0:
-            # Nếu học đủ hoặc hơn thời gian dự kiến, điểm tối đa
-            time_efficiency_bonus = 1.0
-        else:
-            # Nếu học ít hơn thời gian dự kiến, điểm giảm tuyến tính
-            time_efficiency_bonus = time_ratio
-        
-        # Đặt trọng số cho hai yếu tố chấm điểm
-        quest_weight = 0.2  # Hoàn thành nhiệm vụ chiếm 20%
-        time_weight = 0.8   # Hiệu quả thời gian chiếm 80%
-        # Tính điểm tổng kết dựa trên trọng số
-        final_performance_score = (quest_completion_score * quest_weight) + (time_efficiency_bonus * time_weight)
-        
-        # Xếp hạng dựa trên điểm tổng kết
-        if final_performance_score >= 0.85: self.rank = 'S'      # Xuất sắc (≥85%)
-        elif final_performance_score >= 0.70: self.rank = 'A'    # Giỏi (70-84%)
-        elif final_performance_score >= 0.55: self.rank = 'B'    # Khá (55-69%)
-        elif final_performance_score >= 0.40: self.rank = 'C'    # Trung bình (40-54%)
-        else: self.rank = 'F'                                    # Yếu (<40%)
+        time_score = time_ratio
 
-        # Chuyển đổi tỷ lệ hoàn thành thành phần trăm để hiển thị
-        progress_percent = f"{int(quest_completion_score * 100)}%"
-        # In thông báo kết quả phiên học
-        actual_duration = f"{time_spent_seconds/60:.1f} phút"
-        planned_duration = f"{time_planned_seconds/60:.1f} phút"
-        print(f"Phiên học '{self.goal_description}' đã kết thúc với Hạng: {self.rank}")
-        print(f"  • Hoàn thành {progress_percent} nhiệm vụ")
-        print(f"  • Thời gian: {actual_duration} / {planned_duration} dự kiến")
-        print(f"  • Tỷ lệ thời gian: {time_ratio:.1%}")
+        # --- BƯỚC 2: TÍNH TOÁN "HỆ SỐ THỜI LƯỢNG" (DURATION MULTIPLIER) ---
+        
+        time_planned_minutes = time_planned_seconds / 60
+        duration_multiplier = 1.0 # Giá trị mặc định
 
+        # === THAY ĐỔI CHÍNH Ở ĐÂY ===
+        if time_planned_minutes < 15:
+            # PHẠT NẶNG: Session dưới 15 phút bị giảm điểm mạnh.
+            # Với hệ số này, điểm tối đa (1.0 * 0.65 = 0.65) chỉ có thể đạt hạng C.
+            duration_multiplier = 0.65 
+        # ==========================
+        elif time_planned_minutes < 30:
+            # PHẠT NHẸ: Session từ 15-29 phút, giới hạn hạng tối đa là B
+            duration_multiplier = 0.80
+        elif time_planned_minutes >= 90:
+            # THƯỞNG: Session từ 90 phút trở lên được cộng thêm điểm
+            duration_multiplier = 1.10
+        elif time_planned_minutes >= 60:
+            # THƯỞNG NHẸ: Session từ 60-89 phút được cộng thêm ít điểm
+            duration_multiplier = 1.05
+        # Các session từ 30-59 phút có hệ số là 1.0 (chuẩn)
+
+        # --- BƯỚC 3: TÍNH ĐIỂM TỔNG KẾT ---
+        
+        quest_weight = 0.2
+        time_weight = 0.8
+        
+        base_score = (quest_score * quest_weight) + (time_score * time_weight)
+        final_performance_score = base_score * duration_multiplier
+        
+        # --- BƯỚC 4: XẾP HẠNG ---
+        # Ngưỡng xếp hạng giữ nguyên
+        if final_performance_score >= 1.0:   self.rank = 'S'
+        elif final_performance_score >= 0.85: self.rank = 'A'
+        elif final_performance_score >= 0.70: self.rank = 'B'
+        elif final_performance_score >= 0.55: self.rank = 'C'
+        else:                                self.rank = 'F'
+
+        # --- In thông báo kết quả chi tiết ---
+        print(f"\n--- KẾT THÚC PHIÊN HỌC: '{self.goal_description}' ---")
+        print(f"  Thời lượng dự kiến: {time_planned_minutes:.0f} phút")
+        print(f"  Điểm Nhiệm vụ: {quest_score:.2f}, Điểm Thời gian: {time_score:.2f}")
+        print(f"  Hệ số Thời lượng: x{duration_multiplier:.2f} (Phạt nặng session ngắn)")
+        print(f"  Điểm cơ bản: {base_score:.3f}")
+        print(f"  Điểm Tổng Kết: {base_score:.3f} * {duration_multiplier:.2f} = {final_performance_score:.3f}")
+        print(f"  ==> XẾP HẠNG CUỐI CÙNG: {self.rank}")
+        print("------------------------------------------------------")
     def start_session(self, actual_start_time: Optional[datetime] = None):
         """Bắt đầu phiên học và ghi lại thời gian bắt đầu thực tế."""
         if self.status != 'Scheduled':
