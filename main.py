@@ -299,7 +299,7 @@ MDScreenManager:
                                 id: bot_character_card
                                 size_hint: None, None
                                 size: "140dp", "180dp"
-                                pos_hint: {"x": 0.65, "y": 0.65}
+                                pos_hint: {"center_x": 0.72, "center_y": 0.74}
                                 elevation: 6
                                 radius: [12]
                                 md_bg_color: [0.8, 0.2, 0.2, 0.9]
@@ -348,7 +348,7 @@ MDScreenManager:
                                 id: player_character_card
                                 size_hint: None, None
                                 size: "140dp", "180dp"
-                                pos_hint: {"x": 0.15, "y": 0.05}
+                                pos_hint: {"center_x": 0.28, "center_y": 0.14}
                                 on_release: app.show_character_stats_dialog()
                                 elevation: 6
                                 radius: [12]
@@ -1789,8 +1789,10 @@ Kho đồ: {len(imported_character.inventory)}
         except Exception as e:
             print(f"Error updating arena UI state: {e}")
     
+    # Trong lớp GSS(MDApp)
+
     def shake_character(self, is_player=True):
-        """Add shake animation effect to character cards"""
+        """Add shake animation effect to character cards by animating pos_hint."""
         try:
             from kivy.animation import Animation
             
@@ -1799,24 +1801,27 @@ Kho đồ: {len(imported_character.inventory)}
             else:
                 card = self.root.ids.bot_character_card
             
-            # Lưu vị trí gốc
-            original_x = card.x
-            original_y = card.y
+            # Lưu pos_hint gốc
+            original_hint = card.pos_hint.copy()
             
-            # Tạo chuỗi animation lắc mạnh hơn với cả x và y
+            # Tạo chuỗi animation bằng cách thay đổi pos_hint
+            # Chúng ta sẽ thêm/bớt một lượng nhỏ vào giá trị x và y của pos_hint
             shake_anim = (
-                Animation(x=original_x + 15, y=original_y + 5, duration=0.08) + 
-                Animation(x=original_x - 15, y=original_y - 5, duration=0.08) +
-                Animation(x=original_x + 10, y=original_y + 3, duration=0.08) +
-                Animation(x=original_x - 10, y=original_y - 3, duration=0.08) +
-                Animation(x=original_x + 5, y=original_y + 2, duration=0.08) +
-                Animation(x=original_x, y=original_y, duration=0.08)
+                Animation(pos_hint={'center_x': original_hint['center_x'] + 0.02, 'center_y': original_hint['center_y'] + 0.01}, duration=0.06) + 
+                Animation(pos_hint={'center_x': original_hint['center_x'] - 0.02, 'center_y': original_hint['center_y'] - 0.01}, duration=0.06) +
+                Animation(pos_hint={'center_x': original_hint['center_x'] + 0.015, 'center_y': original_hint['center_y'] + 0.005}, duration=0.06) +
+                Animation(pos_hint={'center_x': original_hint['center_x'] - 0.015, 'center_y': original_hint['center_y'] - 0.005}, duration=0.06) +
+                Animation(pos_hint={'center_x': original_hint['center_x'] + 0.01, 'center_y': original_hint['center_y']}, duration=0.06) +
+                # Trả về vị trí gốc
+                Animation(pos_hint=original_hint, duration=0.06)
             )
             
+            # Bắt đầu animation
             shake_anim.start(card)
+            
         except Exception as e:
             print(f"Error creating shake animation: {e}")
-    
+        
     def update_arena_display_from_demo(self):
         """Load a random demo bot from Code.generate_demo_base64_codes and update arena display."""
         try:
