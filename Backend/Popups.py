@@ -96,13 +96,6 @@ class Popup:
                     duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
                     background_color=self.app.theme_cls.onPrimaryContainerColor,
                 ).open()
-        else:
-            MDSnackbar(
-                MDSnackbarText(text="Bạn đã mất máu..."),
-                MDSnackbarSupportingText(text="Máu có thể mất, nhưng ý chí vẫn còn nguyên vẹn. Hãy tiếp tục, chiến binh dũng cảm!"),
-                duration=1, y=dp(90), orientation="horizontal", pos_hint={"center_x": 0.77}, size_hint_x=0.4,
-                background_color=self.app.theme_cls.onPrimaryContainerColor,
-            ).open()
 
     def show_level_up_dialog(self):
         LevelUpDialog = MDDialog(
@@ -322,21 +315,6 @@ class Popup:
     def use_local_avatar(self, AvatarDialog):
         self.file_manager_open()
         AvatarDialog.dismiss()
-
-    def show_welcome_dialog(self):
-        WelcomeDialog = MDDialog(
-            MDDialogIcon(icon="gamepad-up"),
-            MDDialogHeadlineText(text=f"Chào Mừng Đến Với Học Tập Kiểu RPG!"),
-            MDDialogSupportingText(text="Bắt đầu bằng cách tạo một phiên học, đặt thời gian bắt đầu và kết thúc. Tạo các nhiệm vụ với độ khó tùy chọn - chúng chính là “quái vật” bạn cần tiêu diệt!\n\nKhi đến giờ, ứng dụng sẽ tự động kích hoạt phiên học và đếm giờ. Trong suốt thời gian đó, hãy tập trung hoàn thành nhiệm vụ, đánh dấu tiến độ và đạt hạng cao nhất.\n\nKết thúc phiên học, hệ thống sẽ trao thưởng nếu bạn làm tốt... hoặc trừ HP nếu bạn lười biếng!\n\nĐừng quên ghé qua Shop để tiêu vàng, thử sức trên chiến trường, nâng cấp nhân vật và chuẩn bị cho những phiên học tiếp theo!"),
-            MDDialogButtonContainer(
-                Widget(),
-                MDButton(MDButtonText(text="Đóng"), style="outlined", pos_hint={'center_x': 0.5},
-                    on_release=lambda x: WelcomeDialog.dismiss(),
-                ),
-                Widget(),
-            ),
-        )
-        WelcomeDialog.open()
     
     def show_analytics_dialog(self, ReportString: str):
         AnalyticsDialog = MDDialog(
@@ -472,6 +450,69 @@ class Popup:
     
     def file_manager_exit(self, *args):
         self.file_manager.close()
+
+    def show_long_dialog(self, HeadlineList: list, TextList: list, Index = 0):
+        if Index == 0:
+            LongDialog = MDDialog(
+                MDDialogIcon(icon="chat-question"),
+                MDDialogHeadlineText(text=HeadlineList[Index]),
+                MDDialogSupportingText(text=TextList[Index]),
+                MDDialogButtonContainer(
+                    Widget(),
+                    MDButton(MDButtonText(text="<", bold=True), style="text", pos_hint={'center_x': 0.5}, disabled=True,
+                        on_release=lambda x: LongDialog.dismiss(),
+                    ),
+                    MDButton(MDButtonText(text="Đóng"), style="text", pos_hint={'center_x': 0.5},
+                        on_release=lambda x: LongDialog.dismiss(),
+                    ),
+                    MDButton(MDButtonText(text=">", bold=True), style="text", pos_hint={'center_x': 0.5},
+                        on_release=lambda x: self.show_long_dialog(HeadlineList, TextList, Index+1),
+                    ),
+                    Widget(),
+                ),
+            )
+        elif Index != (len(TextList) - 1):
+            LongDialog = MDDialog(
+                MDDialogIcon(icon="chat-question"),
+                MDDialogHeadlineText(text=HeadlineList[Index]),
+                MDDialogSupportingText(text=TextList[Index]),
+                MDDialogButtonContainer(
+                    Widget(),
+                    MDButton(MDButtonText(text="<", bold=True), style="text", pos_hint={'center_x': 0.5},
+                        on_release=lambda x: self.show_long_dialog(HeadlineList, TextList, Index-1),
+                    ),
+                    MDButton(MDButtonText(text="Đóng"), style="text", pos_hint={'center_x': 0.5},
+                        on_release=lambda x: LongDialog.dismiss(),
+                    ),
+                    MDButton(MDButtonText(text=">", bold=True), style="text", pos_hint={'center_x': 0.5},
+                        on_release=lambda x: self.show_long_dialog(HeadlineList, TextList, Index+1),
+                    ),
+                    Widget(),
+                ),
+            )
+        else:
+            LongDialog = MDDialog(
+                MDDialogIcon(icon="chat-question"),
+                MDDialogHeadlineText(text=HeadlineList[Index]),
+                MDDialogSupportingText(text=TextList[Index]),
+                MDDialogButtonContainer(
+                    Widget(),
+                    MDButton(MDButtonText(text="<", bold=True), style="text", pos_hint={'center_x': 0.5},
+                        on_release=lambda x: self.show_long_dialog(HeadlineList, TextList, Index-1),
+                    ),
+                    MDButton(MDButtonText(text="Đóng"), style="text", pos_hint={'center_x': 0.5},
+                        on_release=lambda x: LongDialog.dismiss(),
+                    ),
+                    MDButton(MDButtonText(text=">", bold=True), style="text", pos_hint={'center_x': 0.5}, disabled=True,
+                        on_release=lambda x: LongDialog.dismiss(),
+                    ),
+                    Widget(),
+                ),
+            )
+        LongDialog.open()
+        if self.instance:
+            self.instance.dismiss()
+        self.instance = LongDialog
 
     def show_info_snackbar(self, message: str):
         """Hiển thị thông báo snackbar đơn giản"""

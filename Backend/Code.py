@@ -229,8 +229,6 @@ class Shop:
             item_to_add = Items[key]
             if (item_to_add.category == "Tiêu Hao") or (item_to_add not in Character.inventory and item_to_add not in Character.equipment):
                 self.current_stock.append(Items[key])
-            else:
-                print(f"Item not added: {item_to_add}")
         self.current_stock.sort(key=lambda x: x.rarity.value, reverse=True)
 
 class RewardSystem:
@@ -361,7 +359,7 @@ class StudySession:
         linked_quests: List[Quest]
     ):
         if start_time >= end_time: print("Thời gian kết thúc phải sau thời gian bắt đầu.")
-        if not goal_description: print("Mô tả phiên học không được để trống.")
+        if not goal_description: print("Mô tả phiên học bị để trống.")
         if not linked_quests: print("Phiên học phải có ít nhất một nhiệm vụ liên kết.")
 
         self.session_id: str = str(uuid.uuid4())
@@ -412,7 +410,6 @@ class StudySession:
         self.actual_end_time = to_basedate_time(raw_end_time)
         
         # --- BƯỚC 1: TÍNH TOÁN CÁC ĐIỂM THÀNH PHẦN ---
-        
         # 1.1. Điểm Hoàn thành Nhiệm vụ (Quest Score)
         quest_score = self.quest_progress
         
@@ -420,7 +417,7 @@ class StudySession:
         start_time_for_calc = self.actual_start_time if self.actual_start_time else self.start_time
         start_time_for_calc = to_basedate_time(start_time_for_calc)
         end_time_for_calc = to_basedate_time(self.actual_end_time)
-        
+       
         time_spent_seconds = self._calculate_session_duration(start_time_for_calc, end_time_for_calc)
         time_planned_seconds = (self.end_time - self.start_time).total_seconds()
         
@@ -1335,7 +1332,6 @@ class SessionManager:
             session = StudySession(goal_description, start_time, end_time, linked_quests)
             conflicting_session = self._check_time_conflict(start_time, end_time)
             if conflicting_session:
-                print(f"Xung đột thời gian: Phiên học mới trùng với '{conflicting_session.goal_description}'")
                 return [conflicting_session, session]
             
             self.sessions.append(session)
