@@ -1,9 +1,6 @@
 name: Build Android APK
 
 on:
-  push:
-    branches: [ "main", "master" ]
-  
   workflow_dispatch:
 
 jobs:
@@ -14,14 +11,13 @@ jobs:
       # Step 1: Checks out repository's code so the job can access it.
       - uses: actions/checkout@v4
 
-      # Step 2: Automatically find your buildozer.spec file and build the APK.
+      # Step 2: Automatically find buildozer.spec file and build the APK.
       - name: Build with Buildozer
         uses: ArtemSBulgakov/buildozer-action@v1.2.0
         with:
-          # 'debug' is great for testing. Change to 'release' when ready to publish.
           command: buildozer android debug
 
-      # Step 3: Takes the APK file from the virtual machine and saves it as a "workflow artifact".
+      # Step 3: Takes the APK file from the virtual machine and saves it as a workflow artifact.
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
