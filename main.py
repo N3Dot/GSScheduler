@@ -566,7 +566,7 @@ MDScreenManager:
                         MDNavigationDrawerItemLeadingIcon:
                             icon: "crosshairs-question"
                         MDNavigationDrawerItemText:
-                            text: "Hướng Dẫn Khúc Này"
+                            text: "Hướng Dẫn Nơi Này"
                     MDNavigationDrawerItem:
                         on_release: app.get_running_app().stop() # Does not stop background services started by pyjnius or android.service
                         MDNavigationDrawerItemLeadingIcon:
@@ -1383,7 +1383,6 @@ class GSS(MDApp):
     def on_click_item(self, ItemCard):
         if ItemCard.item:
             self.PopupManager.show_item_dialog(ItemCard.item)
-            self.PopupManager.show_start_section_dialog("aaa", ["abc", "bcd"])
     
     def on_click_owned_item(self, ItemCard):
         if ItemCard.item:
@@ -1476,13 +1475,37 @@ class GSS(MDApp):
         self.show_welcome_dialog()
     
     def on_show_instructions(self):
-        self.show_welcome_dialog()
+        if self.root.ids.screen_manager_menu.current == "Home":
+            if self.root.ids.screen_manager_home.current == "Phiên Học":
+                self.PopupManager.show_long_dialog(["Về Phiên Học", "Tạo Phiên Học", "Khi Tới Giờ", "Cách Tính Thưởng"], 
+                ["Tại giao diện [color=00008B]Phiên Học,[/color] bạn sẽ thấy từ trên xuống gồm:\n\n[b][color=008000]Khung Nhân Vật Tóm Tắt:[/color][/b] Hiển thị trạng thái hiện tại của nhân vật bạn và số Vàng mà bạn đang sở hữu.\n\n[b][color=008000]Lịch Học Hôm Nay:[/color][/b] Hiển thị lời nhắc nếu chưa có phiên học nào được tạo. Nếu đã có, danh sách các phiên học của ngày sẽ được liệt kê.\n\n[b][color=008000]Phiên Học:[/color][/b] Mỗi phiên học sẽ hiển thị thời gian bắt đầu và kết thúc của phiên học, mô tả của phiên học và cuối cùng là số nhiệm vụ kèm theo độ khó.\n\nBạn có thể chỉnh sửa hoặc xóa từng phiên học bằng cách bấm nút ba chấm ở bên phải của phiên học.", 
+                "[b][color=008000]Nút Tạo Phiên Học Mới:[/color][/b] Nút dấu [b]+[/b] ở gần giữa màn hình là nơi để bạn thêm phiên học mới.\n\n[b][color=008000]Cách Tạo Phiên Học[/color][/b]\n[b][color=008000]1.[/color][/b] Nhập mô tả chung cho phiên học. Thường, đây là nội dung chính mà bạn muốn thực hiện trong phiên học này.\n\n[b][color=008000]2.[/color][/b] Chọn giờ bắt đầu và giờ kết thúc [i](Thời gian bắt đầu không thể sau thời gian kết thúc, và các phiên học thể trùng lịch với nhau!).[/i]\n\n[b][color=008000]3.[/color][/b] Ở phần bên phải, thêm các nhiệm vụ [i](Mục tiêu nhỏ trong phiên học)[/i] kèm với độ khó [i](1-5).[/i] Số nhiệm vụ và tổng độ khó sẽ ảnh hưởng đến phần thưởng của bạn ở cuối buổi phiên học này.\n\n[b][color=008000]4.[/color][/b] Bạn đã xong! Nhấn nút [b]Hoàn Thành[/b] để lưu phiên học, hoặc [b]Hủy[/b] để quay về.", 
+                "Khi đến giờ hẹn của phiên học, ứng dụng sẽ tự động chuyển sang màn hình [b][color=00008B]Khóa,[/color][/b] hiển thị:\n\n- Mô tả phiên học.\n\n- Thời gian còn lại của phiên học.\n\n- Danh sách nhiệm vụ kèm độ khó và ô vuông để bạn từng bước đánh dấu hoàn thành qua suốt phiên học.\n\n- Nút kết thúc phiên học sau khi hoàn thành xong hoặc hết giờ, dùng để kết thúc phiên học và tính phần thưởng [color=B22222]XP[/color] và [color=B22222]Vàng[/color] cuối cùng.",
+                "Tùy thuộc vào thời gian hoàn thành dự kiến và số nhiệm vụ hoàn thành thì các phiên học khi kết thúc sẽ có các mức hạng: [b]S, A, B, C, F.[/b]\n\n[b][color=008000]Công Thức Thưởng[/color][/b]\n[color=008000]- XP Mỗi Nhiệm Vụ:[/color] Độ Khó x 20 x (1 + [color=B22222]DEX[/color] x 0.02)\n\n[color=008000]- Vàng Mỗi Nhiệm Vụ:[/color] Độ Khó x 10 x (1 + [color=B22222]LUK[/color] x 0.02)\n\n[color=008000]- Vàng Thưởng Thêm Cho Hạng:[/color] S=15, A=10, B=5, C=2, F=0.\n\n- Riêng hạng F, thì sẽ áp dụng mức trừng phạt bằng cách tấn công vào và giảm [color=B22222]HP.[/color] Đòn đánh này phụ thuộc vào số nhiệm vụ mà bạn không hoàn thành kịp thời."])
+            elif self.root.ids.screen_manager_home.current == "Nhân Vật":
+                self.PopupManager.show_long_dialog(["Về Nhân Vật", "Các Chỉ Số", "Trang Bị", "Kho Đồ", "Thành Tích"], 
+                ["Tại giao diện [color=00008B]Nhân Vật,[/color] bạn sẽ thấy 5 khu vực với nội dung lần lượt từ trên xuống, trái sang phải là:\n\n[b][color=008000]Ảnh Nền:[/color][/b] Được người dùng chọn lúc tạo nhân vật và có thể chỉnh sửa tùy ý.\n\nNhấp vào để xem mã QR chứa dữ liệu của nhân vật. Chia sẻ mã QR để thể hiện sức mạnh của mình trên [color=00008B]Đấu Trường![/color]", 
+                "Khu vực phía trên bên phải màn hình hiển thị [b][color=008000]Thông Tin Nhân Vật:[/color][/b]\n\n[color=008000]Tên Nhân Vật:[/color] Do người dùng đặt.\n\n[color=008000]Cấp Độ (Level):[/color] Hiển thị cấp hiện tại.\n\n[color=008000]HP (Máu):[/color] Thanh máu hiển thị lượng HP hiện có trên tổng HP.\n\n[color=008000]XP (Kinh Nghiệm):[/color] Thanh kinh nghiệm cần để lên cấp.\n\n[color=008000]Khéo Tay (DEX):[/color] Chỉ số cá nhân tăng XP nhận được.\n\n[color=008000]Trí Tuệ (INT):[/color] Chỉ số cá nhân giảm HP bị mất nếu bị tấn công.\n\n[color=008000]May Mắn (LUK):[/color] Chỉ số cá nhân tăng Vàng nhận được.", 
+                "Nằm phía dưới [b][color=008000]Ảnh Nền[/color][/b] và [b][color=008000]Thông Tin Nhân Vật[/color][/b] với chức năng: Cho người dùng biết mình đang trang bị các [color=B22222]Vật Phẩm[/color] loại Trang Bị nào. Các [color=B22222]Vật Phẩm[/color] loại Trang Bị sau khi được người dùng chọn Trang Bị sẽ xuất hiện tại đây.\n\nVới mỗi loại Trang Bị (Vũ Khí, Mũ, Khiên), bạn chỉ được mặc 1 cái.",
+                "Nằm phía dưới [b][color=008000]Trang Bị[/color][/b] với chức năng: Cho người dùng biết mình đang sở hữu các loại [color=B22222]Vật Phẩm[/color] nào. Các [color=B22222]Vật Phẩm[/color] sau khi được người dùng mua tại của [color=00008B]Cửa Hàng[/color] sẽ xuất hiện tại đây.\n\nNhấp vào biểu tượng [color=B22222]Vật Phẩm[/color] để mặc, sử dụng hoặc xem thông tin chi tiết của [color=B22222]Vật Phẩm.[/color]",
+                "Nằm phía dưới [b][color=008000]Kho Đồ[/color][/b] với chức năng: Hiện thị tất cả các Thành Tích mà người dùng được trao.\n\nNhấp vào biểu tượng Thành Tích để xem chi tiết."])
+            elif self.root.ids.screen_manager_home.current == "Cửa Hàng":
+                self.PopupManager.show_long_dialog(["Về Cửa Hàng"], 
+                ["Tại giao diện [color=00008B]Cửa Hàng,[/color] bạn sẽ thấy:\n\n[b][color=008000]Vàng:[/color][/b] Hiển thị chính xác số lượng Vàng mà bạn sở hữu.\n\n[b][color=008000]Các Mặt Hàng:[/color][/b] Tại đây sẽ hiển thị các [color=B22222]Vật Phẩm[/color] mà bạn chưa sở hữu có thể mua với giá tiền của nó ngay phía dưới.\n\n[b][color=008000]Nút Mua:[/color][/b] Cho phép bạn mua [color=B22222]Vật Phẩm[/color] khi bạn đủ Vàng.\n\nBạn có thể nhấn vào biểu tượng của các [color=B22222]Vật Phẩm[/color] để tìm hiểu thông tin chi tiết."])
+        elif self.root.ids.screen_manager_menu.current == "Arena":
+            self.PopupManager.show_long_dialog(["Về Đấu Trường", "Giao Diện", "Trong Trận Đấu"], 
+            ["Tại giao diện [color=00008B]Đấu Trường,[/color] bạn có thể:\n\n- Nhập mã đối thủ mà bạn muốn chiến đấu (Qua mã QR hoặc Base64).\n\n- Hoặc chọn một trong những đối thủ Demo đã có sẵn, với cấp độ ngẫu nhiên.", 
+             "Giao diện [color=00008B]Đấu Trường[/color] từ trên xuống gồm:\n\n[b][color=008000]Thông Tin Đối Thủ[/color][/b]: Hình ảnh, tên, cấp độ và chỉ số HP.\n\n[b][color=008000]Thông Tin Người Chơi[/color][/b]: Hình ảnh, tên, cấp độ và chỉ số HP.\n\n[b][color=008000]Kỹ Năng Attack (Đánh)[/color][/b]: Tấn công thông thường, sức mạnh dựa vào [color=B22222]DEX[/color] và [color=B22222]LUK.[/color]\n\n[b][color=008000]Kỹ Năng Defend (Phòng Thủ)[/color][/b]: Giảm thiệt hại khi bị tấn công trong lượt này.\n\n[b][color=008000]Kỹ Năng Magic (Phép Thuật)[/color][/b]: Tấn công phép thuật, sức mạnh dựa vào [color=B22222]INT[/color] và [color=B22222]LUK.[/color]", 
+             "[b][color=008000]1.[/color][/b] Người chơi và Bot lần lượt thực hiện lượt đấu bằng cách chọn kỹ năng.\n\n[b][color=008000]2.[/color][/b] Kết thúc một lượt, kết quả trong lượt này sẽ được hiển thị qua các hiệu ứng và khung thông báo hiện giữa màn hình.\n\n[b][color=008000]3.[/color][/b] Trận đấu kết thúc khi một trong hai bên hết [color=B22222]HP.[/color]\n\n[b][color=008000]4.[/color][/b] Người chơi sẽ nhận một phần thưởng [color=B22222]XP[/color] và [color=B22222]Vàng[/color] nếu thắng.\n\nCố gắng hoàn thiện nhân vật của bạn qua từng lịch học, và chúc bạn thành công trong đấu trường!"])
+        elif self.root.ids.screen_manager_menu.current == "Settings":
+            self.PopupManager.show_long_dialog(["Về Cài Đặt"], 
+                ["Tại giao diện [color=00008B]Cài Đặt,[/color] bạn có thể:\n\n[b][color=008000]Xem kết quả học tập:[/color][/b] Bằng cách mở bảng phân tích thống kê tổng hợp.\n\n[b][color=008000]Tải Dữ Liệu Qua Mã QR:[/color][/b] Quét mã QR hoặc nhập Base64 để lấy dữ liệu nhân vật và phiên học từ thiết bị khác.\n\n[b][color=008000]Đổi Ảnh Đại Diện Nhân Vật:[/color][/b] Bạn có thể cho phép ứng dụng lấy ảnh ngẫu nhiên trên mạng, hoặc dùng ảnh từ chính thiết bị của bạn.\n\n[b][color=008000]Xóa Dữ Liệu Trò Chơi:[/color][/b] Ứng dụng sẽ khởi tạo lại tất cả, trở về trạng thái mặc định với một nhân vật hoàn toàn mới."])
     
     def show_welcome_dialog(self):
         self.PopupManager.show_long_dialog(["Chào Mừng Đến Với Học Tập Kiểu RPG!", "Về Phiên Học", "Lời Cuối"], 
-                                           ["Hãy bắt đầu bằng cách tạo một phiên học, đặt thời gian bắt đầu và kết thúc.\n\nTạo các nhiệm vụ với độ khó tùy chọn - chúng chính là “quái vật” bạn cần tiêu diệt!", 
-                                            "Khi đến giờ, ứng dụng sẽ tự động kích hoạt phiên học và đếm giờ.\n\nTrong suốt thời gian đó, hãy tập trung hoàn thành nhiệm vụ, đánh dấu tiến độ và đạt hạng cao nhất.\n\nKết thúc phiên học, hệ thống sẽ trao thưởng nếu bạn làm tốt... hoặc trừ HP nếu bạn lười biếng!", 
-                                            "Cuối cùng, bạn đừng quên ghé Shop để tiêu vàng, thử sức trên Chiến Trường, nâng cấp nhân vật và chuẩn bị cho những phiên học tiếp theo!"])
+        ["Bạn hãy bắt đầu bằng cách tạo một phiên học, đặt thời gian bắt đầu và kết thúc.\n\nTạo các nhiệm vụ với độ khó tùy chọn - chúng chính là “quái vật” bạn cần tiêu diệt!", 
+         "Khi đến giờ, ứng dụng sẽ tự động kích hoạt phiên học và đếm giờ.\n\nTrong suốt thời gian đó, hãy tập trung hoàn thành nhiệm vụ, đánh dấu tiến độ và đạt hạng cao nhất.\n\nKết thúc phiên học, hệ thống sẽ trao thưởng nếu bạn làm tốt... hoặc trừ HP nếu bạn lười biếng!", 
+         "Cuối cùng, bạn đừng quên ghé Shop để tiêu vàng, thử sức trên Chiến Trường, nâng cấp nhân vật và chuẩn bị cho những phiên học tiếp theo!"])
 
     def revive_character(self):
         self.character.equipment = []

@@ -452,63 +452,77 @@ class Popup:
         self.file_manager.close()
 
     def show_long_dialog(self, HeadlineList: list, TextList: list, Index = 0):
-        if Index == 0:
+        if len(TextList) <= 1:
             LongDialog = MDDialog(
                 MDDialogIcon(icon="chat-question"),
-                MDDialogHeadlineText(text=HeadlineList[Index]),
-                MDDialogSupportingText(text=TextList[Index]),
+                MDDialogHeadlineText(text=HeadlineList[Index], markup=True),
+                MDDialogSupportingText(text=TextList[Index], markup=True),
                 MDDialogButtonContainer(
                     Widget(),
-                    MDButton(MDButtonText(text="<", bold=True), style="text", pos_hint={'center_x': 0.5}, disabled=True,
-                        on_release=lambda x: LongDialog.dismiss(),
-                    ),
                     MDButton(MDButtonText(text="Đóng"), style="text", pos_hint={'center_x': 0.5},
                         on_release=lambda x: LongDialog.dismiss(),
-                    ),
-                    MDButton(MDButtonText(text=">", bold=True), style="text", pos_hint={'center_x': 0.5},
-                        on_release=lambda x: self.show_long_dialog(HeadlineList, TextList, Index+1),
-                    ),
-                    Widget(),
-                ),
-            )
-        elif Index != (len(TextList) - 1):
-            LongDialog = MDDialog(
-                MDDialogIcon(icon="chat-question"),
-                MDDialogHeadlineText(text=HeadlineList[Index]),
-                MDDialogSupportingText(text=TextList[Index]),
-                MDDialogButtonContainer(
-                    Widget(),
-                    MDButton(MDButtonText(text="<", bold=True), style="text", pos_hint={'center_x': 0.5},
-                        on_release=lambda x: self.show_long_dialog(HeadlineList, TextList, Index-1),
-                    ),
-                    MDButton(MDButtonText(text="Đóng"), style="text", pos_hint={'center_x': 0.5},
-                        on_release=lambda x: LongDialog.dismiss(),
-                    ),
-                    MDButton(MDButtonText(text=">", bold=True), style="text", pos_hint={'center_x': 0.5},
-                        on_release=lambda x: self.show_long_dialog(HeadlineList, TextList, Index+1),
                     ),
                     Widget(),
                 ),
             )
         else:
-            LongDialog = MDDialog(
-                MDDialogIcon(icon="chat-question"),
-                MDDialogHeadlineText(text=HeadlineList[Index]),
-                MDDialogSupportingText(text=TextList[Index]),
-                MDDialogButtonContainer(
-                    Widget(),
-                    MDButton(MDButtonText(text="<", bold=True), style="text", pos_hint={'center_x': 0.5},
-                        on_release=lambda x: self.show_long_dialog(HeadlineList, TextList, Index-1),
+            if Index == 0:
+                LongDialog = MDDialog(
+                    MDDialogIcon(icon="chat-question"),
+                    MDDialogHeadlineText(text=HeadlineList[Index], markup=True),
+                    MDDialogSupportingText(text=TextList[Index], markup=True),
+                    MDDialogButtonContainer(
+                        Widget(),
+                        MDButton(MDButtonText(text="<<", bold=True), style="text", pos_hint={'center_x': 0.5}, disabled=True,
+                            on_release=lambda x: LongDialog.dismiss(),
+                        ),
+                        MDButton(MDButtonText(text="Đóng"), style="text", pos_hint={'center_x': 0.5},
+                            on_release=lambda x: LongDialog.dismiss(),
+                        ),
+                        MDButton(MDButtonText(text=">>", bold=True), style="text", pos_hint={'center_x': 0.5},
+                            on_release=lambda x: self.show_long_dialog(HeadlineList, TextList, Index+1),
+                        ),
+                        Widget(),
                     ),
-                    MDButton(MDButtonText(text="Đóng"), style="text", pos_hint={'center_x': 0.5},
-                        on_release=lambda x: LongDialog.dismiss(),
+                )
+            elif Index != (len(TextList) - 1):
+                LongDialog = MDDialog(
+                    MDDialogIcon(icon="chat-question"),
+                    MDDialogHeadlineText(text=HeadlineList[Index]),
+                    MDDialogSupportingText(text=TextList[Index]),
+                    MDDialogButtonContainer(
+                        Widget(),
+                        MDButton(MDButtonText(text="<<", bold=True), style="text", pos_hint={'center_x': 0.5},
+                            on_release=lambda x: self.show_long_dialog(HeadlineList, TextList, Index-1),
+                        ),
+                        MDButton(MDButtonText(text="Đóng"), style="text", pos_hint={'center_x': 0.5},
+                            on_release=lambda x: LongDialog.dismiss(),
+                        ),
+                        MDButton(MDButtonText(text=">>", bold=True), style="text", pos_hint={'center_x': 0.5},
+                            on_release=lambda x: self.show_long_dialog(HeadlineList, TextList, Index+1),
+                        ),
+                        Widget(),
                     ),
-                    MDButton(MDButtonText(text=">", bold=True), style="text", pos_hint={'center_x': 0.5}, disabled=True,
-                        on_release=lambda x: LongDialog.dismiss(),
+                )
+            else:
+                LongDialog = MDDialog(
+                    MDDialogIcon(icon="chat-question"),
+                    MDDialogHeadlineText(text=HeadlineList[Index]),
+                    MDDialogSupportingText(text=TextList[Index]),
+                    MDDialogButtonContainer(
+                        Widget(),
+                        MDButton(MDButtonText(text="<<", bold=True), style="text", pos_hint={'center_x': 0.5},
+                            on_release=lambda x: self.show_long_dialog(HeadlineList, TextList, Index-1),
+                        ),
+                        MDButton(MDButtonText(text="Đóng"), style="text", pos_hint={'center_x': 0.5},
+                            on_release=lambda x: LongDialog.dismiss(),
+                        ),
+                        MDButton(MDButtonText(text=">>", bold=True), style="text", pos_hint={'center_x': 0.5}, disabled=True,
+                            on_release=lambda x: LongDialog.dismiss(),
+                        ),
+                        Widget(),
                     ),
-                    Widget(),
-                ),
-            )
+                )
         LongDialog.open()
         if self.instance:
             self.instance.dismiss()
